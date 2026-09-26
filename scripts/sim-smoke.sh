@@ -167,7 +167,7 @@ run() { if [ -z "${ONLY:-}" ] || [[ "$*" == *"${ONLY}"* ]]; then "$@"; fi; }
 run check swing-sample-4reps kettlebell-swing 4 90
 run check pistols pistol-squat 6 180
 run check bulgarian bulgarian-split-squat 8 180
-run check_trim igor-1h-swing 9 150
+run check_trim igor-1h-swing 10 150  # 9 until the first swing counted (#148)
 run check_cancel pistols 60
 run check_cancel_reopen pistols 6 180
 run check_interrupt pistols 60 pistol-squat 6 180

@@ -29,9 +29,14 @@ final class RepCountTests: XCTestCase {
       let pipeline = AnalysisPipeline.analyze(frames: try fixture.frames(), exercise: fixture.expectedExercise)
       XCTAssertEqual(pipeline.reps.count, fixture.expectedReps, "\(fixture.name)")
       for rep in pipeline.reps {
+        var expected = Set(fixture.expectedExercise.definition.galleryOrder.map(\.id))
+        // A swing's first rep may be the hike off the floor (#148): its top is the lockout it ends on, after the
+        // release, and no connect need precede its hinge.
+        if let top = rep.positions["top"], let release = rep.positions["release"], top.time > release.time {
+          expected.subtract(rep.positions["connect"] == nil ? ["connect"] : [])
+        }
         XCTAssertEqual(
-          Set(rep.positions.keys), Set(fixture.expectedExercise.definition.galleryOrder.map(\.id)),
-          "\(fixture.name) rep \(rep.number) is missing a phase position")
+          Set(rep.positions.keys), expected, "\(fixture.name) rep \(rep.number) is missing a phase position")
         XCTAssert((0...100).contains(rep.quality.score), "\(fixture.name) rep \(rep.number) score out of range")
       }
     }

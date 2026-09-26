@@ -20,8 +20,14 @@ BOTTOM, the first qualifying frame for CONNECT and RELEASE.
 - **An upswing over 1 s is not a swing** (`releaseMaxDuration`, #4). The upswing is ballistic: the arms reach the
   top 0.15–0.3 s after crossing vertical. Standing up after parking the bell, or after picking it up, looks like a
   release but the arms rise seconds later, if at all.
-- **A rep longer than 4 s is discarded** (`maxRepDuration`, #15). Top to top takes about 1.2 s, a slow first hike
-  about 2 s; longer "reps" are the walk-in or the pick-up flowing into the first swing.
+- **The first swing counts; the setup before it does not** (`maxRepDuration` 4 s, #15; `hikeReleaseMax` 0.4 s,
+  #148). Top to top takes about 1.2 s. A rep still standing or hinging 4 s after its top began with the walk-in,
+  the pick-up or the setup: it becomes a *hike*. Its top, connect and metrics are dropped and it is timed again
+  from there (again every 4 s while the hinge lasts), so its pictures and the trim start at the hike, not the
+  walk-in. A recording that opens with the lifter over the bell, before any top is seen, starts a hike at the
+  first hinge. A hike counts only if the arms reach the top within 0.4 s of crossing vertical (the added
+  reps: 0.10–0.30 s); standing up with the bell or after parking it is slower or never reaches a top. Its Top picture
+  is the lockout it reaches, and it has no Connect.
 - **Unmeasured frames do not drive transitions** (0° joints are skipped); reps longer than 4 s were once produced by
   such frames.
 - **A hole in the track ends the rep in progress** (`maxFrameGap` 0.5 s, #94). Half a second is a whole bottom, so
@@ -47,22 +53,23 @@ Scored per rep from the stored positions (lockout angles, hinge depth); mirrored
 | Fixture | Reps | Verified | Why it exists |
 |---|---|---|---|
 | swing-4reps | 4 | yes | baseline |
-| swing-1h-9reps | 9 | yes | one-hand swing: the working arm is the raised one |
-| swing-phone-13reps | 13 | yes | phone recording |
-| swing-pickup-10reps | 9 | yes | #4: the bend to pick the bell up (first second) and the park at the end once counted |
-| swing-walkin-9reps | 9 | yes | #15 (IMG_4337): the walk-in and pick-up (0.5–6.6 s) counted as rep 1 |
-| swing-lowcam-10reps | 10 | no | #16 (IMG_4340): low, close camera; counted 0 before the arm thresholds were relaxed |
-| swing-hole-7reps | 7 | no | #94: a live set whose recording lost 12.68–14.88 s; 9 swings, 2 cut by the hole |
-| swing-onearm-10reps | 8 | no | #97: ten one-arm swings with the upper arm on the ribs, arm peaks 37–49° at the top; counted 5. The first two are not countable yet (see Experiments); the bell park at the end must not be a rep |
-| swing-farcam-10reps | 10 | no (Muse) | #139 (9283D45A): far camera behind the lifter, arms foreshortened, the float reads 30–38°; counted 1 |
-| swing-farcam-5tops | 4 | no (Muse) | #140 (CDC08BF2): same camera; the auto-trim (#141) cut the clip on the fifth top; counted 1 |
+| swing-1h-9reps | 10 | no (9 was, top to top) | one-hand swing: the working arm is the raised one; opens over the bell, first top 2.85 s (#148) |
+| swing-phone-13reps | 14 | no (13 was, top to top) | phone recording; the first swing off the floor tops at 9.75 s (#148) |
+| swing-pickup-10reps | 10 | yes | #4: the bend to pick the bell up (first second) and the park at the end once counted; 9 until the first swing counted (#148) |
+| swing-walkin-9reps | 10 | no (the walk-in is Igor's) | #15 (IMG_4337): the walk-in and pick-up (0.5–6.6 s) counted as rep 1; the hike into the 6.64 s top counts since #148 |
+| swing-lowcam-10reps | 11 | no | #16 (IMG_4340): low, close camera; counted 0 before the arm thresholds were relaxed |
+| swing-hole-7reps | 8 | no | #94: a live set whose recording lost 12.68–14.88 s; 10 swings, 2 cut by the hole |
+| swing-onearm-10reps | 10 | no | #97: ten one-arm swings with the upper arm on the ribs, arm peaks 37–49° at the top; counted 5, then 8; the first two since #148; the bell park at the end must not be a rep |
+| swing-farcam-10reps | 11 | no (Muse: 10) | #139 (9283D45A): far camera behind the lifter, arms foreshortened, the float reads 30–38°; counted 1. The eleventh is the bell park (24.95 s), counted since #139 |
+| swing-farcam-5tops | 5 | no (Muse) | #140 (CDC08BF2): same camera; the auto-trim (#141) cut the clip on the fifth top; counted 1 |
 
 Reports: `TuningReports.testSwingTopArmSweep` (every swing fixture's and archived swing track's count per
 `ballisticTopArmMin`; `SWING_TOP_HIP`, `SWING_BALLISTIC`, `SWING_MAX_REP` rerun it under other thresholds),
 `TuningReports.testSwingWristRiseSweep` (the same rows per `wristTopRiseMin`, off first; `SWING_WRIST_ARM`
-overrides `wristTopArmMin`), `TuningReports.testSwingRepTraces`, `SwingThresholdSweep.testSwingThresholdSweep`, and
+overrides `wristTopArmMin`), `TuningReports.testSwingHikeSweep` (the same rows per `hikeReleaseMax`, off first,
+then every rep the default adds: where it sits and its angles), `TuningReports.testSwingRepTraces`, `SwingThresholdSweep.testSwingThresholdSweep`, and
 `TuningReports.testSwingSignals` (every frame's angles and phase for one archived track, `SWING_TRACK=<name>
-SWING_FROM=12 SWING_TO=17`).
+SWING_FROM=12 SWING_TO=17`; a fixture name works too).
 
 ## Experiments
 
@@ -122,3 +129,27 @@ SWING_FROM=12 SWING_TO=17`).
   rule), -0.4 moves nothing but the three far-camera sets: 9283D45A 1 → 10, CDC08BF2 1 → 4, 3BEF7CEF 0 → 2
   (a 9 s trimmed fragment starting mid-set, 4 tops by Muse); at -0.5 F853A918's park and two 09-16 sets
   (73014BDE, B69762F7) gain one. `wristTopRiseMin` -0.4, `wristTopArmMin` 20. Not yet confirmed by Igor.
+- **2026-09-26, the first swing counts (#148)**: Igor's decision: the hike off the floor into the first top is a
+  rep. Until now the first rep was timed from whatever top the machine began in (the walk-in, or no top at all:
+  the machine starts in TOP), so after 4 s of setup it was discarded, and when the recording opened over the bell
+  the hike's hip snap read as CONNECT and the first top was merged into the second swing (the #97 loss). Two
+  rules make a *hike*: a rep in CONNECT or BOTTOM over `maxRepDuration` drops its setup positions and is timed
+  again from there, and before any top is seen a hinge in TOP goes straight to BOTTOM. A hike counts when the
+  arms reach the top within `hikeReleaseMax` of RELEASE. `testSwingHikeSweep` (off / 0.3 / 0.4 / 0.6 / 1.0 s):
+  the ten fixtures read 4 / 9 / 13 / 9 / 9 / 10 / 7 / 8 / 10 / 4 off and 4 / 10 / 14 / 10 / 10 / 11 / 8 / 10 /
+  11 / 5 at every value; of the 48 archived swing tracks, 5 do not move, 31 gain one, 11 gain two and FD1FCA37
+  three. Every added rep was checked in the report: each is the first rep of its set (or the second, where the
+  set opened over the bell), bottom hinged 48–79° with the hip at 47–109°, release hip 143–177°, top 0.10–0.30 s
+  after the release, and the wrists float to within 0.32 torso lengths of the shoulders (-0.32…+0.11; hanging
+  arms read about -1). The mid-recording ones are second sets: F677269B's rep 12 (the walk between its halves,
+  then a hike from 31.5 s to a 57° top at 32.5 s) and FD1FCA37's rep 11 (hinged over the parked bell 31.6–37.9 s,
+  hike, 63° top at 39.2 s). No set gains a rep at its end. The frames agree for swing-1h-9reps (over the bell
+  on the floor to 1.75 s, bell at chest height at 2.75–3.0 s) and swing-phone-13reps (hand on the bell on the
+  floor to 8.75 s, bell at chest height at 9.5–9.75 s): their humanVerified 9 and 13 were top-to-top, now 10
+  and 14. First version: a far-camera fragment (3BEF7CEF) whose standing tops never read `topArmMin` gained a
+  park at its end (hinge 6.3–8.2 s, a 0.33 s stand-up to 34°), because it had "never seen a top"; a completed
+  rep now counts as a seen top, and it gains only its first swing (2 → 3). The window hardly matters (0.3–1.0 s
+  give the same counts now); 0.4, the `ballisticReleaseMax` of #97, keeps the margin against a slow park.
+  Pre-existing, not changed: swing-farcam-10reps' last rep (bottom 22.6–24.2 s, 0.73 s up to a 41° arm at
+  24.95 s) is the bell park, counted since #139, so that fixture reads 11 for 10 swings. Not yet confirmed by
+  Igor beyond swing-pickup-10reps (10).

@@ -236,10 +236,13 @@ extension TuningReports {
 
   /// Every frame's swing signals and phase for one archived track, between two times:
   /// `SWING_TRACK=kettlebell-swing-20260918-5C13D496 SWING_FROM=12 SWING_TO=17 swift test --filter testSwingSignals`.
+  /// A fixture name (`SWING_TRACK=swing-walkin-9reps`) works too.
   func testSwingSignals() throws {
     let env = ProcessInfo.processInfo.environment
     guard let name = env["SWING_TRACK"] else { return }
-    let url = try XCTUnwrap(Bundle.module.url(forResource: name, withExtension: "json", subdirectory: "Fixtures/tracks"), "missing track \(name)")
+    let url = try XCTUnwrap(
+      Bundle.module.url(forResource: name, withExtension: "json", subdirectory: "Fixtures/tracks")
+        ?? Bundle.module.url(forResource: name, withExtension: "json", subdirectory: "Fixtures"), "missing track \(name)")
     let from = Double(env["SWING_FROM"] ?? "") ?? 0
     let to = Double(env["SWING_TO"] ?? "") ?? .infinity
     let pipeline = AnalysisPipeline.analyze(frames: try Fixture.frames(at: url), exercise: .kettlebellSwing)
@@ -317,6 +320,50 @@ extension TuningReports {
     let tracks = (Bundle.module.urls(forResourcesWithExtension: "json", subdirectory: "Fixtures/tracks") ?? [])
       .filter { $0.lastPathComponent.hasPrefix("kettlebell-swing") }.sorted { $0.lastPathComponent < $1.lastPathComponent }
     for url in tracks { row(url.deletingPathExtension().lastPathComponent, "-", try Fixture.frames(at: url)) }
+  }
+
+  /// #148: the first swing counts. Every swing fixture's and archived track's count with the hike rule off
+  /// ("off", every rep over `maxRepDuration` discarded) and at each `hikeReleaseMax`, then, for every set the
+  /// default changes, each rep it adds: where it sits (its number of the total, bottom, release, top) and the angles
+  /// that make it a swing (the hinge at the bottom, the hip at the snap, the arm at the top). A rep added at
+  /// the end of a set would be a bell park.
+  func testSwingHikeSweep() throws {
+    let values: [Double?] = [nil, 0.3, 0.4, 0.6, 1.0]
+    struct Rep { let bottom: RepPosition?, release: RepPosition?, top: FrameRecord }
+    func run(_ frames: [FrameRecord], _ value: Double?) -> [Rep] {
+      var thresholds = SwingThresholds()
+      thresholds.hikeReleaseMax = value
+      let pipeline = AnalysisPipeline(exercise: .kettlebellSwing, analyzer: KettlebellSwingAnalyzer(thresholds: thresholds))
+      for frame in frames { pipeline.process(extracted: frame) { nil } }
+      let tops = pipeline.track.frames.filter { $0.analysis?.completedRep != nil }
+      return zip(pipeline.reps, tops).map { Rep(bottom: $0.positions["bottom"], release: $0.positions["release"], top: $1) }
+    }
+    var added: [String] = []
+    func row(_ name: String, _ want: String, _ frames: [FrameRecord]) {
+      let counts = values.map { run(frames, $0).count }
+      let marks = counts.dropFirst().contains { $0 != counts[0] } ? "  *" : ""
+      print(name.padding(toLength: 40, withPad: " ", startingAt: 0) + want.padding(toLength: 6, withPad: " ", startingAt: 0)
+        + counts.map { String(format: "%4d", $0) }.joined(separator: " ") + marks)
+      let before = run(frames, nil), after = run(frames, SwingThresholds().hikeReleaseMax)
+      for (i, rep) in after.enumerated() where !before.contains(where: { abs($0.top.time - rep.top.time) < 0.05 }) {
+        let b = rep.bottom?.metrics ?? [:], r = rep.release?.metrics ?? [:], t = rep.top.analysis?.metrics ?? [:]
+        // The float: the highest the wrists get in the half second after the top (torso lengths; about -1 hanging).
+        let float = frames.filter { $0.time >= rep.top.time && $0.time <= rep.top.time + 0.5 }
+          .compactMap { $0.pose.flatMap { BodySkeleton(pose: $0).wristRise } }.max() ?? -9
+        added.append(String(format: "  %@ rep %d/%d: bottom %5.2f (spine %2.0f hip %3.0f) release %5.2f (hip %3.0f) top %5.2f (arm %2.0f hip %3.0f, %.2f s after release) float %5.2f",
+          name, i + 1, after.count, rep.bottom?.time ?? -1, b["spine"] ?? 0, b["hip"] ?? 0, rep.release?.time ?? -1, r["hip"] ?? 0,
+          rep.top.time, t["arm"] ?? 0, t["hip"] ?? 0, rep.top.time - (rep.release?.time ?? 0), float))
+      }
+    }
+    print("fixture".padding(toLength: 40, withPad: " ", startingAt: 0) + "want  "
+      + values.map { $0.map { String(format: "%4.1f", $0) } ?? " off" }.joined(separator: " "))
+    for fixture in Fixture.all where fixture.expectedExercise == .kettlebellSwing {
+      row(fixture.name, "\(fixture.expectedReps)", try fixture.frames())
+    }
+    let tracks = (Bundle.module.urls(forResourcesWithExtension: "json", subdirectory: "Fixtures/tracks") ?? [])
+      .filter { $0.lastPathComponent.hasPrefix("kettlebell-swing") }.sorted { $0.lastPathComponent < $1.lastPathComponent }
+    for url in tracks { row(url.deletingPathExtension().lastPathComponent, "-", try Fixture.frames(at: url)) }
+    print("reps the default adds:\n" + added.joined(separator: "\n"))
   }
 
   /// Raw signals for a fixture at ~4 Hz, plus a naive rep count from smoothed knee-angle dips.

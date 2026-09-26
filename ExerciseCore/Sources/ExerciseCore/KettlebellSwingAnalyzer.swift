@@ -50,9 +50,15 @@ public struct SwingThresholds {
   /// the arms reach the top 0.15–0.3 s after crossing vertical. Standing up after parking the bell (or after
   /// picking it up) looks like a release too, but the arms then rise seconds later, if at all.
   public var releaseMaxDuration = 1.0
-  /// A swing rep (top to top) takes about 1.2 s, a slow first hike about 2 s. Longer "reps" are the walk-in or
-  /// the bell pick-up flowing into the first swing and are discarded (issue #15).
+  /// A swing rep (top to top) takes about 1.2 s, a slow first hike about 2 s. A rep still hinging or standing
+  /// this long after its top began with the walk-in, the pick-up or the setup (#15), not with a swing.
   public var maxRepDuration = 4.0
+  /// The first swing counts (#148): the hike off the floor into the first top. A rep past `maxRepDuration`, or a
+  /// hinge before any top was seen (the recording starts over the bell), becomes a hike: its setup positions are
+  /// dropped, it is timed from the last `maxRepDuration` of the hinge, and it counts only if the arms reach the
+  /// top within this long of crossing vertical (the hikes on the fixtures and archived tracks: 0.10–0.30 s;
+  /// 0.3–1.0 s count the same). nil: every rep over `maxRepDuration` is discarded, as before #148.
+  public var hikeReleaseMax: Double? = 0.4
   /// A hole in the track longer than this (the recording lost frames, #94) ends the rep in progress: half a
   /// second is a whole bottom, so the phases either side of it do not belong to one swing. Counting starts
   /// again at the next real top, and the hole costs only the swings inside it.
@@ -92,6 +98,10 @@ public final class KettlebellSwingAnalyzer: ExerciseAnalyzer {
   private var lastFrameTime: Double?
   /// Set by a hole in the track: TOP does not start a rep until the lifter has been seen at a real top again.
   private var awaitingTop = false
+  /// The machine starts in TOP without having seen one; until it does, a hinge is the hike, not a bottom.
+  private var seenTop = false
+  /// The rep in progress is the hike into a first swing (see `SwingThresholds.hikeReleaseMax`).
+  private var isHike = false
 
   private struct Angles {
     var arm = 0.0, spine = 0.0, hip = 0.0, knee = 0.0, wristHeight = 0.0
@@ -124,6 +134,8 @@ public final class KettlebellSwingAnalyzer: ExerciseAnalyzer {
     repStartTime = 0
     lastFrameTime = nil
     awaitingTop = false
+    seenTop = false
+    isHike = false
     metrics = RepMetrics()
   }
 
@@ -152,6 +164,12 @@ public final class KettlebellSwingAnalyzer: ExerciseAnalyzer {
       wristHeightHistory.removeFirst(wristHeightHistory.count - wristHeightWindowSize * 2)
     }
 
+    if isAtTop(a) { seenTop = true }
+    let hinging = machine.phase == Self.connect || machine.phase == Self.bottom
+    if thresholds.hikeReleaseMax != nil, hinging, time - repStartTime > thresholds.maxRepDuration {
+      startHike(at: time)  // standing or hinging this long since the top: the setup, and a hike may follow
+    }
+
     updateMetrics(a)
     updatePhasePeak(pose: pose, time: time, angles: a, image: image)
     machine.framesInPhase += 1
@@ -163,6 +181,9 @@ public final class KettlebellSwingAnalyzer: ExerciseAnalyzer {
         finalizePhasePeak()
         repStartTime = machine.currentRepPeaks[Self.top]?.time ?? time
         machine.transition(to: Self.connect)
+      } else if thresholds.hikeReleaseMax != nil, !seenTop, shouldTransitionToBottom(a) {
+        startHike(at: time)  // the recording starts with the lifter over the bell: this hinge is the hike
+        machine.transition(to: Self.bottom)
       }
     case Self.connect:
       if shouldTransitionToBottom(a) {
@@ -177,13 +198,23 @@ public final class KettlebellSwingAnalyzer: ExerciseAnalyzer {
       }
     default:  // release
       if shouldTransitionToTop(a, time: time) {
-        if time - repStartTime > thresholds.maxRepDuration {
+        let tooSlow = isHike
+          ? time - releaseStartTime > (thresholds.hikeReleaseMax ?? 0)  // a hike counts only if it flew to the top
+          : time - repStartTime > thresholds.maxRepDuration
+        if tooSlow {
           abandonRep()  // walk-in or pick-up that ended in a first lockout: not a swing
         } else {
           finalizePhasePeak()
+          if isHike {  // no top began the hike; its top is the lockout it reached (it has no connect)
+            machine.storePeak(RepPosition(
+              phase: Self.top, time: time, pose: pose, metrics: a.metrics, score: peakScore(for: Self.top, angles: a),
+              image: image()))
+          }
           completedRep = machine.completeRep(quality: calculateRepQuality())
           machine.transition(to: Self.top)
           metrics = RepMetrics()
+          isHike = false
+          seenTop = true  // a far camera may never read a standing top at `topArmMin`, but this one was a top
         }
       } else if time - releaseStartTime > thresholds.releaseMaxDuration {
         abandonRep()
@@ -228,6 +259,18 @@ public final class KettlebellSwingAnalyzer: ExerciseAnalyzer {
     machine.currentRepPeaks = [:]
     currentPhasePeak = nil
     metrics = RepMetrics()
+    isHike = false
+  }
+
+  /// The rep in progress becomes the hike into a first swing (#148): the top and connect it began with were the
+  /// setup, so they are dropped with its metrics, and it is timed from here. Called again while the hinge lasts,
+  /// so the bottom it keeps is from the last `maxRepDuration` before the hip snap.
+  private func startHike(at time: Double) {
+    machine.currentRepPeaks = [:]
+    currentPhasePeak = nil
+    metrics = RepMetrics()
+    repStartTime = time
+    isHike = true
   }
 
   // MARK: - Transitions

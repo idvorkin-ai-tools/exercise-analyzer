@@ -19,39 +19,56 @@ struct Fixture {
 
   static let all: [Fixture] = [
     Fixture(name: "swing-4reps", expectedExercise: .kettlebellSwing, expectedReps: 4, humanVerified: true),
-    Fixture(name: "swing-1h-9reps", expectedExercise: .kettlebellSwing, expectedReps: 9, humanVerified: true),
-    Fixture(name: "swing-phone-13reps", expectedExercise: .kettlebellSwing, expectedReps: 13, humanVerified: true),
+    // 9 top-to-top until #148. The clip opens with the lifter over the bell on the floor (0–2 s); the hike's top
+    // at 2.85 s (arm 86°, wrists above the shoulders; bell at chest height in the video at 2.75–3.0 s) was merged
+    // into the next swing, because the hip snap read as CONNECT. Ten tops, 2.85–16.5 s. Igor confirmed 9 under
+    // the old convention, not 10.
+    Fixture(name: "swing-1h-9reps", expectedExercise: .kettlebellSwing, expectedReps: 10, humanVerified: false),
+    // 13 top-to-top until #148. Hand on the bell on the floor to 8.5 s, then the hike, and the bell at chest height
+    // at 9.5–9.75 s (arm 78°) in the video; that swing was merged into the next one as in swing-1h-9reps. Igor
+    // confirmed 13 under the old convention, not 14.
+    Fixture(name: "swing-phone-13reps", expectedExercise: .kettlebellSwing, expectedReps: 14, humanVerified: false),
     // Issue #4: the lifter bends over to pick the bell up in the first second, then swings 10 reps from 25 s.
     // 11 counted originally: the setup (8–25 s) and the bell park at the end were both "reps". Igor: neither is.
-    Fixture(name: "swing-pickup-10reps", expectedExercise: .kettlebellSwing, expectedReps: 9, humanVerified: true),
-    // IMG_4337 (issue #15): the walk-in and pick-up (0.5–6.6 s) counted as rep 1; Igor: 9 real swings.
-    Fixture(name: "swing-walkin-9reps", expectedExercise: .kettlebellSwing, expectedReps: 9, humanVerified: true),
+    // 9 from 2026-09-12 to 09-26: the first swing (the hike off the floor into the top at 25.3 s) was dropped
+    // with the setup; Igor (2026-09-26, #148): the first swing counts.
+    Fixture(name: "swing-pickup-10reps", expectedExercise: .kettlebellSwing, expectedReps: 10, humanVerified: true),
+    // IMG_4337 (issue #15): the walk-in and pick-up (0.5–6.6 s) counted as rep 1; Igor: "it's me walking towards
+    // it", and 9 top-to-top swings (tops 6.64–20.28 s) were kept. The top at 6.64 s ends a hike off the floor
+    // (hip 55° → 177°, arms past vertical at 6.07 s and at 71° by 6.64 s), which counts since #148: 10. Igor
+    // confirmed the walk-in, not the new count.
+    Fixture(name: "swing-walkin-9reps", expectedExercise: .kettlebellSwing, expectedReps: 10, humanVerified: false),
     // IMG_4340 (issue #16): low, close camera; arms behind the body read ~80°, arms in front ~45°. Counted 0 before
-    // the arm thresholds were relaxed; 10 is the analyzer's count, not yet confirmed by Igor.
-    Fixture(name: "swing-lowcam-10reps", expectedExercise: .kettlebellSwing, expectedReps: 10, humanVerified: false),
+    // the arm thresholds were relaxed; 10 was the analyzer's count, 11 since #148 counts the hike into the first
+    // top (hinge 56° at 10.64 s, top 11.58 s, 0.17 s after the arms cross vertical). Not yet confirmed by Igor.
+    Fixture(name: "swing-lowcam-10reps", expectedExercise: .kettlebellSwing, expectedReps: 11, humanVerified: false),
     // Issue #94 (2026-09-18, live set): the recording has no frames from 12.68 to 14.88 s (the app hung and the
     // camera ran out of buffers). Tops at 4.97, 6.5, 8.0, 9.5, 11.0, 12.5, [14.0 in the hole], 15.55, 17.1, 18.65:
     // 9 swings, 2 of them cut by the hole, so 7 can be counted. 6 were: the swing after the hole was timed from
-    // the top before it and discarded as longer than 4 s. Not yet confirmed by Igor.
-    Fixture(name: "swing-hole-7reps", expectedExercise: .kettlebellSwing, expectedReps: 7, humanVerified: false),
+    // the top before it and discarded as longer than 4 s. Since #148 the hike into the first top counts too: 10
+    // swings, 8 countable. Not yet confirmed by Igor.
+    Fixture(name: "swing-hole-7reps", expectedExercise: .kettlebellSwing, expectedReps: 8, humanVerified: false),
     // Igor's one-arm set (2026-09-18, recents 3B9EC34D, #97): "it says I only have five reps". Ten tops in the
     // video (5.1, 6.6, 8.1, 9.7, 11.3, 12.8, 14.3, 15.9, 17.5, 19.1 s), bell at chest to head height. The upper
     // arm stays on the ribs and the forearm lifts the bell, so shoulder→elbow reads 33–49° at the top, on both
-    // sides (the model puts the working wrist on the guard hand). 5 were counted with `topArmMin` 40. 8 now:
-    // the first swing comes off the floor after 4.7 s of setup and is discarded as longer than 4 s (as in
-    // swing-pickup-10reps), and the second is lost with it, because standing up with the bell reads as CONNECT
-    // and the first top (5.1 s) is never a TOP, so no rep starts there. Parking the bell and walking off (hip
-    // 151–156°, arms 33–56°) is not a ninth rep. Not yet confirmed by Igor.
-    Fixture(name: "swing-onearm-10reps", expectedExercise: .kettlebellSwing, expectedReps: 8, humanVerified: false),
+    // sides (the model puts the working wrist on the guard hand). 5 were counted with `topArmMin` 40, 8 after
+    // #97: the first swing comes off the floor after 4.7 s of setup and was discarded as longer than 4 s, and the
+    // second went with it, because the hike's hip snap reads as CONNECT and the first top (5.1 s) was never a
+    // TOP. Both count since #148. Parking the bell and walking off (hip 151–156°, arms 33–56°) is not an
+    // eleventh rep. Not yet confirmed by Igor.
+    Fixture(name: "swing-onearm-10reps", expectedExercise: .kettlebellSwing, expectedReps: 10, humanVerified: false),
     // Igor's gym set (2026-09-25, recents 9283D45A, #139): "Something is really wrong with this analysis". The
     // camera is far (the lifter fills 22 % of the frame height) and behind him to one side, so the arms point
     // away from it and the float reads 30–38°: 1 rep was counted. Muse, twice (per-frame labels and a contact
     // sheet): 10 swings, tops 8.0–22.0 s every ~1.5 s, after an 8 s setup. Not yet confirmed by Igor.
-    Fixture(name: "swing-farcam-10reps", expectedExercise: .kettlebellSwing, expectedReps: 10, humanVerified: false),
+    // 11 since #148, and one is wrong: the hike into the 7.8 s top now counts (10 real swings), but the last
+    // "rep" (bottom 22.6–24.2 s, then 0.73 s up to a 41° arm at 24.95 s) is the bell park, counted since #139.
+    Fixture(name: "swing-farcam-10reps", expectedExercise: .kettlebellSwing, expectedReps: 11, humanVerified: false),
     // Same session and camera (recents CDC08BF2, #140): 1 counted. The auto-trim cut the 28.4 s recording to
     // 3.8–15.4 s on that count (#141); the clip left has five tops (5.25, 7.0, 8.5, 10.0, 11.5 s by Muse) and
-    // ends on the fifth, so four swings end in the clip. Not yet confirmed by Igor.
-    Fixture(name: "swing-farcam-5tops", expectedExercise: .kettlebellSwing, expectedReps: 4, humanVerified: false),
+    // ends on the fifth: five swings end in the clip since #148 (the first, out of a 1 s hinge, counts).
+    // Not yet confirmed by Igor.
+    Fixture(name: "swing-farcam-5tops", expectedExercise: .kettlebellSwing, expectedReps: 5, humanVerified: false),
     Fixture(name: "pistol-6reps", expectedExercise: .pistolSquat, expectedReps: 6, humanVerified: false),
     // Head height drops 8 times at a steady ~4.2 s rhythm; the earlier front-knee analyzer counted 10.
     Fixture(name: "bulgarian-10reps", expectedExercise: .bulgarianSplitSquat, expectedReps: 8, humanVerified: false),

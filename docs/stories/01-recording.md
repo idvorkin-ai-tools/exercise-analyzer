@@ -9,7 +9,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 001:
 
 - **Summary:** Record a set and get a trusted rep count without touching the phone afterwards
-- **Status:** implemented in [0517562](https://github.com/idvorkin/exercise-analyzer/commit/0517562), [49c6529](https://github.com/idvorkin/exercise-analyzer/commit/49c6529); verified on the phone (daily use); the camera memory in [#66](https://github.com/idvorkin/exercise-analyzer/issues/66) on the phone since 2026-09-13; the Bulgarian setup and wobble in [77c6731](https://github.com/idvorkin/exercise-analyzer/commit/77c6731), verified on the host (bulgarian-4CF19A9A-phone, 8, Igor's count); the bench nearer the camera in [7f809a5](https://github.com/idvorkin/exercise-analyzer/commit/7f809a5), verified on the host (bulgarian-7424BEDD-phone, 6, Igor's count), on the phone pending
+- **Status:** implemented in [0517562](https://github.com/idvorkin/exercise-analyzer/commit/0517562), [49c6529](https://github.com/idvorkin/exercise-analyzer/commit/49c6529); verified on the phone (daily use); the camera memory in [#66](https://github.com/idvorkin/exercise-analyzer/issues/66) on the phone since 2026-09-13; the Bulgarian setup and wobble in [77c6731](https://github.com/idvorkin/exercise-analyzer/commit/77c6731), verified on the host (bulgarian-4CF19A9A-phone, 8, Igor's count); the bench nearer the camera in [7f809a5](https://github.com/idvorkin/exercise-analyzer/commit/7f809a5), verified on the host (bulgarian-7424BEDD-phone, 6, Igor's count), on the phone pending; ten swings count ten, the first off the floor included: fix for #148 in this commit, verified on the host (swing-pickup-10reps 9 → 10, Igor's count), on the phone pending
 
 #### Use Case:
 - **As a** solo lifter with the phone on a tripod
@@ -53,7 +53,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
   (story 009). Framing before the recorder rolls is the watch's Preview (story 047); the phone has no
   camera-only state of its own.
 
-- **Issues:** [#66](https://github.com/idvorkin/exercise-analyzer/issues/66)
+- **Issues:** [#66](https://github.com/idvorkin/exercise-analyzer/issues/66); [#148](https://github.com/idvorkin/exercise-analyzer/issues/148) the first swing off the floor was not counted, so ten swings read nine
 
 ---
 
@@ -117,7 +117,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 004:
 
 - **Summary:** Count the swings that are swings, not the walk-in, the setup or the bell park
-- **Status:** implemented in [6b74a93](https://github.com/idvorkin/exercise-analyzer/commit/6b74a93), [4344155](https://github.com/idvorkin/exercise-analyzer/commit/4344155), [f3e7955](https://github.com/idvorkin/exercise-analyzer/commit/f3e7955), [7beca0c](https://github.com/idvorkin/exercise-analyzer/commit/7beca0c); verified on the host (walk-in, pick-up, low-camera and recording-hole fixtures); the `capture_gap` event of 7beca0c not on the phone yet
+- **Status:** implemented in [6b74a93](https://github.com/idvorkin/exercise-analyzer/commit/6b74a93), [4344155](https://github.com/idvorkin/exercise-analyzer/commit/4344155), [f3e7955](https://github.com/idvorkin/exercise-analyzer/commit/f3e7955), [7beca0c](https://github.com/idvorkin/exercise-analyzer/commit/7beca0c); verified on the host (walk-in, pick-up, low-camera and recording-hole fixtures); the `capture_gap` event of 7beca0c not on the phone yet; fix for #148 (the first swing counts) in this commit, verified on the host
 
 #### Use Case:
 - **As a** lifter who picks the bell up on camera and puts it down on camera
@@ -125,30 +125,39 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **so that** the count matches what I would count by eye
 
 #### Acceptance Criteria:
-- **Scenario:** A clip with a walk-in, nine swings and a bell park
+- **Scenario:** The first swing counts
+- **Given:** I set up over the bell on the floor, as long as I like, then hike it and swing ten times
+- **When:** the clip is analyzed as a kettlebell swing
+- **Then:** the count is ten: the hike off the floor into the first top is the first rep (Igor, 2026-09-26,
+  [#148](https://github.com/idvorkin/exercise-analyzer/issues/148)), and its pictures start at the hike, not the setup
+- **and Then:** standing up with the bell, or parking it, is not a rep: the first swing counts only if the bell
+  flies to the top within 0.4 s of my arms passing vertical
+
+- **Scenario:** A clip with a walk-in, ten swings and a bell park
 - **Given:** the clip starts with me walking to the bell and bending to pick it up
 - **and Given:** it ends with me parking the bell and reaching for the phone
 - **When:** the clip is analyzed as a kettlebell swing
-- **Then:** the count is nine and the first rep's frames show a swing, not the walk-in
+- **Then:** the count is ten and the first rep's frames show the hike, not the walk-in
 
 - **Scenario:** A recording that lost two seconds of frames mid-set
-- **Given:** the clip has no frames from 12.7 to 14.9 s and nine swings, two of them cut by the hole
+- **Given:** the clip has no frames from 12.7 to 14.9 s and ten swings, two of them cut by the hole
 - **When:** the clip is analyzed as a kettlebell swing
-- **Then:** the count is seven: the swing after the hole starts at its own top and is counted
+- **Then:** the count is eight: the swing after the hole starts at its own top and is counted
 - **and Then:** the session log has a `capture_gap` event saying how long the hole was and why frames were dropped
 
 - **Scenario:** One-arm swings with the upper arm on the ribs
 - **Given:** a set of ten one-arm swings where my upper arm stays close to the body and the forearm lifts the bell to chest height, picked up off the floor after a few seconds of setup
 - **When:** the clip is analyzed as a kettlebell swing
-- **Then:** every swing after the first is counted (the first comes off the floor after the setup and is not counted, as with the pick-up clip), each rep's Top picture shows me standing with the bell up, not hinged, and parking the bell and walking to the phone is not a rep
-- **Built so far:** eight of the ten: the second swing is still lost, because standing up with the bell reads as Connect and the first top never starts a rep (open on #97)
+- **Then:** every swing is counted, the first off the floor included, each rep's Top picture shows me standing with the bell up, not hinged, and parking the bell and walking to the phone is not a rep
 
 - **Scenario:** Swings filmed from far away and behind me
 - **Given:** the phone stands a long way off, behind me and to one side, so my arms point away from it and the bell at chest height reads as a low arm
 - **When:** a set of ten swings is analyzed as a kettlebell swing
 - **Then:** all ten are counted, and setting the bell down afterwards is still not a rep
+- **Built so far:** eleven for 9283D45A: the ten swings and the bell park at the end (a slow 0.73 s stand-up to a
+  41° arm, counted since #139; not filed yet)
 
-- **Issues:** [#4](https://github.com/idvorkin/exercise-analyzer/issues/4), [#15](https://github.com/idvorkin/exercise-analyzer/issues/15), [#16](https://github.com/idvorkin/exercise-analyzer/issues/16); [#94](https://github.com/idvorkin/exercise-analyzer/issues/94) a 9-swing set counted 6: the recording lost 2.2 s to a main-thread hang (open: the hole itself); [#97](https://github.com/idvorkin/exercise-analyzer/issues/97) a ten-swing one-arm set counted 5: the arm reads 37–49° at the top and the cut-off was 40 (host: swing-onearm-10reps 5 → 8 and the archived set 73014BDE 6 → 8, the other 33 fixtures and tracks unchanged; a low top counts only on a fast upswing and with the hips locked out, which keeps the bell park out; the second swing still open; on the phone pending); [#139](https://github.com/idvorkin/exercise-analyzer/issues/139), [#140](https://github.com/idvorkin/exercise-analyzer/issues/140) far-camera swing sets counted 1: a low top counts on a fast upswing when the wrists are near the shoulders (host: swing-farcam-10reps 1 → 10, swing-farcam-5tops 1 → 4, no other fixture or track moves; on the phone pending)
+- **Issues:** [#4](https://github.com/idvorkin/exercise-analyzer/issues/4), [#15](https://github.com/idvorkin/exercise-analyzer/issues/15), [#16](https://github.com/idvorkin/exercise-analyzer/issues/16); [#94](https://github.com/idvorkin/exercise-analyzer/issues/94) a 9-swing set counted 6: the recording lost 2.2 s to a main-thread hang (open: the hole itself); [#97](https://github.com/idvorkin/exercise-analyzer/issues/97) a ten-swing one-arm set counted 5: the arm reads 37–49° at the top and the cut-off was 40 (host: swing-onearm-10reps 5 → 8 and the archived set 73014BDE 6 → 8, the other 33 fixtures and tracks unchanged; a low top counts only on a fast upswing and with the hips locked out, which keeps the bell park out; the second swing still open; on the phone pending); [#139](https://github.com/idvorkin/exercise-analyzer/issues/139), [#140](https://github.com/idvorkin/exercise-analyzer/issues/140) far-camera swing sets counted 1: a low top counts on a fast upswing when the wrists are near the shoulders (host: swing-farcam-10reps 1 → 10, swing-farcam-5tops 1 → 4, no other fixture or track moves; on the phone pending); [#148](https://github.com/idvorkin/exercise-analyzer/issues/148) the first swing counts (host: every swing fixture but swing-4reps and 43 of the 48 archived swing tracks gain their first swing, ten that started over the bell also regain the second (#97), two with a second set in the recording gain that set's first swing too; none gains a rep at its end)
 
 ---
 

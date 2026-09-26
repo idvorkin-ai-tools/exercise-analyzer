@@ -175,7 +175,7 @@ simulator runs the pose model on the CPU at roughly 20 fps, a tenth of the phone
 `analyzed` or `trim` event (`wait_for`) instead of sleeping a fixed time. `ONLY=trim just test-sim` runs one check.
 
 Checks today: three clips must detect and count (4 swings, 6 pistols, 8 Bulgarian); the trim check auto-trims the
-9-rep clip and asserts a lossless passthrough cut that starts on a keyframe within 1.5 s of the requested start and
+one-hand swing clip (10 reps since the first swing counts, #148) and asserts a lossless passthrough cut that starts on a keyframe within 1.5 s of the requested start and
 a first displayed frame at time zero. Cancel must leave playback paused and save nothing; interruption followed
 by a mode switch must re-extract. Four `clip_switch` checks force late foreground completions after another
 stored set opens, including a simulated Photos response; real Photos permission/replacement/undo remains a
