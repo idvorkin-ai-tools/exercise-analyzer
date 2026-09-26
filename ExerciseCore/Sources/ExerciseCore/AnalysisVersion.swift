@@ -27,5 +27,7 @@ public enum AnalysisVersion {
   // upswing when the wrists are within 0.4 torso lengths of the shoulders (#139, #140).
   // 2026-09-26.2: the first swing counts: the hike off the floor into the first top is a rep when the arms reach
   // the top within 0.4 s of crossing vertical, timed from the hinge instead of the setup (#148).
-  public static let current = "2026-09-26.2"
+  // 2026-09-26.3: a swing top more than 1 s after the deepest frame of its hinge counts only when a hinge follows
+  // within 2.5 s: the hike does, standing up after setting the bell down at the end of a set does not (#149).
+  public static let current = "2026-09-26.3"
 }

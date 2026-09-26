@@ -40,8 +40,10 @@ struct Fixture {
     Fixture(name: "swing-walkin-9reps", expectedExercise: .kettlebellSwing, expectedReps: 10, humanVerified: false),
     // IMG_4340 (issue #16): low, close camera; arms behind the body read ~80°, arms in front ~45°. Counted 0 before
     // the arm thresholds were relaxed; 10 was the analyzer's count, 11 since #148 counts the hike into the first
-    // top (hinge 56° at 10.64 s, top 11.58 s, 0.17 s after the arms cross vertical). Not yet confirmed by Igor.
-    Fixture(name: "swing-lowcam-10reps", expectedExercise: .kettlebellSwing, expectedReps: 11, humanVerified: false),
+    // top (hinge 56° at 10.64 s, top 11.58 s, 0.17 s after the arms cross vertical). The eleventh was the bell
+    // set down at the end (deepest hinge 26.8 s, a 40° "top" at 29.22 s, 2.40 s later, no hinge after it); not a
+    // rep since #149: 10. Not yet confirmed by Igor.
+    Fixture(name: "swing-lowcam-10reps", expectedExercise: .kettlebellSwing, expectedReps: 10, humanVerified: false),
     // Issue #94 (2026-09-18, live set): the recording has no frames from 12.68 to 14.88 s (the app hung and the
     // camera ran out of buffers). Tops at 4.97, 6.5, 8.0, 9.5, 11.0, 12.5, [14.0 in the hole], 15.55, 17.1, 18.65:
     // 9 swings, 2 of them cut by the hole, so 7 can be counted. 6 were: the swing after the hole was timed from
@@ -61,9 +63,11 @@ struct Fixture {
     // camera is far (the lifter fills 22 % of the frame height) and behind him to one side, so the arms point
     // away from it and the float reads 30–38°: 1 rep was counted. Muse, twice (per-frame labels and a contact
     // sheet): 10 swings, tops 8.0–22.0 s every ~1.5 s, after an 8 s setup. Not yet confirmed by Igor.
-    // 11 since #148, and one is wrong: the hike into the 7.8 s top now counts (10 real swings), but the last
-    // "rep" (bottom 22.6–24.2 s, then 0.73 s up to a 41° arm at 24.95 s) is the bell park, counted since #139.
-    Fixture(name: "swing-farcam-10reps", expectedExercise: .kettlebellSwing, expectedReps: 11, humanVerified: false),
+    // Since #148 the hike into the 7.8 s top counts. The bell park after the last swing (bottom 22.6–24.2 s, then
+    // 0.73 s up to a 41° arm at 24.95 s, 2.17 s from the deepest frame, no hinge after it) counted from #139 to
+    // #149 (11); a top that slow counts only when a hinge follows: 10 (Muse: bent over the floor bells at 24.0 s,
+    // standing with empty hands at 25.0 s).
+    Fixture(name: "swing-farcam-10reps", expectedExercise: .kettlebellSwing, expectedReps: 10, humanVerified: false),
     // Same session and camera (recents CDC08BF2, #140): 1 counted. The auto-trim cut the 28.4 s recording to
     // 3.8–15.4 s on that count (#141); the clip left has five tops (5.25, 7.0, 8.5, 10.0, 11.5 s by Muse) and
     // ends on the fifth: five swings end in the clip since #148 (the first, out of a 1 s hinge, counts).

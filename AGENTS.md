@@ -64,7 +64,9 @@ carry only what was decided.
   Never bundle fixes. Never `git add -A` (`.build/`, `Build/`, `.claude/worktrees/` must stay untracked).
 - **Analyzer semantics** (details and evidence in `docs/analysis/`): a swing rep is top→top, about 1.2 s; the first
   swing counts too (the hike off the floor, #148): a rep over 4 s drops its walk-in or setup and counts only as a
-  hike that flies to the top within 0.4 s; an upswing over 1 s is not a swing; unmeasured joints read 0° and must not
+  hike that flies to the top within 0.4 s; an upswing over 1 s is not a swing; a top over 1 s after the deepest
+  hinge counts only when another hinge follows within 2.5 s (the hike does; the bell set down does not, #149);
+  unmeasured joints read 0° and must not
   drive transitions; joints are chosen per frame by the confident side, not by label. Bulgarian phases run on head
   height (the front knee bends too little from a diagonal camera). Get-ups need ≥3 s up and ≥2 s down and record the
   overhead arm.

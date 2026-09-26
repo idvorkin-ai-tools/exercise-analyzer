@@ -21,7 +21,9 @@ final class StableCropTests: XCTestCase {
   func testWalkBetweenHalvesDoesNotWidenTheCrop() throws {
     let frames = try track("kettlebell-swing-20260916-F677269B")
     let pipeline = AnalysisPipeline.analyze(frames: frames, exercise: .kettlebellSwing)
-    XCTAssertEqual(pipeline.reps.count, 22)  // 20 top-to-top; the first swing of each half counts since #148
+    // 20 top-to-top; the first swing of each half counts since #148; the stand-up after the bell is set down at
+    // the end (49.57 s, 2.20 s from the deepest frame, no hinge after it) is not a rep since #149.
+    XCTAssertEqual(pipeline.reps.count, 21)
     let crop = try XCTUnwrap(pipeline.stableCrop)
     // The skeleton inside reps spans 20–47 % of the frame: the crop centres on that, not on the box's bell.
     XCTAssertEqual(crop.midX, 0.335, accuracy: 0.03, "crop centre should sit on the skeleton")

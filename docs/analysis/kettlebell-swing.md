@@ -10,7 +10,7 @@ BOTTOM, the first qualifying frame for CONNECT and RELEASE.
 
 | Phase | Meaning | Condition (degrees, `SwingThresholds`) |
 |---|---|---|
-| TOP | lockout: arms at peak height, standing tall | spine < 25 (`topSpineMax`), hip > 160 (`topHipMin`), arm > 40 (`topArmMin`), or > 32 within 0.4 s of the release (`ballisticTopArmMin`, `ballisticReleaseMax`), or, within that same 0.4 s, > 20 with the wrists no more than 0.4 torso lengths below the shoulders (`wristTopArmMin`, `wristTopRiseMin`, #139); confirmed by the wrist-height peak |
+| TOP | lockout: arms at peak height, standing tall | spine < 25 (`topSpineMax`), hip > 160 (`topHipMin`), arm > 40 (`topArmMin`), or > 32 within 0.4 s of the release (`ballisticTopArmMin`, `ballisticReleaseMax`), or, within that same 0.4 s, > 20 with the wrists no more than 0.4 torso lengths below the shoulders (`wristTopArmMin`, `wristTopRiseMin`, #139); confirmed by the wrist-height peak; a top over 1 s after the deepest BOTTOM frame (`upswingMaxDuration`) counts only when a hinge follows within 2.5 s (`slowTopConfirmGap`, #149) |
 | CONNECT | arms vertical against the body before the hinge | arm < 25 (`connectArmMax`), spine < 25 (`connectSpineMax`) |
 | BOTTOM | deepest hinge, arms behind the body | arm < 75 + 15 (`bottomArmMax`, anything short of horizontal), spine > 35 (`bottomSpineMin`), hip < 140 (`bottomHipMax`) |
 | RELEASE | arms leaving the body after the hip snap | arm < 25 (`releaseArmMax`), spine < 25 (`releaseSpineMax`) |
@@ -28,6 +28,13 @@ BOTTOM, the first qualifying frame for CONNECT and RELEASE.
   first hinge. A hike counts only if the arms reach the top within 0.4 s of crossing vertical (the added
   reps: 0.10–0.30 s); standing up with the bell or after parking it is slower or never reaches a top. Its Top picture
   is the lockout it reaches, and it has no Connect.
+- **A slow top needs a hinge after it** (`upswingMaxDuration` 1.0 s, `slowTopConfirmGap` 2.5 s, #149). A swing's
+  top comes within a second of the deepest frame of its hinge (the hip snap; max 0.93 s). A slower top is a hike
+  (the lifter waited over the bell; 1.1–3.9 s) or standing up after setting the bell down (1.5–2.7 s). The hike
+  is followed by the next hinge within 1.0–1.3 s, the set-down by none, or not for 6 s: so a slow top waits for
+  a CONNECT → BOTTOM within 2.5 s, counts then (numbered before the rep that hinge starts), and is dropped
+  otherwise, also when the clip ends first. A fast top never waits, so a clip cut on a real top keeps it. Live,
+  the first swing of a set shows about a second late.
 - **Unmeasured frames do not drive transitions** (0° joints are skipped); reps longer than 4 s were once produced by
   such frames.
 - **A hole in the track ends the rep in progress** (`maxFrameGap` 0.5 s, #94). Half a second is a whole bottom, so
@@ -57,17 +64,19 @@ Scored per rep from the stored positions (lockout angles, hinge depth); mirrored
 | swing-phone-13reps | 14 | no (13 was, top to top) | phone recording; the first swing off the floor tops at 9.75 s (#148) |
 | swing-pickup-10reps | 10 | yes | #4: the bend to pick the bell up (first second) and the park at the end once counted; 9 until the first swing counted (#148) |
 | swing-walkin-9reps | 10 | no (the walk-in is Igor's) | #15 (IMG_4337): the walk-in and pick-up (0.5–6.6 s) counted as rep 1; the hike into the 6.64 s top counts since #148 |
-| swing-lowcam-10reps | 11 | no | #16 (IMG_4340): low, close camera; counted 0 before the arm thresholds were relaxed |
+| swing-lowcam-10reps | 10 | no | #16 (IMG_4340): low, close camera; counted 0 before the arm thresholds were relaxed; 11 from #148 to #149 (the bell set down at the end, 29.22 s) |
 | swing-hole-7reps | 8 | no | #94: a live set whose recording lost 12.68–14.88 s; 10 swings, 2 cut by the hole |
 | swing-onearm-10reps | 10 | no | #97: ten one-arm swings with the upper arm on the ribs, arm peaks 37–49° at the top; counted 5, then 8; the first two since #148; the bell park at the end must not be a rep |
-| swing-farcam-10reps | 11 | no (Muse: 10) | #139 (9283D45A): far camera behind the lifter, arms foreshortened, the float reads 30–38°; counted 1. The eleventh is the bell park (24.95 s), counted since #139 |
+| swing-farcam-10reps | 10 | no (Muse: 10) | #139 (9283D45A): far camera behind the lifter, arms foreshortened, the float reads 30–38°; counted 1. The bell park (24.95 s) counted from #139 to #149 |
 | swing-farcam-5tops | 5 | no (Muse) | #140 (CDC08BF2): same camera; the auto-trim (#141) cut the clip on the fifth top; counted 1 |
 
 Reports: `TuningReports.testSwingTopArmSweep` (every swing fixture's and archived swing track's count per
 `ballisticTopArmMin`; `SWING_TOP_HIP`, `SWING_BALLISTIC`, `SWING_MAX_REP` rerun it under other thresholds),
 `TuningReports.testSwingWristRiseSweep` (the same rows per `wristTopRiseMin`, off first; `SWING_WRIST_ARM`
 overrides `wristTopArmMin`), `TuningReports.testSwingHikeSweep` (the same rows per `hikeReleaseMax`, off first,
-then every rep the default adds: where it sits and its angles), `TuningReports.testSwingRepTraces`, `SwingThresholdSweep.testSwingThresholdSweep`, and
+then every rep the default adds: where it sits and its angles), `TuningReports.testSwingUpswingReport` (the same
+rows with the #149 rule off, as a post-filter, and in the analyzer, then every slow top: deepest→top,
+release→top, arm, next hinge; `SWING_UPSWING`, `SWING_NEXT_HINGE`), `TuningReports.testSwingRepTraces`, `SwingThresholdSweep.testSwingThresholdSweep`, and
 `TuningReports.testSwingSignals` (every frame's angles and phase for one archived track, `SWING_TRACK=<name>
 SWING_FROM=12 SWING_TO=17`; a fixture name works too).
 
@@ -153,3 +162,29 @@ SWING_FROM=12 SWING_TO=17`; a fixture name works too).
   Pre-existing, not changed: swing-farcam-10reps' last rep (bottom 22.6–24.2 s, 0.73 s up to a 41° arm at
   24.95 s) is the bell park, counted since #139, so that fixture reads 11 for 10 swings. Not yet confirmed by
   Igor beyond swing-pickup-10reps (10).
+- **2026-09-26, the bell set down is not a rep (#149)**: Igor's idea: "my back is up straight after a fast hip
+  snap". Measured as the time from the deepest BOTTOM frame to the accepted top (Fable's study of eleven
+  mechanisms, lab note `~/tmp/agent/notes/2026-09-26-offangle-top-brainstorm.md`, a Python port matched
+  frame-for-frame on the 10 fixtures and 48 tracks): swings p50 0.43, p99 0.80, max 0.93 s (swing-lowcam rep 2);
+  the stand-ups after setting the bell down 1.50–2.67 s; the hikes (#148) 1.14–3.90 s, because the lifter waits
+  over the bell. Hike and set-down differ in what follows: the next hinge 0.83–1.07 s after a hike, none after a
+  set-down (or 6.3–9.9 s: F677269B, FD1FCA37 mid-track rests). A plain 0.6 s gate on every top cost 73014BDE
+  three swings (0.53–0.70 s); 0.8–1.2 s dropped the 13 set-downs and also ~17 hikes. Rhythm alone (a hinge must
+  follow every top) drops the last rep of every clip that ends on a top (swing-4reps, swing-hole-7reps,
+  swing-farcam-5tops). Rejected too: hip-snap velocity ≥ 230 °/s (the same idea, 15 % margin, a noisy
+  derivative), release→upright time (0.00 s for F853A918's park), wrist speed, head height, an adaptive arm
+  cut-off, a foreshortening-corrected arm, the bell clock, a camera-angle tell. Rule: `upswingMaxDuration` 1.0 s,
+  `slowTopConfirmGap` 2.5 s; a slow top waits for CONNECT → BOTTOM and is dropped without one.
+  `testSwingUpswingReport` (off / post-filter / in the analyzer, gap 2.0, 2.5 and 3.0 s alike, the analyzer equal
+  to the post-filter on every set): 13 sets lose their last rep and nothing else moves: swing-lowcam-10reps
+  11 → 10 and its archived copies 66FAD1F2, 9F8F947D (29.22 s, deepest→top 2.40 s, release→top 0.90 s, arm 40°)
+  and 71AD553F (22.79 s), swing-farcam-10reps and 9283D45A 11 → 10 (24.95 s, 2.17, 0.70, 41°), 2AFB645A 11 → 10
+  (23.29 s, 2.67, 0.97, 44°), F677269B 22 → 21 (49.57 s, 2.20, 0.67, 47°), 3C84C789 11 → 10 (22.12 s, 1.50, 0.47,
+  54°), 3E4637F5 12 → 11 (24.09 s, 2.30, 0.47, 41°), 81A34E3F 11 → 10 (22.12 s, 1.93, 0.27, 34°), 5CB9B81F
+  12 → 11 (23.83 s, 2.13, 0.33, 36°), E3FA2336 11 → 10 (22.59 s, 2.07, 0.10, 46°). All 17 hikes are kept (the
+  first rep of 15 sets and the second-set hikes of F677269B and FD1FCA37); swing-4reps 4, swing-hole-7reps 8 and
+  swing-farcam-5tops 5 keep their last rep. Muse looked at the video of 8 of the dropped tops (5CB9B81F, 71AD553F,
+  3E4637F5, 81A34E3F, 3C84C789, E3FA2336, 9283D45A, 2AFB645A): all set-downs, high confidence
+  (`~/tmp/agent/image/2026-09-26-parks/`); the lowcam source (66FAD1F2/9F8F947D) and F677269B have no local clip.
+  Live, a slow top is counted at the next hinge, about a second after it: in practice the first swing of a set.
+  Not yet confirmed by Igor.

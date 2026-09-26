@@ -333,6 +333,7 @@ extension TuningReports {
     func run(_ frames: [FrameRecord], _ value: Double?) -> [Rep] {
       var thresholds = SwingThresholds()
       thresholds.hikeReleaseMax = value
+      thresholds.slowTopConfirmGap = nil  // a hike's rep completes at its top, not at the hinge that confirms it (#149)
       let pipeline = AnalysisPipeline(exercise: .kettlebellSwing, analyzer: KettlebellSwingAnalyzer(thresholds: thresholds))
       for frame in frames { pipeline.process(extracted: frame) { nil } }
       let tops = pipeline.track.frames.filter { $0.analysis?.completedRep != nil }
@@ -622,14 +623,25 @@ extension TuningReports {
   /// swing fixture and archived track, each rep's deepest-hinge→top and release→top times, the arm at the top, and
   /// the time to the next hinge (spine > 35, hip < 140); the "two-speed" column counts a slow top only when a
   /// hinge follows within `SWING_NEXT_HINGE` s (default 2.5), `SWING_UPSWING` (default 1.0) sets what is slow.
-  /// A pure read of today's analyzer's output: nothing in the analyzer changes.
+  /// Reads the analyzer with the rule off (`slowTopConfirmGap` nil, "off"); "2spd" is the rule as a post-filter
+  /// on that output, "rule" the analyzer's own count with `upswingMaxDuration` and `slowTopConfirmGap` set to the
+  /// same values (#149; `!` marks a set where the two disagree).
   func testSwingUpswingReport() throws {
     let env = ProcessInfo.processInfo.environment
     let upswingMax = Double(env["SWING_UPSWING"] ?? "") ?? 1.0
     let nextHingeMax = Double(env["SWING_NEXT_HINGE"] ?? "") ?? 2.5
     var slowLines: [String] = []
+    func run(_ frames: [FrameRecord], gap: Double?) -> AnalysisPipeline {
+      var thresholds = SwingThresholds()
+      thresholds.upswingMaxDuration = upswingMax
+      thresholds.slowTopConfirmGap = gap
+      let pipeline = AnalysisPipeline(exercise: .kettlebellSwing, analyzer: KettlebellSwingAnalyzer(thresholds: thresholds))
+      for frame in frames { pipeline.process(extracted: frame) { nil } }
+      return pipeline
+    }
     func row(_ name: String, _ want: String, _ frames: [FrameRecord]) {
-      let pipeline = AnalysisPipeline.analyze(frames: frames, exercise: .kettlebellSwing)
+      let pipeline = run(frames, gap: nil)
+      let rule = run(frames, gap: nextHingeMax).reps.count
       let track = pipeline.track.frames
       let tops = track.filter { $0.analysis?.completedRep != nil }
       var kept = 0
@@ -651,9 +663,10 @@ extension TuningReports {
         }
       }
       print(name.padding(toLength: 40, withPad: " ", startingAt: 0) + want.padding(toLength: 6, withPad: " ", startingAt: 0)
-        + String(format: "%4d %4d%@", pipeline.reps.count, kept, kept != pipeline.reps.count ? "  *" : ""))
+        + String(format: "%4d %4d %4d%@%@", pipeline.reps.count, kept, rule, kept != pipeline.reps.count ? "  *" : "",
+          rule != kept ? "  !" : ""))
     }
-    print("fixture".padding(toLength: 40, withPad: " ", startingAt: 0) + "want   now 2spd")
+    print("fixture".padding(toLength: 40, withPad: " ", startingAt: 0) + "want   off 2spd rule")
     for fixture in Fixture.all where fixture.expectedExercise == .kettlebellSwing {
       row(fixture.name, "\(fixture.expectedReps)", try fixture.frames())
     }

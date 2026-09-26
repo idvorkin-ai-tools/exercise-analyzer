@@ -59,6 +59,14 @@ public struct SwingThresholds {
   /// top within this long of crossing vertical (the hikes on the fixtures and archived tracks: 0.10–0.30 s;
   /// 0.3–1.0 s count the same). nil: every rep over `maxRepDuration` is discarded, as before #148.
   public var hikeReleaseMax: Double? = 0.4
+  /// A swing's top comes within a second of the deepest frame of its hinge: the hip snap (every fixture and
+  /// archived rep: p99 0.80 s, max 0.93 s). A slower top is the hike off the floor (the lifter waits over the bell,
+  /// 1.1–3.9 s) or standing up after setting the bell down (1.47–2.67 s, #149). The next hinge tells them apart:
+  /// it follows a hike within 1.0–1.3 s and a set-down never, or not for 6 s. So a slower top counts only when a
+  /// hinge (CONNECT → BOTTOM) follows within `slowTopConfirmGap`; until then the rep waits, and without one it is
+  /// dropped. A clip that ends on a slow top drops it. nil: every top counts at once, as before #149.
+  public var upswingMaxDuration = 1.0
+  public var slowTopConfirmGap: Double? = 2.5
   /// A hole in the track longer than this (the recording lost frames, #94) ends the rep in progress: half a
   /// second is a whole bottom, so the phases either side of it do not belong to one swing. Counting starts
   /// again at the next real top, and the hole costs only the swings inside it.
@@ -102,6 +110,8 @@ public final class KettlebellSwingAnalyzer: ExerciseAnalyzer {
   private var seenTop = false
   /// The rep in progress is the hike into a first swing (see `SwingThresholds.hikeReleaseMax`).
   private var isHike = false
+  /// A slow top waiting for the next hinge (see `SwingThresholds.slowTopConfirmGap`): its rep and when it was reached.
+  private var pendingTop: (peaks: [String: RepPosition], quality: RepQuality, time: Double)?
 
   private struct Angles {
     var arm = 0.0, spine = 0.0, hip = 0.0, knee = 0.0, wristHeight = 0.0
@@ -136,6 +146,7 @@ public final class KettlebellSwingAnalyzer: ExerciseAnalyzer {
     awaitingTop = false
     seenTop = false
     isHike = false
+    pendingTop = nil
     metrics = RepMetrics()
   }
 
@@ -152,6 +163,9 @@ public final class KettlebellSwingAnalyzer: ExerciseAnalyzer {
       awaitingTop = true
     }
     lastFrameTime = time
+    if let pending = pendingTop, time - pending.time > thresholds.slowTopConfirmGap ?? 0 {
+      pendingTop = nil  // no hinge followed the slow top: the bell was set down, not swung
+    }
     if awaitingTop {
       guard isAtTop(a) else {
         return ExerciseFrameResult(phase: machine.phase, repCount: machine.repCount, metrics: a.metrics, completedRep: nil)
@@ -188,6 +202,7 @@ public final class KettlebellSwingAnalyzer: ExerciseAnalyzer {
     case Self.connect:
       if shouldTransitionToBottom(a) {
         finalizePhasePeak()
+        completedRep = confirmPendingTop()
         machine.transition(to: Self.bottom)
       }
     case Self.bottom:
@@ -210,7 +225,14 @@ public final class KettlebellSwingAnalyzer: ExerciseAnalyzer {
               phase: Self.top, time: time, pose: pose, metrics: a.metrics, score: peakScore(for: Self.top, angles: a),
               image: image()))
           }
-          completedRep = machine.completeRep(quality: calculateRepQuality())
+          let deepest = machine.currentRepPeaks[Self.bottom]?.time ?? 0
+          if thresholds.slowTopConfirmGap != nil, time - deepest > thresholds.upswingMaxDuration {
+            // Slow from the deepest frame: a hike or the bell set down. The next hinge decides (#149).
+            pendingTop = (machine.currentRepPeaks, calculateRepQuality(), time)
+            machine.currentRepPeaks = [:]
+          } else {
+            completedRep = machine.completeRep(quality: calculateRepQuality())
+          }
           machine.transition(to: Self.top)
           metrics = RepMetrics()
           isHike = false
@@ -260,6 +282,18 @@ public final class KettlebellSwingAnalyzer: ExerciseAnalyzer {
     currentPhasePeak = nil
     metrics = RepMetrics()
     isHike = false
+  }
+
+  /// A hinge after a slow top: the top was a hike into the next swing, not the bell set down, so its rep counts
+  /// now, numbered before the rep this hinge belongs to.
+  private func confirmPendingTop() -> RepRecord? {
+    guard let pending = pendingTop else { return nil }
+    pendingTop = nil
+    let inProgress = machine.currentRepPeaks  // the next rep's top and connect
+    machine.currentRepPeaks = pending.peaks
+    let rep = machine.completeRep(quality: pending.quality)
+    machine.currentRepPeaks = inProgress
+    return rep
   }
 
   /// The rep in progress becomes the hike into a first swing (#148): the top and connect it began with were the
