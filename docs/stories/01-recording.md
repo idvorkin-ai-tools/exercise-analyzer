@@ -9,7 +9,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 001:
 
 - **Summary:** Record a set and get a trusted rep count without touching the phone afterwards
-- **Status:** implemented in [0517562](https://github.com/idvorkin/exercise-analyzer/commit/0517562), [49c6529](https://github.com/idvorkin/exercise-analyzer/commit/49c6529); verified on the phone (daily use); the camera memory in [#66](https://github.com/idvorkin/exercise-analyzer/issues/66) on the phone since 2026-09-13; the Bulgarian setup and wobble in [77c6731](https://github.com/idvorkin/exercise-analyzer/commit/77c6731), verified on the host (bulgarian-4CF19A9A-phone, 8, Igor's count); the bench nearer the camera in [7f809a5](https://github.com/idvorkin/exercise-analyzer/commit/7f809a5), verified on the host (bulgarian-7424BEDD-phone, 6, Igor's count), on the phone pending; ten swings count ten, the first off the floor included: fix for #148 in this commit, verified on the host (swing-pickup-10reps 9 → 10, Igor's count), on the phone pending
+- **Status:** implemented in [0517562](https://github.com/idvorkin/exercise-analyzer/commit/0517562), [49c6529](https://github.com/idvorkin/exercise-analyzer/commit/49c6529); verified on the phone (daily use); the camera memory in [#66](https://github.com/idvorkin/exercise-analyzer/issues/66) on the phone since 2026-09-13; the Bulgarian setup and wobble in [77c6731](https://github.com/idvorkin/exercise-analyzer/commit/77c6731), verified on the host (bulgarian-4CF19A9A-phone, 8, Igor's count); the bench nearer the camera in [7f809a5](https://github.com/idvorkin/exercise-analyzer/commit/7f809a5), verified on the host (bulgarian-7424BEDD-phone, 6, Igor's count), on the phone pending; ten swings count ten, the first off the floor included: fix for #148 in [09779df](https://github.com/idvorkin/exercise-analyzer/commit/09779df), verified on the host (swing-pickup-10reps 9 → 10, Igor's count), on the phone pending
 
 #### Use Case:
 - **As a** solo lifter with the phone on a tripod
@@ -117,7 +117,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 004:
 
 - **Summary:** Count the swings that are swings, not the walk-in, the setup or the bell park
-- **Status:** implemented in [6b74a93](https://github.com/idvorkin/exercise-analyzer/commit/6b74a93), [4344155](https://github.com/idvorkin/exercise-analyzer/commit/4344155), [f3e7955](https://github.com/idvorkin/exercise-analyzer/commit/f3e7955), [7beca0c](https://github.com/idvorkin/exercise-analyzer/commit/7beca0c); verified on the host (walk-in, pick-up, low-camera and recording-hole fixtures); the `capture_gap` event of 7beca0c not on the phone yet; fix for #148 (the first swing counts) in this commit, verified on the host
+- **Status:** implemented in [6b74a93](https://github.com/idvorkin/exercise-analyzer/commit/6b74a93), [4344155](https://github.com/idvorkin/exercise-analyzer/commit/4344155), [f3e7955](https://github.com/idvorkin/exercise-analyzer/commit/f3e7955), [7beca0c](https://github.com/idvorkin/exercise-analyzer/commit/7beca0c); verified on the host (walk-in, pick-up, low-camera and recording-hole fixtures); the `capture_gap` event of 7beca0c not on the phone yet; fix for #148 (the first swing counts) in [09779df](https://github.com/idvorkin/exercise-analyzer/commit/09779df), verified on the host
 
 #### Use Case:
 - **As a** lifter who picks the bell up on camera and puts it down on camera
