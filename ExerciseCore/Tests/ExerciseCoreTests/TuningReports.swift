@@ -613,3 +613,53 @@ extension TuningReports {
       "bell-held \(label): hands \(handFrames) seen \(pct(seenAtHand))% held \(pct(trackedAtHand))% (inZone \(heldInZone)) inReps \(repHeld)/\(repHandFrames) (\(repHandFrames > 0 ? 100 * repHeld / repHandFrames : 0)%) | noSight=\(noSight) zone=\(zone) cold=\(cold) restartBlocked=\(restartBlocked) dropGap=\(dropGap) followRej=\(followRej)"
   }
 }
+
+extension TuningReports {
+  /// Off-angle top brainstorm (#139, #149; lab note ~/tmp/agent/notes/2026-09-26-offangle-top-brainstorm.md): a
+  /// swing's top is reached within a second of the deepest frame of its hinge (every fixture and archived rep:
+  /// p99 0.80 s, max 0.93 s); a top that took longer is either the hike off the floor (a hinge follows within
+  /// 1.0–1.3 s) or the lifter standing up after parking the bell (nothing follows for 6 s or more). For every
+  /// swing fixture and archived track, each rep's deepest-hinge→top and release→top times, the arm at the top, and
+  /// the time to the next hinge (spine > 35, hip < 140); the "two-speed" column counts a slow top only when a
+  /// hinge follows within `SWING_NEXT_HINGE` s (default 2.5), `SWING_UPSWING` (default 1.0) sets what is slow.
+  /// A pure read of today's analyzer's output: nothing in the analyzer changes.
+  func testSwingUpswingReport() throws {
+    let env = ProcessInfo.processInfo.environment
+    let upswingMax = Double(env["SWING_UPSWING"] ?? "") ?? 1.0
+    let nextHingeMax = Double(env["SWING_NEXT_HINGE"] ?? "") ?? 2.5
+    var slowLines: [String] = []
+    func row(_ name: String, _ want: String, _ frames: [FrameRecord]) {
+      let pipeline = AnalysisPipeline.analyze(frames: frames, exercise: .kettlebellSwing)
+      let track = pipeline.track.frames
+      let tops = track.filter { $0.analysis?.completedRep != nil }
+      var kept = 0
+      for (rep, top) in zip(pipeline.reps, tops) {
+        let bottom = rep.positions["bottom"]?.time ?? -1
+        let upswing = top.time - bottom
+        let release = top.time - (rep.positions["release"]?.time ?? top.time)
+        let nextHinge = track.first { f in
+          guard f.time > top.time, let m = f.analysis?.metrics, let spine = m["spine"], let hip = m["hip"] else { return false }
+          return spine > 35 && hip < 140
+        }.map { $0.time - top.time }
+        let slow = bottom < 0 || upswing > upswingMax
+        let confirmed = nextHinge.map { $0 <= nextHingeMax } ?? false
+        if !slow || confirmed { kept += 1 }
+        if slow {
+          slowLines.append(String(format: "  %@ rep %d/%d at %5.2f: deepest->top %.2f s, release->top %.2f s, arm %2.0f, next hinge %@ -> %@",
+            name, rep.number, pipeline.reps.count, top.time, upswing, release, top.analysis?.metrics["arm"] ?? 0,
+            nextHinge.map { String(format: "%.2f s", $0) } ?? "none", confirmed ? "hike, counted" : "park, dropped"))
+        }
+      }
+      print(name.padding(toLength: 40, withPad: " ", startingAt: 0) + want.padding(toLength: 6, withPad: " ", startingAt: 0)
+        + String(format: "%4d %4d%@", pipeline.reps.count, kept, kept != pipeline.reps.count ? "  *" : ""))
+    }
+    print("fixture".padding(toLength: 40, withPad: " ", startingAt: 0) + "want   now 2spd")
+    for fixture in Fixture.all where fixture.expectedExercise == .kettlebellSwing {
+      row(fixture.name, "\(fixture.expectedReps)", try fixture.frames())
+    }
+    let tracks = (Bundle.module.urls(forResourcesWithExtension: "json", subdirectory: "Fixtures/tracks") ?? [])
+      .filter { $0.lastPathComponent.hasPrefix("kettlebell-swing") }.sorted { $0.lastPathComponent < $1.lastPathComponent }
+    for url in tracks { row(url.deletingPathExtension().lastPathComponent, "-", try Fixture.frames(at: url)) }
+    print("slow tops (deepest hinge -> top over \(upswingMax) s):\n" + slowLines.joined(separator: "\n"))
+  }
+}
