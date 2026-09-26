@@ -21,6 +21,9 @@ final class ModelSet {
   /// The bench detector (#134), offline pass only, about once a second; not behind the bell switch, since a
   /// Bulgarian filmed with the bench nearer the camera counts nothing without it. Nil when not bundled.
   private(set) var benchDetector: BellDetector?
+  /// Who may run the models above right now (#147): an offline pass holds it for its whole run, a live frame for
+  /// its predict and bell run. Plans are drained by ready(); inference is serialized by this.
+  let lease = ModelLease()
 
   /// Names of the models this build runs on a clip: the pose model and, when bundled, the detector. Stored with
   /// every analysis; a stored set made by a different set is re-run from its video on reopen (story 035).

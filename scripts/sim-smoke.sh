@@ -77,6 +77,25 @@ check_cancel() {  # clip wait-seconds: cancels one second into the analysis (#37
     echo "ok    cancel $1: stopped $((landed - asked)) ms after Cancel, paused, nothing analyzed or saved"
   else echo "FAIL  cancel $1: asked=$asked landed=$landed analyzed=$analyzed played=$played"; fail=1; fi
 }
+check_cancel_reopen() {  # clip expected-reps wait-seconds: cancels one second in and reopens the clip at once while
+  # the cancelled worker holds the models half a second longer (#147); the new pass must wait for them
+  # (model_wait) and be the only pass that finishes.
+  reset_mode
+  SIMCTL_CHILD_SWING_VIDEO="$SAMPLES/$1.mp4" SIMCTL_CHILD_SWING_CANCEL_ANALYSIS=reopen xcrun simctl launch "$SIM" "$BUNDLE" >/dev/null
+  sleep 3
+  wait_for analyzed "$3" || echo "      (timed out after $3 s waiting for the reopened pass)"
+  local f; f=$(newest_log)
+  local asked waited ms passes reps
+  asked=$(jq -r 'select(.type=="analysis_cancel") | .t' "$f" | head -1)
+  waited=$(jq -r 'select(.type=="model_wait" and .who=="pass") | .t' "$f" | head -1)
+  ms=$(jq -r 'select(.type=="model_wait" and .who=="pass") | .ms' "$f" | head -1)
+  passes=$(jq -r 'select(.type=="offline_pass" and .where == null) | .t' "$f" | wc -l | tr -d ' ')
+  reps=$(jq -r 'select(.type=="analyzed") | .reps' "$f" | tail -1)
+  if [ -n "$asked" ] && [ -n "$waited" ] && [ "$waited" -gt "$asked" ] && [ "${ms:-0}" -ge 250 ] \
+    && [ "$passes" = "1" ] && [ "$reps" = "$2" ]; then
+    echo "ok    cancel_reopen $1: second pass waited $ms ms for the models, one pass finished, $reps reps"
+  else echo "FAIL  cancel_reopen $1: asked=$asked waited=$waited ms=$ms passes=$passes reps=$reps (wanted $2)"; fail=1; fi
+}
 check_interrupt() {  # clip interrupt-frame mode expected-reps wait-seconds: fails the first pass the way a
   # backgrounded decoder does (#57); the mode switch must then re-run the clip, so an offline_pass comes before
   # any analyzed and the failed pass alone analyzes nothing.
@@ -150,6 +169,7 @@ run check pistols pistol-squat 6 180
 run check bulgarian bulgarian-split-squat 8 180
 run check_trim igor-1h-swing 9 150
 run check_cancel pistols 60
+run check_cancel_reopen pistols 6 180
 run check_interrupt pistols 60 pistol-squat 6 180
 run check_clip_switch render
 run check_clip_switch mode

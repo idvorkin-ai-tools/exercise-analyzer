@@ -75,8 +75,13 @@ enum OfflineAnalyzer {
     return (footprint, Double(os_proc_available_memory()) / 1_048_576)
   }
 
+  /// `lease` is the models' one owner (#147): the worker holds it from before its first frame until it has truly
+  /// stopped, so a pass started after a cancel waits here for the old worker's last frame. `leaseWaited` gets the
+  /// seconds this pass waited for it.
   static func extract(
     url: URL, predictor: BasePredictor, bellDetector: BellDetector? = nil, benchDetector: BellDetector? = nil,
+    lease: ModelLease,
+    leaseWaited: (@Sendable (Double) -> Void)? = nil,
     progress: @escaping @Sendable (Double) -> Void,
     heartbeat: (@Sendable (Heartbeat) -> Void)? = nil
   ) async throws -> ([FrameRecord], Summary) {
@@ -94,6 +99,12 @@ enum OfflineAnalyzer {
     // Detached so the reader loop never blocks the main actor. A detached task does not inherit cancellation, so
     // Cancel is forwarded by hand; without this the pass ran to the end and only then reported "cancelled" (#37).
     let work = Task.detached(priority: .userInitiated) {
+      // Released only here, at the true end of the worker: every predict, detect and detectBench below has
+      // returned by then, whether the pass finished, failed or was cancelled.
+      let waitStarted = CACurrentMediaTime()
+      try await lease.acquire()
+      defer { lease.release() }
+      leaseWaited?(CACurrentMediaTime() - waitStarted)
       let reader = try AVAssetReader(asset: asset)
       let output = AVAssetReaderVideoCompositionOutput(
         videoTracks: [track],
@@ -122,10 +133,14 @@ enum OfflineAnalyzer {
       // backgrounded app's decoder produces (simulator runs can't leave the foreground, #57).
       let interruptAt = Int(ProcessInfo.processInfo.environment["SWING_INTERRUPT_READER"] ?? "")
       var lastWrists: [CGPoint] = []  // previous frame's wrists, for the overlapped bell path below
+      // Test hook: SWING_CANCEL_ANALYSIS=reopen holds the models half a second past the cancel, a slow last frame,
+      // so the pass reopened right after it must wait for the lease (#147).
+      let holdOnCancel = ProcessInfo.processInfo.environment["SWING_CANCEL_ANALYSIS"] == "reopen"
 
       while let sampleBuffer = output.copyNextSampleBuffer() {
         if Task.isCancelled {
           reader.cancelReading()
+          if holdOnCancel { Thread.sleep(forTimeInterval: 0.5) }
           throw OfflineError.cancelled
         }
         let time = CMSampleBufferGetPresentationTimeStamp(sampleBuffer).seconds

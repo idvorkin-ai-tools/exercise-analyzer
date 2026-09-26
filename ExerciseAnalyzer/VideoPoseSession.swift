@@ -113,6 +113,10 @@ final class VideoPoseSession: NSObject, ObservableObject {
   private var liveBellFrames = 0
   private var liveBellTotalMs = 0.0
   private var liveBellsDropped = 0
+  /// When live frames began skipping because a pass held the models, and how many (#147); model_wait on the first
+  /// frame that gets them back.
+  private var liveLeaseMissedSince: CFTimeInterval?
+  private var liveLeaseMissedFrames = 0
   /// Sightings for the frame under analysis, set on the main hop just before handle(result:).
   private var pendingBells: [BellSighting] = []
   private var pendingBellMs: Double?
@@ -519,8 +523,12 @@ final class VideoPoseSession: NSObject, ObservableObject {
     let operation = job.isUserPass ? clipOperations.current : nil
     // A replay never takes the slot from the set the user opened: its caller re-checked after its clip fetch,
     // but a user pass can start between that check and this registration.
-    if !job.isUserPass, currentJob?.isUserPass == true {
-      log.event("recents_rerun_yield", ["generation": job.generation, "where": job.replayWhere ?? ""])
+    // Nor from the camera: a replay holds the models for its whole clip, and live frames would skip until it
+    // ended (#147). Starting the camera cancels a replay in flight; this keeps the refresh's next set out.
+    if !job.isUserPass, currentJob?.isUserPass == true || source == .camera {
+      log.event(
+        "recents_rerun_yield",
+        ["generation": job.generation, "where": job.replayWhere ?? "", "to": source == .camera ? "camera" : "pass"])
       return .cancelled
     }
     if case .replay(let entry, let replayWhere, let exercise) = job.kind {
@@ -535,6 +543,15 @@ final class VideoPoseSession: NSObject, ObservableObject {
       do {
         let (frames, summary) = try await OfflineAnalyzer.extract(
           url: job.url, predictor: job.predictor, bellDetector: job.bellDetector, benchDetector: job.benchDetector,
+          lease: models.lease,
+          leaseWaited: { [weak self] seconds in
+            // The drain made visible (#147): a pass started while the previous worker was still in its last frame.
+            guard seconds * 1000 > Self.modelWaitLogMs else { return }
+            self?.log.event(
+              "model_wait",
+              ["who": "pass", "ms": Int(seconds * 1000), "generation": job.generation,
+               "where": job.replayWhere ?? "user"])
+          },
           progress: { [weak self] fraction in
             if job.isUserPass {
               Task { @MainActor in
@@ -941,7 +958,11 @@ final class VideoPoseSession: NSObject, ObservableObject {
   /// The job occupying the single extraction slot and its cancellable extract task. A newer registration
   /// supersedes whatever is in flight; only the current generation's render touches the session or the store.
   private var currentJob: ClipJob?
+  /// Cancelling it returns at once; the worker it started keeps the models (ModelSet.lease) until its frame in
+  /// flight ends, and the next pass or live frame waits for that (#147).
   private var currentTask: Task<ClipResult, Never>?
+  /// A wait for the models longer than this is logged as model_wait (#147); a drained frame is 10–50 ms.
+  private nonisolated static let modelWaitLogMs = 50.0
   private var jobGeneration = 0
   private var cancelledJobGeneration: Int?
 
@@ -1003,6 +1024,7 @@ final class VideoPoseSession: NSObject, ObservableObject {
   /// What the last user pass was asked to do, so a retry after an interruption re-runs the same thing: a
   /// stored get-up reopened under a fixed Swing mode must retry as a get-up, not as swings (#42, #57).
   private var lastUserPass: (reason: String, stored: ExerciseKind?) = (StoredSetReason.load.rawValue, nil)
+  private var cancelReopenFired = false
 
   /// Re-runs the offline pass from the clip after an interruption (status tap or retry button, #57).
   func retryAnalysis() {
@@ -1050,12 +1072,19 @@ final class VideoPoseSession: NSObject, ObservableObject {
       clearJob(job)
       updateKeepAwake()
     }
-    // Test hook: SWING_CANCEL_ANALYSIS=1 cancels one second in (simulator runs can't tap the UI).
-    if ProcessInfo.processInfo.environment["SWING_CANCEL_ANALYSIS"] == "1" {
+    // Test hook: SWING_CANCEL_ANALYSIS=1 cancels one second in (simulator runs can't tap the UI). `reopen` then
+    // opens the clip again at once, while the cancelled worker still holds the models (#147), once per launch.
+    let cancelHook = ProcessInfo.processInfo.environment["SWING_CANCEL_ANALYSIS"]
+    if cancelHook == "1" || (cancelHook == "reopen" && !cancelReopenFired) {
+      cancelReopenFired = true
       Task {
         try? await Task.sleep(for: .seconds(1))
         guard isCurrent(operation) else { return }
         cancelAnalysis()
+        if cancelHook == "reopen" {
+          let reopen = beginCurrentOperation()
+          await analyzeAndPlay(url: url, operation: reopen)
+        }
       }
     }
     let result = await run(job)
@@ -1521,6 +1550,22 @@ final class VideoPoseSession: NSObject, ObservableObject {
     guard liveInferenceEnabled, let predictor = models.predictor, !inferenceBusy,
       let sampleBuffer = Self.makeSampleBuffer(pixelBuffer, time: time)
     else { return }
+    // The models are one job's at a time (#147): while a cancelled pass finishes its last frame, live frames
+    // skip, as they do while the previous live frame is in flight. Released once predict and the bell run end.
+    let lease = models.lease
+    guard lease.tryAcquire() else {
+      if liveLeaseMissedSince == nil { liveLeaseMissedSince = CACurrentMediaTime() }
+      liveLeaseMissedFrames += 1
+      return
+    }
+    if let since = liveLeaseMissedSince {
+      let ms = (CACurrentMediaTime() - since) * 1000
+      if ms > Self.modelWaitLogMs {
+        log.event("model_wait", ["who": "live", "ms": Int(ms), "frames_skipped": liveLeaseMissedFrames])
+      }
+      liveLeaseMissedSince = nil
+      liveLeaseMissedFrames = 0
+    }
     inferenceBusy = true
     pendingFrame = (time, pixelBuffer)
     pendingBells = []
@@ -1542,6 +1587,7 @@ final class VideoPoseSession: NSObject, ObservableObject {
     }
     guard runBell, let bellDetector else {
       inferenceQueue.async { [weak self] in
+        defer { lease.release() }
         guard let self else { return }
         // `predict` runs Vision synchronously and calls the listeners before returning, so the busy flag can be
         // cleared here whether or not a result was delivered.
@@ -1552,7 +1598,10 @@ final class VideoPoseSession: NSObject, ObservableObject {
     }
     let wrists = liveLastWrists
     inferenceQueue.async { [weak self] in
-      guard let self else { return }
+      guard let self else {
+        lease.release()
+        return
+      }
       let catcher = LiveResultCatcher()
       let group = DispatchGroup()
       var found: [BellSighting] = []
@@ -1563,6 +1612,8 @@ final class VideoPoseSession: NSObject, ObservableObject {
         Task { @MainActor [weak self] in self?.bellBusy = false }
       }
       predictor.predict(sampleBuffer: sampleBuffer, onResultsListener: catcher, onInferenceTime: self)
+      // The lease covers the bell run too: a late detector still holds the models after this frame gives up on it.
+      group.notify(queue: .global(qos: .userInitiated)) { lease.release() }
       // The detector started with pose, so by now it is usually done; a late one loses this frame
       // instead of the frame rate (one frame in flight stays one in flight).
       let ran = group.wait(timeout: .now() + Self.liveBellWait) == .success
@@ -1861,6 +1912,8 @@ final class VideoPoseSession: NSObject, ObservableObject {
     duration = 0
     stopCamera()
     bellBusy = false  // only here, after the camera stopped: a bell run can still be in flight at Record
+    liveLeaseMissedSince = nil
+    liveLeaseMissedFrames = 0
     cameraCancelled = false
     self.viewfinder = viewfinder
     viewfinderSince = nil

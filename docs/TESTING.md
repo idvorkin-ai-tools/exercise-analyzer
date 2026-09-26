@@ -151,6 +151,7 @@ The simulator cannot be tapped from a script, so the app has **launch hooks** re
 | `SWING_AUTO_TRIM=1` | trim to the rep span right after the first analysis |
 | `SWING_UNDO_TRIM=1` | undo that trim 3 s later (with `SWING_AUTO_TRIM`) |
 | `SWING_CANCEL_ANALYSIS=1` | cancel the offline pass one second in |
+| `SWING_CANCEL_ANALYSIS=reopen` | cancel one second in and reopen the clip at once, while the cancelled worker holds the models half a second past the cancel (a slow last frame); `ONLY=cancel just test-sim` asserts the new pass logged `model_wait` (who pass) after the cancel and was the only pass to finish (#147) |
 | `SWING_CLIP_SWITCH=render\|mode\|photos\|trim` | simulator-only: suspend A at its render, mode replay, Photos-save or trim completion; open stored B (zero reps), then release A. The Photos case returns a fake identifier without library access. `ONLY=clip_switch just test-sim` asserts B's analysis, local video and entry survive and A neither saves nor starts playback; `clip_switch_begin`, `clip_switch_release`, `clip_switch_checked` mark the boundaries |
 | `SWING_INTERRUPT_READER=<frame>` | fail the first pass at that frame with `readerFailed("Operation Interrupted")`, like a backgrounded decoder (#57) |
 | `SWING_MODE=<exercise\|auto>` | switch exercise 2 s after an interrupted pass, proving a mode switch re-runs the clip (#57); launch-only, persists no default, and every smoke check resets the mode default first |
