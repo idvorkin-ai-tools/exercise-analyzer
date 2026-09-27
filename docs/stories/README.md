@@ -22,9 +22,9 @@ story has, in this order:
 - **Status**: one line, see below.
 - **Why** (optional): one line on what prompted it, Igor's words when they exist.
 - **Use Case**: As a / I want to / so that.
-- **Acceptance Criteria**: one or more scenarios, each with one When and one Then. A story starts with one
-  scenario; a later change to its behaviour adds a scenario rather than rewriting the first, so the criteria
-  read as the feature grew.
+- **Acceptance Criteria**: one or more scenarios, each with one When and one Then. The criteria describe what
+  the app does now: a change to a behaviour edits the scenario it changes, and a new condition adds a scenario.
+  What it used to do lives in git history and the issues, not in the criteria.
 - **Notes** (optional): the wire fields, the mechanism, the trade-off that was decided. Short.
 - **Issues**: the GitHub issues that asked for it or reported against it.
 
@@ -41,6 +41,9 @@ and `docs/analysis/`. The vocabulary:
 - `…; on the phone since <date>, Igor's check pending` when the build is installed but the behaviour needs an
   eye or a wrist that the rungs do not have.
 - `not implemented (#N)` when only the issue exists.
+- `superseded by <story> in <commit>; before that implemented in <commits>` when another story replaced it. The
+  story shrinks to its Summary, Status, a one-line Notes pointer and its Issues; the number stays.
+- `parked (#N)` when Igor decided not to build it for now; the story keeps its criteria as the plan.
 
 A commit that changes a behaviour adds itself to the story's Status and edits or adds the scenario it
 changed, in the same commit or the next (AGENTS.md).

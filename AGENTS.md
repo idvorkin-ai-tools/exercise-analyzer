@@ -1,7 +1,7 @@
 # Agent instructions: Exercise Analyzer
 
 iOS app (SwiftUI + Core ML pose model) that counts and scores kettlebell swings, pistol squats, Bulgarian split
-squats and Turkish get-ups. `ExerciseCore/` is the platform-free analysis package; `ExerciseAnalyzer/` is the app;
+squats, split squats, Turkish get-ups and pull-ups. `ExerciseCore/` is the platform-free analysis package; `ExerciseAnalyzer/` is the app;
 `ExerciseAnalyzerWatch/` the watch companion.
 
 ## Read these before working
