@@ -27,7 +27,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Given:** I crouch while putting my rear foot up on the bench, sway once while standing, then do eight reps
 - **When:** the set is analyzed as a Bulgarian split squat
 - **Then:** it counts eight: a dip before the rear foot has been up for 2.5 s is setup, and a head drop under a
-  fifth of my leg's length is not a rep (Igor, 2026-09-22: "Rep 1 was just me setting up. I think rep 2 was
+  fifth of my standing height (ankle to ear) is not a rep (Igor, 2026-09-22: "Rep 1 was just me setting up. I think rep 2 was
   garbage too", [#132](https://github.com/idvorkin/exercise-analyzer/issues/132))
 
 - **Scenario:** A Bulgarian counts with the bench nearer the camera than me
@@ -43,6 +43,8 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Then:** it counts my reps: a rep whose head turns back down far short of the standing height is not a rep and
   resets it, and one that turns just short (under 0.15 of my height) is a rep that didn't quite stand tall
   ([#135](https://github.com/idvorkin/exercise-analyzer/issues/135): 79271425 had counted none, 599F988A six of eight)
+- **and Then:** not yet: putting the dumbbells down after the last rep still counts as a rep when the head drops
+  as deep as one (79271425 counts nine for eight; 599F988A counts its eight; #135 open)
 
 - **Scenario:** Live opens on the camera I used last time
 - **Given:** my last set was recorded on the front camera (or the back camera at 0.5×)
@@ -106,7 +108,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 
 - **Scenario:** An interrupted pass
 - **Given:** a clip whose offline pass was interrupted by the reader ("Operation Interrupted")
-- **and Given:** the status line reads "Analysis interrupted" with a retry, and no partial track was kept
+- **and Given:** the status line reads "Analysis interrupted – tap to retry", and no partial track was kept
 - **When:** I choose an exercise from the menu (or tap the status to retry)
 - **Then:** the clip is re-scanned from the video (an `offline_pass` precedes any `analyzed`), the full skeleton returns, and once the extraction is complete a later switch re-reads instantly without re-scanning
 
@@ -154,7 +156,12 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Given:** the clip has no frames from 12.7 to 14.9 s and ten swings, two of them cut by the hole
 - **When:** the clip is analyzed as a kettlebell swing
 - **Then:** the count is eight: the swing after the hole starts at its own top and is counted
-- **and Then:** the session log has a `capture_gap` event saying how long the hole was and why frames were dropped
+
+- **Scenario:** The camera says when it drops frames
+- **Given:** I am recording a set with the app
+- **When:** the camera delivers a frame more than 0.25 s after the one before it
+- **Then:** the session log has a `capture_gap` event, written from the camera as it happens, saying how long the
+  hole was and why frames were dropped; a clip opened later cannot say why, so it gets no such event
 
 - **Scenario:** One-arm swings with the upper arm on the ribs
 - **Given:** a set of ten one-arm swings where my upper arm stays close to the body and the forearm lifts the bell to chest height, picked up off the floor after a few seconds of setup
@@ -228,7 +235,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Given:** I recorded a set with the app and tapped Done
 - **and Given:** the analysis found no reps
 - **When:** the analysis finishes
-- **Then:** the app asks "Delete recording or keep it?", Delete removes the file and its Workouts entry, and a clip from Photos is never deleted
+- **Then:** the app asks "No reps found in this recording" ("Nothing was saved to Photos. Delete the recording, or keep it to look at?"), "Delete recording" removes the file and its Workouts entry, "Keep it" leaves both, and a clip from Photos is never deleted
 
 - **Issues:** [#31](https://github.com/idvorkin/exercise-analyzer/issues/31)
 
@@ -249,12 +256,12 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Scenario:** A set of pull-ups on Auto
 - **Given:** the exercise is on Auto and I filmed five pull-ups from behind, feet on the rack's pegs, after fourteen seconds of getting set with my hands on the bar
 - **When:** the set is analyzed
-- **Then:** it reads "Pull-Up" with 5 reps; getting set and climbing down count nothing; the pills are Hang, Pulling, Top and Lowering, the HUD shows PULL (how much of the way to the bar) and ELBOW, and the rep gallery has the four positions per rep
+- **Then:** it reads "Pull-Up" with 5 reps; getting set and climbing down count nothing; the pills are Hang, Pulling, Top and Lowering, the HUD shows PULL (how much of the way to the bar) and ELBOW, and the rep gallery has four columns per rep, Hang, Up, Top and Down
 
 - **Scenario:** A pull that stops short
 - **Given:** a rep where my shoulders stop well under the bar
 - **When:** I look at its score
-- **Then:** it counts, scores 80 with "Pull higher - chin over the bar" (60 and "Half rep" when it stops further down), and loses 15 more when my arms never straightened in the hang
+- **Then:** it counts, scores 80 with "Pull higher - chin over the bar" (60 and "Half rep - pull until your chin clears the bar" when it stops further down), and loses 15 more with "Straighten your arms at the bottom" when my arms never straightened in the hang
 
 - **Scenario:** Letting go from the top
 - **Given:** I reached the top of the last rep and dropped off the bar on the way down

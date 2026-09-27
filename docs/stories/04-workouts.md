@@ -9,7 +9,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 012:
 
 - **Summary:** See a day's training as sets per exercise, not a list of files
-- **Status:** implemented in [bf074c8](https://github.com/idvorkin/exercise-analyzer/commit/bf074c8), [8747d9b](https://github.com/idvorkin/exercise-analyzer/commit/8747d9b), [f8633a8](https://github.com/idvorkin/exercise-analyzer/commit/f8633a8); verified by simulator screenshot; the year on the header is Igor's check; the repeated-exercise row in [cdbc435](https://github.com/idvorkin/exercise-analyzer/commit/cdbc435), verified on the simulator (a Yesterday with two swing sets under a Today with four), on the phone since 2026-09-16; the card's picture for [#110](https://github.com/idvorkin/exercise-analyzer/issues/110) verified on the host (`PersonCropTests`) and the simulator (a 9-rep swing set and a 0-rep set, Workouts screenshot) in [c460df5](https://github.com/idvorkin/exercise-analyzer/commit/c460df5), on the phone since 2026-09-19, Igor's check pending; approved A icons in [d6a139f](https://github.com/idvorkin/exercise-analyzer/commit/d6a139f) verified on the simulator (all six workout-detail fallbacks in light/dark, expanded headers with real photos, collapsed summary) and by signed phone build; installed 2026-09-20, launch blocked by the phone lock; collapse persistence and independent wrist-workout folding requested in [#121](https://github.com/idvorkin/exercise-analyzer/issues/121), planned; the folded day's chips ([#129](https://github.com/idvorkin/exercise-analyzer/issues/129), [553d211](https://github.com/idvorkin/exercise-analyzer/commit/553d211)) and the workout line's figure ([#130](https://github.com/idvorkin/exercise-analyzer/issues/130), [198b92c](https://github.com/idvorkin/exercise-analyzer/commit/198b92c)) verified by simulator screenshot, on the phone since 2026-09-22, Igor's check pending
+- **Status:** implemented in [bf074c8](https://github.com/idvorkin/exercise-analyzer/commit/bf074c8), [8747d9b](https://github.com/idvorkin/exercise-analyzer/commit/8747d9b), [f8633a8](https://github.com/idvorkin/exercise-analyzer/commit/f8633a8); verified by simulator screenshot; the year on the header is Igor's check; the repeated-exercise row in [cdbc435](https://github.com/idvorkin/exercise-analyzer/commit/cdbc435), verified on the simulator (a Yesterday with two swing sets under a Today with four), on the phone since 2026-09-16; the card's picture for [#110](https://github.com/idvorkin/exercise-analyzer/issues/110) verified on the host (`PersonCropTests`) and the simulator (a 9-rep swing set and a 0-rep set, Workouts screenshot) in [c460df5](https://github.com/idvorkin/exercise-analyzer/commit/c460df5), on the phone since 2026-09-19, Igor's check pending; approved A icons in [d6a139f](https://github.com/idvorkin/exercise-analyzer/commit/d6a139f) verified on the simulator (all six workout-detail fallbacks in light/dark, expanded headers with real photos, collapsed summary) and by signed phone build; installed 2026-09-20, launch blocked by the phone lock; the fold memory of [#121](https://github.com/idvorkin/exercise-analyzer/issues/121) ("Returning to my folded workout list") not implemented; the folded day's chips ([#129](https://github.com/idvorkin/exercise-analyzer/issues/129), [553d211](https://github.com/idvorkin/exercise-analyzer/commit/553d211)) and the workout line's figure ([#130](https://github.com/idvorkin/exercise-analyzer/issues/130), [198b92c](https://github.com/idvorkin/exercise-analyzer/commit/198b92c)) verified by simulator screenshot, on the phone since 2026-09-22, Igor's check pending
 
 #### Use Case:
 - **As a** lifter reviewing the week
@@ -47,7 +47,6 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Given:** I collapsed a day or a workout recorded on the wrist
 - **When:** I close and reopen Workouts or relaunch the app
 - **Then:** those sections keep my choices; a wrist workout can fold independently without preventing me from opening its detail page
-- **Issues:** [#121](https://github.com/idvorkin/exercise-analyzer/issues/121), requested from the phone 2026-09-20; not implemented yet
 
 - **Scenario:** A folded day says what was done
 - **Given:** a day of eight swing sets of eight and five get-up sets of two, folded shut
@@ -111,8 +110,13 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 #### Acceptance Criteria:
 - **Scenario:** This morning's clips, one of them already analyzed
 - **Given:** Photos holds three videos from today between 10 s and 10 min long, one of which is already a set in Workouts
-- **When:** I open Workouts
-- **Then:** a From Photos strip shows all three with "2 not analyzed" in its header; the analyzed one is dimmed and marked Analyzed and tapping it opens its set, while tapping either of the others opens that clip in place
+- **When:** I open Workouts and open the From Photos strip
+- **Then:** the two I have not analyzed are under New and the other under Analyzed, dimmed and marked Analyzed;
+  tapping the analyzed one opens its set, tapping either new one opens that clip in place
+
+- **Notes:** How the strip folds, its tabs and what it remembers are story 052's.
+
+- **Issues:** [#8](https://github.com/idvorkin/exercise-analyzer/issues/8)
 
 ---
 
@@ -163,24 +167,21 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 
 ### User Story 032:
 
-- **Summary:** Hide the Photos clips I have already analyzed
-- **Status:** implemented in [48d4c33](https://github.com/idvorkin/exercise-analyzer/commit/48d4c33); on the phone, Igor's check pending (Photos)
+- **Summary:** A Photos clip I trimmed and saved stays analyzed
+- **Status:** implemented in [48d4c33](https://github.com/idvorkin/exercise-analyzer/commit/48d4c33); on the phone, Igor's check pending (Photos); its Hide analyzed toggle superseded by 052 (the New tab)
 
 #### Use Case:
 - **As a** lifter who imports every set from Photos
-- **I want to** hide the analyzed clips in the From Photos strip, and have a trimmed-and-saved set count as analyzed
-- **so that** the strip is only what is left to do, and a set I trimmed does not come back as "new"
+- **I want to** have a trimmed-and-saved set count as analyzed in the From Photos strip
+- **so that** a set I trimmed does not come back as "new"
 
 #### Acceptance Criteria:
-- **Scenario:** Hiding the done ones
-- **Given:** the strip shows three clips, two of them analyzed, one of which I trimmed and saved back to Photos
-- **When:** I tap Hide analyzed in the strip's header
-- **Then:** only the unanalyzed clip remains, the choice sticks across launches, and the trimmed set stays hidden because its new Photos identity is the one Workouts knows
+- **Scenario:** A trimmed set stays analyzed
+- **Given:** a clip I analyzed, trimmed and saved back to Photos in place of the original
+- **When:** I open the strip
+- **Then:** it is under Analyzed, not New, because its new Photos identity is the one Workouts knows
 
-- **Scenario:** The toggle became the New tab (story 052)
-- **Given:** the same three clips
-- **When:** I open Workouts
-- **Then:** the strip is on its New tab with the one unanalyzed clip, the two analyzed ones are under Analyzed, and there is no Hide analyzed button
+- **Notes:** The strip's tabs, folding and memory are story 052's; there is no Hide analyzed button.
 
 - **Issues:** [#41](https://github.com/idvorkin/exercise-analyzer/issues/41); [#93](https://github.com/idvorkin/exercise-analyzer/issues/93) replaced the toggle with tabs
 
@@ -197,10 +198,10 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **so that** old sets gain what a new model sees without a manual re-import, while sets whose clip is gone keep what they have
 
 #### Acceptance Criteria:
-- **Scenario:** Reopening a set after the bell detector shipped
-- **Given:** a set in Workouts analyzed by the pose model alone, with its clip still in Photos or in the app
-- **When:** I open it in a build that bundles the pose model and the kettlebell detector
-- **Then:** the app runs the offline pass again from the video as the set's own exercise (a fixed mode does not change it), stores the result on the same entry with the model set, shows the bell, and a second open runs nothing; a set whose clip is missing says so ("That clip is no longer in Photos") and is left unchanged
+- **Scenario:** Reopening a set after the model set changed
+- **Given:** a swing set in Workouts analyzed by the pose model alone, with its clip still in Photos or in the app
+- **When:** I open it with the bell detector switched on (it is off by default, story 034)
+- **Then:** the app runs the offline pass again from the video as the set's own exercise (a fixed mode does not change it), stores the result on the same entry with the model set, shows the bell's dot where the detector tracked one, and a second open runs nothing; a set whose clip is missing says so ("That clip is no longer in Photos") and is left unchanged
 
 - **Scenario:** The gallery catches up on its own after a model or its settings change
 - **Given:** stored sets whose tracks lack a model this build runs, or were made by the detector at other settings (the model set names the detector with its floor and box cap)
@@ -224,20 +225,11 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 038:
 
 - **Summary:** See what I did today at a glance when the Workouts sheet is collapsed
-- **Status:** replaced by 058 (no sheet; a folded day's chips, #129, say what was done, and a set's green workout strip leads to the day's workout); before that implemented in [52ecac2](https://github.com/idvorkin/exercise-analyzer/commit/52ecac2); verified by simulator screenshot ([docs/screenshots/workouts-collapsed.png](../screenshots/workouts-collapsed.png)); on the phone since 2026-09-13, Igor's check pending; approved A icons in [d6a139f](https://github.com/idvorkin/exercise-analyzer/commit/d6a139f) verified on the simulator (all six workout-detail fallbacks in light/dark, expanded headers with real photos, collapsed summary) and by signed phone build; installed 2026-09-20, launch blocked by the phone lock
+- **Status:** superseded by 058 in [8f3cffe](https://github.com/idvorkin/exercise-analyzer/commit/8f3cffe); before that implemented in [52ecac2](https://github.com/idvorkin/exercise-analyzer/commit/52ecac2), [d6a139f](https://github.com/idvorkin/exercise-analyzer/commit/d6a139f)
 
-#### Use Case:
-- **As a** lifter between sets with the Workouts sheet pulled down
-- **I want to** see the day's exercises as short words with a small stick-figure icon each (pistols, swing, TGU, Bulgarian)
-- **so that** I know what I have done today without opening the sheet
-
-#### Acceptance Criteria:
-- **Scenario:** Glancing at the day between sets
-- **Given:** today has a swing set and two pistol sets stored, and the Workouts sheet is collapsed to its handle
-- **When:** I look at the collapsed sheet
-- **Then:** it reads "swing · pistols" with an icon per exercise (a stick figure in the exercise's shape), in the order the sets were done, and nothing else; pulling the sheet up shows the full day as before
-
-- **and Then:** each icon uses the same colored A drawing as the expanded exercise header, including the compact proportions and swing/pull-up motion cues approved in Lavish
+- **Notes:** There is no Workouts sheet to collapse any more: the log is home (058). A folded day's chips say what
+  was done (012, #129), and a set's green workout strip leads to the running workout's page. The sheet's criteria
+  are in git history.
 
 - **Issues:** [#58](https://github.com/idvorkin/exercise-analyzer/issues/58), [#120](https://github.com/idvorkin/exercise-analyzer/issues/120)
 
@@ -261,14 +253,19 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Then:** it leaves the suggestions and stays out across launches; it is listed under Ignored, where "Bring back" returns it
 
 - **Scenario:** The strip is one line until I ask for it
-- **Given:** Photos holds 3 new clips
+- **Given:** Photos holds 3 new clips and I have never opened the strip
 - **When:** I open Workouts
-- **Then:** From Photos is one line, "From Photos · 3 new ›", and the workouts start right under it (Igor, 2026-09-19: "make the photos on the workout opener collapse by default"); a tap opens the strip, another closes it, and how I left it sticks across launches ([#103](https://github.com/idvorkin/exercise-analyzer/issues/103), by build only: the simulator cannot be given Photos access, the phone pending)
+- **Then:** From Photos is one line, "From Photos" and "3 new" with a chevron, and the workouts start right under it (Igor, 2026-09-19: "make the photos on the workout opener collapse by default", [#103](https://github.com/idvorkin/exercise-analyzer/issues/103)); a tap opens the strip on its New tab, another closes it
 
 - **Scenario:** The strip shows work to do
-- **Given:** Photos holds 3 new clips, 9 analyzed and 2 ignored
+- **Given:** Photos holds 3 new clips, 9 analyzed and 2 ignored from the last two weeks
 - **When:** I open Workouts and open the strip
-- **Then:** the strip is on "New 3" with those clips, beside "Analyzed 9" and "Ignored 2", one tap each; the tab I leave it on sticks across launches
+- **Then:** the strip is on "New 3" with those clips, beside "Analyzed 9" and "Ignored 2", one tap each; an empty tab says so ("No new clips in the last two weeks")
+
+- **Scenario:** The strip remembers how I left it
+- **Given:** I left the strip open on its Analyzed tab
+- **When:** I relaunch the app and open Workouts
+- **Then:** the strip is still open, on Analyzed
 
 - **Scenario:** Ignored clips do not crowd out new ones
 - **Given:** the twelve newest set-sized videos in Photos are all ignored or analyzed and a new one sits behind them
@@ -280,7 +277,9 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **When:** I tap it
 - **Then:** it is analyzed like any other and moves to Analyzed: a clip that became a set is a set, whatever I said before
 
-- **Notes:** Builds on 014 (suggestions, the Analyzed badge) and replaces 032's Hide analyzed toggle. Igor picked 93A on the board of 2026-09-18 (tabs; 93B was one strip with three badges). On 2026-09-18 the log's `photos_suggestions` read matched 31, shown 12, already analyzed 9; the event now carries `new` and `ignored`, and `photos_ignore` logs each change. The ignored identifiers live in UserDefaults (`ignoredPhotosClips`). Open: what "imported" means to Igor; the board read it as a clip opened but never finished analyzing (a blue Opened badge), which is not built, because nothing records that today and the meaning is not confirmed.
+- **Notes:** This story is the strip's contract: how it folds, its tabs and what it remembers. 014 says which clips
+  it offers and what a tap opens; 032 that a clip trimmed and saved back stays analyzed. It replaced 032's Hide
+  analyzed toggle. Igor picked 93A on the board of 2026-09-18 (tabs; 93B was one strip with three badges). On 2026-09-18 the log's `photos_suggestions` read matched 31, shown 12, already analyzed 9; the event now carries `new` and `ignored`, and `photos_ignore` logs each change. The ignored identifiers live in UserDefaults (`ignoredPhotosClips`). Open: what "imported" means to Igor; the board read it as a clip opened but never finished analyzing (a blue Opened badge), which is not built, because nothing records that today and the meaning is not confirmed.
 
 - **Issues:** [#93](https://github.com/idvorkin/exercise-analyzer/issues/93)
 
@@ -338,12 +337,12 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **When:** it is on the playback screen
 - **Then:** the sign is there all the same and opens that workout's page; a set done outside every workout has no button
 
-- **Scenario:** A row names the rep and shows the set
+- **Scenario:** A row shows the set
 - **Given:** a workout of swings and pistols
 - **When:** I read its rows
-- **Then:** they say "10 swings" and "6 pistols" ("1 get-up", "8 split squats"), each with the set's own picture, and one line above the rows says what the red numbers are: peak, the drop in the 60 s after the set (or in the rest when it was shorter), the rest before the next
+- **Then:** each starts with the set's own picture, and one line above the rows says what the red numbers are: peak, the drop in the 60 s after the set (or in the rest when it was shorter), the rest before the next
 
-- **and Then:** when a set has no picture, its row uses the same colored A exercise drawing as Workouts, with the exercise text still readable and accessible ([#120](https://github.com/idvorkin/exercise-analyzer/issues/120))
+- **and Then:** when a set has no picture, its row uses the same colored A exercise drawing as Workouts in its place ([#120](https://github.com/idvorkin/exercise-analyzer/issues/120))
 
 - **Scenario:** The row's exercise is its drawing, not its word
 - **Given:** the same workout
@@ -382,7 +381,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 
 - **Notes:** Igor picked the page (95A) on the board of 2026-09-18 and asked to "keep full heart rate data so we can see time to drop as well": the whole workout's series, rests included, is read from Health (a minute before to three after) and kept in `Documents/workouts/<id>/heartrate.json`, re-read on every open and replaced when Health has more. The heart lags the work, so a set's peak is looked for up to 30 s past its end (or the next set's start), and the drop is that peak minus the reading 60 s after the set's end, or at the next set's start when the rest was shorter (Igor, 2026-09-18: "drop in 60 seconds or however much total rest I got"; he picked this over "time to get back under X", which is not built). A set is placed by `clipStartedAt` (story 051); sets from before it fall back to `recordedAt`, which for a set recorded in the app is the end of the recording, so they sit up to one set length late. The day and exercise grouping of 012 stays as it is. `WorkoutTimeline` in ExerciseCore does the arithmetic; the page only draws it.
 
-- **Issues:** [#95](https://github.com/idvorkin/exercise-analyzer/issues/95); [#101](https://github.com/idvorkin/exercise-analyzer/issues/101) a tap on a set's bar opens it (host `WorkoutTimelineTests`, simulator `SWING_WORKOUT_BAR_TAP=0.58` opened the middle seeded set, the phone pending); [#99](https://github.com/idvorkin/exercise-analyzer/issues/99) Igor: "sometimes … I can get back to the workout, and sometimes I can't": the button existed only for a set opened from the workout's page; [#127](https://github.com/idvorkin/exercise-analyzer/issues/127) the drawing in place of the word (simulator screenshot of the seeded workout's rows, on the phone pending); [#125](https://github.com/idvorkin/exercise-analyzer/issues/125), [#126](https://github.com/idvorkin/exercise-analyzer/issues/126) pinch-zoom and pan (simulator: `SWING_WORKOUT_ZOOM=3` narrowed the 620 s seed to a 206 s window from 330 s, and `SWING_WORKOUT_BAR_TAP=0.12` then opened the middle set through the scroll where unzoomed it hit nothing; the pinch itself is Igor's check on the phone); [#128](https://github.com/idvorkin/exercise-analyzer/issues/128) the swipe went back instead of panning: the chart draws its own window and owns the sideways drag, the swipe-back is off while zoomed (simulator: `SWING_WORKOUT_ZOOM=3 SWING_WORKOUT_PAN=100 SWING_WORKOUT_BAR_TAP=0.35` opened the middle set through the pan where the same tap unpanned hit nothing; the "‹" button in the zoomed screenshot; the swipe itself is Igor's check); [#123](https://github.com/idvorkin/exercise-analyzer/issues/123) the live landing (simulator: `SWING_SHOW_WORKOUTS=1 SWING_LIVE_WORKOUT=30` logged `ui open_live_workout` then `workout_page live: true`; `SWING_OPEN_RECENT=<set> SWING_BACK_TO_WORKOUT=1 SWING_LIVE_WORKOUT=<minutes covering it>` logged `back_to_workout from_page: false` and the live page), on the phone pending
+- **Issues:** [#95](https://github.com/idvorkin/exercise-analyzer/issues/95); [#101](https://github.com/idvorkin/exercise-analyzer/issues/101) a tap on a set's bar opens it (host `WorkoutTimelineTests`, simulator `SWING_WORKOUT_BAR_TAP=0.58` opened the middle seeded set, the phone pending); [#99](https://github.com/idvorkin/exercise-analyzer/issues/99) Igor: "sometimes … I can get back to the workout, and sometimes I can't": the button existed only for a set opened from the workout's page; [#127](https://github.com/idvorkin/exercise-analyzer/issues/127) the drawing in place of the word (simulator screenshot of the seeded workout's rows, on the phone pending); [#125](https://github.com/idvorkin/exercise-analyzer/issues/125), [#126](https://github.com/idvorkin/exercise-analyzer/issues/126) pinch-zoom and pan (simulator: `SWING_WORKOUT_ZOOM=3` narrowed the 620 s seed to a 206 s window from 330 s, and `SWING_WORKOUT_BAR_TAP=0.12` then opened the middle set through the scroll where unzoomed it hit nothing; the pinch itself is Igor's check on the phone); [#128](https://github.com/idvorkin/exercise-analyzer/issues/128) the swipe went back instead of panning: the chart draws its own window and owns the sideways drag, the swipe-back is off while zoomed (simulator: `SWING_WORKOUT_ZOOM=3 SWING_WORKOUT_PAN=100 SWING_WORKOUT_BAR_TAP=0.35` opened the middle set through the pan where the same tap unpanned hit nothing; the "‹" button in the zoomed screenshot; the swipe itself is Igor's check); [#123](https://github.com/idvorkin/exercise-analyzer/issues/123) the live landing (simulator, before 058 removed the sheet and its `SWING_SHOW_WORKOUTS` hook: `SWING_SHOW_WORKOUTS=1 SWING_LIVE_WORKOUT=30` logged `ui open_live_workout` then `workout_page live: true`; `SWING_OPEN_RECENT=<set> SWING_BACK_TO_WORKOUT=1 SWING_LIVE_WORKOUT=<minutes covering it>` logged `back_to_workout from_page: false` and the live page), on the phone pending
 
 ---
 
@@ -439,14 +438,14 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Scenario:** Playing a run of sets as one
 - **Given:** a workout whose page shows sets 10–14 as get-ups back to back (rests 3:22, 2:52, 3:22, 4:09)
 - **When:** I ask for the run as one video from the workout page
-- **Then:** the five sets play in order, and between each pair a two-second card says "rest 3:22 · ♥ 160 → 132" (the rest before the next set and the drop from the set's peak to the next set's start, as the row already says); the count and the rep gallery run across all five, and a tap on a rep seeks to that set's rep
+- **Then:** the five sets play in order, and between each pair a two-second card says "rest 3:22 · ♥ 160 · −28": the rest before the next set, the set's peak and its drop in the 60 s after it, the same numbers as the set's row on the workout page (053); the count and the rep gallery run across all five, and a tap on a rep seeks to that set's rep
 
 - **Scenario:** Keeping it
 - **Given:** the joined run on screen
 - **When:** I save it
 - **Then:** one video goes to Photos with the cards in it; the five sets stay five sets in Workouts, each with its own analysis
 
-- **Notes:** A run is consecutive sets of one exercise in one workout with no other exercise between them; the card's numbers are the workout page's (053: peak, drop over the rest, the rest before the next). Two builds are possible and the issue weighs them: a queue player with generated card items (no file, instant, the gallery maps rep → item + time) or a composition export (a real file for Photos, the cards drawn into it, minutes of encoding for a run of get-ups).
+- **Notes:** A run is consecutive sets of one exercise in one workout with no other exercise between them; the card's numbers are the workout page's (053: peak, the drop over 60 s or the shorter rest, the rest before the next), not the heart at the next set's start. Two builds are possible and the issue weighs them: a queue player with generated card items (no file, instant, the gallery maps rep → item + time) or a composition export (a real file for Photos, the cards drawn into it, minutes of encoding for a run of get-ups).
 
 - **Issues:** [#124](https://github.com/idvorkin/exercise-analyzer/issues/124)
 
@@ -489,8 +488,8 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **When:** I tap the green workout strip under the count ("Workout 12:03 · ♥ 131 · 6 sets ›")
 - **Then:** the running workout's page opens; on the camera the strip only reads
 
-- **Notes:** Replaces the start card (025) and the Workouts sheet with its collapsed summary (038, #58): the log is
-  the one place the app starts from. Anything that loads a clip (a picker, Files, the Photos strip, an
+- **Notes:** This story is the home screen's contract. It supersedes the start card (025) and the Workouts sheet
+  with its collapsed summary (038, #58): the log is the one place the app starts from. Anything that loads a clip (a picker, Files, the Photos strip, an
   instrumented run, a hook) puts the player on screen; the camera cancelled or the set deleted takes it away. The rule is
   `CameraNavigation` in ExerciseCore (host tests); the app keeps the path the camera was opened from.
 

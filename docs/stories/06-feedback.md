@@ -70,7 +70,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Scenario:** Old session logs are pruned at launch
 - **Given:** session logs older than 30 days, one of them named by a report in bugs.jsonl
 - **When:** the app launches
-- **Then:** the new session's log carries `logs_pruned` (count, bytes freed, kept_for_reports) and the old logs are gone except the reported one
+- **Then:** the new session's log carries `logs_pruned` (count, bytes: the bytes freed, kept_for_reports) and the old logs are gone except the reported one
 
 - **Issues:** [#72](https://github.com/idvorkin/exercise-analyzer/issues/72) prune session logs older than 30 days; [#87](https://github.com/idvorkin/exercise-analyzer/issues/87) the same signal file announced at every launch, no exception reason
 
@@ -79,7 +79,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 037:
 
 - **Summary:** An instrumented run of my stored sets, on the phone, with the numbers in the log (technical)
-- **Status:** implemented in [8fde7b7](https://github.com/idvorkin/exercise-analyzer/commit/8fde7b7); verified on the simulator (`scripts/sim-debug-run.sh`) and the phone (eight sets under `SWING_DEBUG_RUN=1`; the numbers are in [docs/analysis/performance.md](../analysis/performance.md)); the banner and the start-panel row are Igor's check
+- **Status:** implemented in [8fde7b7](https://github.com/idvorkin/exercise-analyzer/commit/8fde7b7); verified on the simulator (`scripts/sim-debug-run.sh`) and the phone (eight sets under `SWING_DEBUG_RUN=1`; the numbers are in [docs/analysis/performance.md](../analysis/performance.md)); the banner and the "…" menu item are Igor's check
 
 #### Use Case:
 - **As a** developer measuring the bell detector and the tracker on the phone
@@ -87,9 +87,9 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **so that** a phone measurement is one tap and one log pull, not a set opened by hand at a time with bug reports going off in my pocket
 
 #### Acceptance Criteria:
-- **Scenario:** An instrumented run from the start panel
+- **Scenario:** An instrumented run from the "…" menu
 - **Given:** sets in Workouts with their clips reachable, the detector on or off
-- **When:** I tap "Instrumented run" on the start panel (or the app launches with `SWING_DEBUG_RUN=1`)
+- **When:** I choose "Instrumented run" from the log's "…" menu (058), or the app launches with `SWING_DEBUG_RUN=1`
 - **Then:** a banner reads "Instrumented run · n of N · <set>" with the frames, fps and per-model milliseconds of the pass under way, a shake shows no report sheet, each set goes through the pose model and the detector from its clip and replaces its own entry, the log carries `debug_run` (start and end, with the mean fps) and per set `offline_pass` (`where: debug`, the detector's floor and cap, thermal state, low power, battery and memory) and `bell_held`; Cancel on the banner stops after the set in progress
 
 - **Issues:** [#18](https://github.com/idvorkin/exercise-analyzer/issues/18)

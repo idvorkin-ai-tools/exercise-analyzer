@@ -51,9 +51,16 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 
 #### Acceptance Criteria:
 - **Scenario:** Opening a clip from the picker
-- **Given:** the app has Photos access
-- **When:** I pick a clip from Photos
+- **Given:** the app has Photos access and the clip is on the phone
+- **When:** I pick it from Photos
 - **Then:** the clip is shown within a second and its analysis starts, with no copy created in the app's storage
+
+- **Scenario:** A clip Photos cannot open in place
+- **Given:** a clip Photos keeps only in iCloud, or the app has no Photos library access
+- **When:** I pick it from Photos
+- **Then:** it opens anyway, only slower: an iCloud clip is downloaded first, as long as that takes (story 031), and
+  when Photos cannot hand the clip over in place the picker gives the app its own copy, which the set keeps
+  (`import` with path `picker_copy` in the log, `photos_in_place` otherwise)
 
 - **Scenario:** A slow Photos open finishes after my next choice
 - **Given:** clip A is still downloading or importing
@@ -77,13 +84,13 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 #### Acceptance Criteria:
 - **Scenario:** Saving a trimmed Photos clip
 - **Given:** a clip from Photos has been trimmed to its set
-- **When:** I tap Save and confirm the deletion iOS asks about
+- **When:** I tap Save to Photos and confirm the deletion iOS asks about
 - **Then:** the trimmed clip (no overlay) is in Photos in place of the original, the Workouts entry points at it, and Undo trim still puts the original back into Photos and reopens it
 
 - **Scenario:** The offer comes with the trim
-- **Given:** I opened a clip from Photos and the app trimmed it to its set
+- **Given:** I opened a clip from Photos and tapped Trim to reps (a clip from Photos is never trimmed by itself)
 - **When:** the trimmed clip starts playing
-- **Then:** a sheet asks "Replace the original in Photos?" with "Replace with the trimmed set" and "Keep both for now"; Replace is the same save as the button (iOS asks once to delete the original, Undo trim brings it back), Keep leaves the Save button for later; a recording or a file from Files gets no such offer, there is nothing of theirs in Photos to replace
+- **Then:** a sheet asks "Replace the original in Photos?" with "Replace with the trimmed set" and "Keep both for now"; Replace is the same save as Save to Photos (iOS asks once to delete the original, Undo trim brings it back), Keep leaves Save to Photos for later; a recording or a file from Files gets no such offer, there is nothing of theirs in Photos to replace
 
 - **Scenario:** A Photos save finishes after I switch sets
 - **Given:** local set A is saving to Photos
@@ -98,28 +105,11 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 025:
 
 - **Summary:** Start from a centred panel; Open as a sheet with big rows, most-used first
-- **Status:** replaced by [058](04-workouts.md) (the log is home: Live is its red button, the other rows its "…" menu); before that implemented in [5fead59](https://github.com/idvorkin/exercise-analyzer/commit/5fead59), [387e252](https://github.com/idvorkin/exercise-analyzer/commit/387e252), [4059301](https://github.com/idvorkin/exercise-analyzer/commit/4059301); on the phone, Igor's check pending; modal over the whole screen for [#96](https://github.com/idvorkin/exercise-analyzer/issues/96), verified on the simulator (`SWING_SHOW_MENU=1` over a reopened set)
+- **Status:** superseded by [058](04-workouts.md) in [8f3cffe](https://github.com/idvorkin/exercise-analyzer/commit/8f3cffe); before that implemented in [5fead59](https://github.com/idvorkin/exercise-analyzer/commit/5fead59), [387e252](https://github.com/idvorkin/exercise-analyzer/commit/387e252), [4059301](https://github.com/idvorkin/exercise-analyzer/commit/4059301)
 
-#### Use Case:
-- **As a** lifter opening a clip with sweaty hands
-- **I want to** see Workouts, Photos and Files as full-width rows, in that order
-- **so that** I hit the one I mean, and the one I use most is first
-
-#### Acceptance Criteria:
-- **Scenario:** Launching the app with nothing loaded
-- **Given:** the app has just opened and no clip or camera is active
-- **When:** the main screen appears
-- **Then:** a centred panel offers Live, Workouts, Photos, Files and Report a problem as big rows; once something is loaded, the Open button brings up the same panel over the dimmed picture, and a tap outside or Cancel dismisses it
-
-- **Scenario:** The panel is one thing
-- **Given:** the panel is up, on the first screen or from Open
-- **When:** I look at it
-- **Then:** everything behind it is dimmed (the idle HUD at launch, the picture under Open), the panel is near-opaque with a visible edge and a shadow, and nothing from the HUD draws over it
-
-- **Scenario:** The panel is modal over a loaded set
-- **Given:** a set is loaded, with its rep gallery and the transport bar under the picture
-- **When:** I tap Open
-- **Then:** the panel is centred on the whole screen, and the picture, the rep gallery and the transport bar are all dimmed and out of reach until I pick a row, tap outside or Cancel
+- **Notes:** There is no start panel and no Open button any more. The log is home: Live is its red button, and
+  Photos, Files, Report a problem, Instrumented run and GitHub are in its "…" menu (058). The panel's criteria are
+  in git history.
 
 - **Issues:** [#25](https://github.com/idvorkin/exercise-analyzer/issues/25); [#96](https://github.com/idvorkin/exercise-analyzer/issues/96) the panel sat in the picture's stack, so the rep gallery and the controls stayed bright and live under it; [#89](https://github.com/idvorkin/exercise-analyzer/issues/89) at launch the phase pills and the count drew over the panel's top edge (the panel sat under the HUD in the stack, and only Open dimmed the background)
 

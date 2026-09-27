@@ -44,8 +44,20 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 #### Acceptance Criteria:
 - **Scenario:** Finding the shallow rep
 - **Given:** a set with 10 reps is open
-- **When:** I double-tap the Bottom column in the gallery
-- **Then:** the Bottom thumbnails of all 10 reps enlarge side by side and tapping one seeks the video to that frame
+- **When:** I tap the Bottom header in the gallery
+- **Then:** the Bottom column widens all the way down the grid, the other columns narrow, and tapping a still seeks
+  the video to that frame; tapping the header again puts the columns back
+
+- **Scenario:** A closer look at one rep
+- **Given:** a set is open with its rep gallery
+- **When:** I double-tap one rep's Bottom still
+- **Then:** that rep's row grows taller and its Bottom column widens; a second double-tap on it puts the row back
+
+- **Scenario:** Reps side by side
+- **Given:** the Rep gallery sheet is open
+- **When:** I tick two to four reps and tap Compare
+- **Then:** those reps stand side by side, one column each with every position down it and its score and reasons;
+  tapping a still seeks the video, and Back returns to the grid
 
 - **Scenario:** Thumbnails show me, not the gym
 - **Given:** a set is open
@@ -190,7 +202,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Scenario:** Reviewing a two-sided set
 - **Given:** a clip with one get-up per side is analyzed
 - **When:** I open it
-- **Then:** each rep shows Floor, Lying, Elbow, Hand, Kneel, Lunge, Standing and the way down's Lunge, Kneel, Elbow and Floor in the gallery (eleven columns), the HUD's six pills follow the step as it plays (Floor in place of Lying; a way-down step lights the same pill as its way-up step), tapping a pill jumps to that step's nearest occurrence in the current rep, and the rep count is unchanged
+- **Then:** each rep shows Floor, Lying, Elbow, Hand, Kneel, Lunge, Standing and the way down's "↓ Lunge", "↓ Kneel", "↓ Elbow" and "↓ Floor" in the gallery (eleven columns), the HUD's six pills follow the step as it plays (Floor in place of Lying; a way-down step lights the same pill as its way-up step), tapping a pill jumps to that step's nearest occurrence in the current rep, and the rep count is unchanged
 
 - **Issues:** [#48](https://github.com/idvorkin/exercise-analyzer/issues/48) Floor brackets every rep
 
@@ -308,9 +320,17 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 
 #### Acceptance Criteria:
 - **Scenario:** A set recorded inside a workout
-- **Given:** the set was recorded while a workout ran on the watch and Health holds heart-rate samples for its span
+- **Given:** the set was recorded in the app in one piece (no pause, no rotation) while a workout ran on the watch,
+  and Health holds heart-rate samples for its span
 - **When:** I play or scrub the set
-- **Then:** the HUD shows "♥ 141", the sample nearest the playhead, and it changes as the playhead moves
+- **Then:** the HUD shows a heart and "141", read between the readings either side of the playhead (the one nearby
+  reading when there is only one), and it changes as the playhead moves
+
+- **Scenario:** A paused, rotated or imported set
+- **Given:** a set recorded with a pause or a rotation in it, or a clip opened from Photos or Files
+- **When:** I play it
+- **Then:** there is no chip: the app does not know the wall-clock time of its first frame, so it cannot line the
+  readings up with the video
 
 - **Scenario:** A set with no heart rate
 - **Given:** the set was recorded outside a workout, or Health read was refused
@@ -330,7 +350,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Scenario:** The set I just recorded
 - **Given:** I tapped Done a moment ago and the watch's readings have not reached the phone's Health yet
 - **When:** I watch the set back
-- **Then:** the chip and the set's numbers appear by themselves while the set is on screen, within about 20 s of the readings arriving: Health is asked again every 20 s until the series reaches the end of the set's span (its two minutes of rest included) or ten minutes have passed; I do not have to leave the set and open it again
+- **Then:** the chip and the set's numbers appear by themselves while the set is on screen, within about 20 s of the readings arriving: Health is asked again every 20 s until the series reaches the end of the set's span (its two minutes of rest included) or ten minutes have passed since that end; I do not have to leave the set and open it again
 
 - **Scenario:** The set's heart-rate numbers
 - **Given:** a set done inside a tracked workout, peak 150 shortly after the last rep, 118 a minute after it ended, 138 on average

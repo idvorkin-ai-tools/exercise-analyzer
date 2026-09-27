@@ -13,8 +13,8 @@ lock-screen control (044) are not watch-app states and are not in the table.
 
 | State | Must show | Must offer | Stories |
 |---|---|---|---|
-| disconnected | no-phone art, "Not connected…" with the reconnect note, "Last heard Ns ago"; "Last seen recording: N reps" when the last status had the recorder rolling | Start workout (green), Retry | 018, 048 |
-| background | phone-in-background art, the unlock-and-open instruction | Start workout (green), "Send a reminder to the phone" (no Record: it would die silently) | 018, 048 |
+| disconnected | no-phone art, "Not connected…" with the reconnect note, "Last heard Ns ago"; "Last seen recording: N reps" when the last status had the recorder rolling; in a workout, the workout head in place of the art | Start workout (green), Retry; in a workout, End workout and Discard at the bottom in place of Start workout | 018, 048 |
+| background | phone-in-background art, the unlock-and-open instruction; in a workout, the workout head in place of the art | Start workout (green), "Send a reminder to the phone" (no Record: it would die silently); in a workout, End workout and Discard at the bottom in place of Start workout | 018, 048 |
 | idle | "Phone ready", exercise picker, rest length picker, the rest count while resting, the last-set line (or "Analyzing…" while the pass runs) | Start workout (green), Record (red), Preview (below it) | 017, 041, 045, 046, 047, 048 |
 | workoutStart | a workout before its first set: WORKOUT in green over the session clock (counting up by itself), "♥ 96 BPM", "0 sets · 0 reps"; no figure art, no Start workout | Record (red), Preview, the pickers; End workout and Discard below the pickers | 048 |
 | workout | between sets the head is the rest: "REST · 1:30" in orange over the rest count, large, white until the rest length and orange after; then "♥ 128 BPM · 42:13" with the session clock small and green, "6 sets · 47 reps", the last-set line and the pickers as idle; no second rest line | Record (red), Preview, the pickers; End workout and Discard below the pickers (the workoutEnd shot) | 048, 050 |
@@ -25,8 +25,8 @@ lock-screen control (044) are not watch-app states and are not in the table.
 | live | the picture filling the face, small rep and time chips right under the clock line, the green "IN FRAME" capsule above the row; chips, capsule and buttons whole inside the face and covering as little of the picture as 40 pt targets allow | Pause · Camera · Done · Cancel along the bottom edge, translucent glass except Done (green); second page: Cancel, the watch-mode toggle | 016, 017, 042 |
 | recording | as live, with the count (6) and the time (0:42) and a red "FEET CUT OFF" capsule when cut off | as live | 016, 017, 042 |
 | answersLost | as recording, with an orange "PHONE NOT ANSWERING · TAPS STILL REACH IT" capsule in place of the framing hint (the phone reads reachable but has not answered past the wake grace, #137) | as recording: Pause · Camera · Done · Cancel still send | 018 |
-| paused | "PAUSED · FEET CUT OFF" capsule, the count and the time frozen, the picture still refreshing | orange Resume · Camera · Done · Cancel; second page: Cancel | 040 |
-| done | "Phone ready", "Last set: 9 reps · Kettlebell Swing · 0:48", the rest counting up ("Rest 0:35", orange past the length) | Record (clears the rest), Preview, the rest and exercise pickers | 045, 046 |
+| paused | "PAUSED · FEET CUT OFF" capsule, the count and the time frozen, the picture still refreshing | orange Resume · Camera · Done · Cancel; second page: Cancel, the watch-mode toggle | 040 |
+| done | "Phone ready", a "Last set" caption over "9 reps · Kettlebell Swing · 0:48", the rest counting up ("Rest 0:35", orange past the length) | Start workout (green), Record (clears the rest), Preview, the rest and exercise pickers | 045, 046 |
 
 The rule behind the table (Igor, 2026-09-13, after the picture page lost its controls in #74): the framing loop
 needs the picture, the in-frame hint, Camera, Done and Cancel on the camera-live page, inside the safe area,
@@ -50,14 +50,14 @@ the first frame (story 001).
 - **Given:** the phone app is open and the camera is live
 - **and Given:** the watch app is open and connected
 - **When:** I stand where my feet are below the bottom edge of the frame
-- **Then:** the watch shows "Feet cut off" within a second and taps my wrist, over the camera picture, which refreshes about once a second
+- **Then:** the watch shows "FEET CUT OFF" within a second and taps my wrist, over the camera picture, which refreshes about once a second
 
 - **Scenario:** A foot off the side of the picture
 - **Given:** the camera is live
 - **When:** a foot is off the left or right edge, like a Bulgarian's rear foot and bench with the phone too close
-- **Then:** the phone and the watch say "Cut off on the left" (or right), even though the rest of me stays just
+- **Then:** the phone and the watch say "CUT OFF ON THE LEFT" (or right), even though the rest of me stays just
   inside the edge ([#135](https://github.com/idvorkin/exercise-analyzer/issues/135): 79271425's recording only
-  flickered "Feet cut off")
+  flickered "FEET CUT OFF")
 
 - **Scenario:** The picture streams only to a watch that is in front
 - **Given:** the camera is live on the phone
@@ -105,8 +105,11 @@ the first frame (story 001).
 #### Acceptance Criteria:
 - **Scenario:** Phone app closed while the watch app is open
 - **Given:** the watch app is open
-- **When:** the phone app has not reported for 8 s
-- **Then:** the watch shows the not-reachable screen with how long since it last heard and the last rep count, and retries every 2 s until the phone reports again
+- **When:** the phone reads as unreachable, or has not reported for 8 s
+- **Then:** once the 2 s wake grace after a raised wrist has run out (next scenario), the watch shows the
+  not-reachable screen with how long since it last heard (and the last rep count when the phone was recording),
+  and retries every 2 s until the phone reports again; a phone that still reads as reachable with its camera live
+  keeps the camera pages instead (the one-way link below)
 
 - **Scenario:** A raised wrist does not flash "Not connected"
 - **Given:** a workout at the gym, the wrist down long enough that the last status is older than 8 s
@@ -141,9 +144,11 @@ the first frame (story 001).
   (`watch_context_failed`) (Igor, 2026-09-25: "when the app failed, I couldn't get out of that broken state",
   [#137](https://github.com/idvorkin/exercise-analyzer/issues/137))
 
-- **Notes:** With the wrist down the watch app is suspended and the status stops; that is the price of having no
-  workout session ([#32](https://github.com/idvorkin/exercise-analyzer/issues/32), see the end of this file). The
-  state arrives through the application context on wake, and the face complication (043) is the screen that
+- **Notes:** Outside a workout, with the wrist down the watch app is suspended and the status stops
+  ([#32](https://github.com/idvorkin/exercise-analyzer/issues/32), see the end of this file). Inside a workout (048)
+  the app keeps running wrist-down, but the link still drops most of the time
+  ([#76](https://github.com/idvorkin/exercise-analyzer/issues/76)). The state arrives through the application
+  context on wake, and the face complication (043) is the screen that
   stays right meanwhile. The heartbeat's rate is `PhoneLink.heartbeatInterval` (1 s): WatchConnectivity
   publishes no rate limit for `sendMessage`, the floor is the round trip (~100–300 ms over Bluetooth), the cost
   is both radios and both apps awake per message; faster is a one-line change once the 1 s pattern asks for it.
@@ -220,9 +225,9 @@ the first frame (story 001).
 - **Given:** a set is being recorded
 - **and Given:** I turned watch mode on from the phone's recording HUD or the watch's recording screen (neither offers it in playback or when idle, and the phone refuses it then)
 - **When:** I glance at the phone from across the room
-- **Then:** it shows the rep count in digits that fill the screen, a red "feet cut off" style banner when I am out of frame, the elapsed time and the exercise; only a long press, a double tap or the end of the set leaves the mode
+- **Then:** it shows the rep count in digits that fill the screen, a red "feet cut off" style banner when I am out of frame, the elapsed time and the exercise; only the "Leave watch mode" button, a long press (half a second), a double tap, the watch's toggle or the end of the set leaves the mode
 
-- **Issues:** [#29](https://github.com/idvorkin/exercise-analyzer/issues/29), [#36](https://github.com/idvorkin/exercise-analyzer/issues/36) watch mode is a recording-only screen
+- **Issues:** [#29](https://github.com/idvorkin/exercise-analyzer/issues/29), [#36](https://github.com/idvorkin/exercise-analyzer/issues/36) watch mode is a camera-only screen (recording or Preview, 047)
 
 ---
 
@@ -275,7 +280,7 @@ the first frame (story 001).
 
 - **Notes:** WatchConnectivity delivers a watch message to the phone app even in the background (iOS launches it
   briefly for that), but it can neither bring the app to the front nor start the camera from there, and watch
-  mode is a recording-only screen (#36). So: phone app in front, it switches immediately; phone app in the
+  mode is a camera-only screen (#36). So: phone app in front, it switches immediately; phone app in the
   background or the phone locked, nothing changes until the "Ready to record" notification is tapped, and a set
   started from that tap goes straight to watch mode because the request came from the watch.
 
@@ -351,7 +356,7 @@ the first frame (story 001).
   refreshed on transitions (record, finish, cancel, the final count arriving) and every 10 s while a set rolls,
   not per rep; the timer is a date, so it ticks without any update. A Preview writes nothing to the face. The
   complication's bundle id is `…watchkitapp.face` (the `.complication` id could not be registered to the team).
-  No HealthKit; wrist-down still suspends the app (018 stands). The phone drops its last set when a set starts,
+  The face needs no workout: outside one, wrist-down still suspends the app (018). The phone drops its last set when a set starts,
   so the face holds the previous final in face.json across the set and puts it back when the set lands none;
   Done and Cancel look alike at the stop, so it also shows for the instant before the phone says "analyzing".
 
@@ -407,7 +412,7 @@ the first frame (story 001).
 - **Scenario:** Done from the wrist
 - **Given:** a set was recorded and finished from the watch
 - **When:** the phone's offline pass completes, a few seconds after Done
-- **Then:** the watch shows "Analyzing…" while the pass runs and then "Last set: 12 reps · Kettlebell Swing · 1:02" above the Record button until the next set starts; a pass that cannot land a count (interrupted, cancelled, nothing recorded, another set opened) takes "Analyzing…" down with it
+- **Then:** the watch shows "Analyzing…" while the pass runs and then a "Last set" caption over "12 reps · Kettlebell Swing · 1:02" above the Record button until the next set starts; a pass that cannot land a count (interrupted, cancelled, nothing recorded, another set opened) takes "Analyzing…" down with it
 
 - **Notes:** Wire: `WatchStatus.lastSet` (reps, exercise, seconds, when), optional, ignored by an old watch app.
 
@@ -430,7 +435,7 @@ the first frame (story 001).
 - **Scenario:** A 90 s rest
 - **Given:** a set just ended from the watch and the rest length is set to 90 s
 - **When:** 90 s pass
-- **Then:** the watch has been counting the rest up under the Record button since Done, taps twice at 90 s (once, no repeat), and Record clears the count; a Preview and its Cancel leave the count alone (story 047)
+- **Then:** the watch has been counting the rest up under the Record button since Done (inside a workout the page's head carries it, 050), taps twice at 90 s (once, no repeat), and Record clears the count; a Preview and its Cancel leave the count alone (story 047)
 
 - **Scenario:** A new set before the tap is scheduled
 - **Given:** a set ended and the watch is still waiting for notification settings or the permission answer
@@ -483,10 +488,11 @@ the first frame (story 001).
 - **When:** I tap Cancel
 - **Then:** the camera stops and nothing is left behind; the rest count and the last-set line on the idle page are exactly as before the Preview
 
-- **Scenario:** Preview while the phone app is in the background
-- **Given:** the phone app is in the background and the watch app is open
-- **When:** I tap Preview on the wrist
-- **Then:** the phone posts its notification and the tap opens the camera without recording
+- **Scenario:** Preview as the phone app goes to the background
+- **Given:** the watch shows the phone ready, and I tap Preview
+- **When:** the phone app goes to the background before the command reaches it
+- **Then:** the phone posts its notification and the tap opens the camera without recording; once the watch knows
+  the phone is in the background it offers only "Send a reminder to the phone", which starts a set, not a Preview
 
 - **Scenario:** Record while the phone locked itself in the preview
 - **Given:** the preview is up and the phone has locked (iOS stops the camera)
@@ -571,7 +577,7 @@ the first frame (story 001).
 - **Scenario:** No rest, no flip
 - **Given:** a workout is running and no set has ended yet, or a set is recording, or the workout is ending
 - **When:** I look at the workout page
-- **Then:** the head is WORKOUT over the session clock, as in story 048
+- **Then:** the head is WORKOUT over the session clock, as in story 048, and ENDING… while the workout is ending
 
 - **Notes:** The rest is the timer of story 046, which starts at Done, a few seconds after the last rep; no second clock, and watch only. Igor picked 91B on the board of 2026-09-18 ("agreed"): between sets the rest is the number acted on, so it is the large one; 91A kept it small on the heart-rate line. Outside a workout the idle page keeps its "Rest 1:42" line under the buttons (046).
 
