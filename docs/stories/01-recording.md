@@ -275,6 +275,39 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 
 ---
 
+### User Story 044:
+
+- **Summary:** A lock-screen button opens the app into Live
+- **Status:** implemented in [e9d47f1](https://github.com/idvorkin/exercise-analyzer/commit/e9d47f1); on the phone since 2026-09-13, Igor's check pending
+- **Why:** Igor: "There's a ChatGPT button I can put on my lock screen. Give me an exercise button I can put on my lock screen that pops me open." A Live Activity was considered and rejected: the recording phone is never on its lock screen (locking backgrounds the app and iOS stops the camera; story 019 keeps it awake for exactly this reason), so a live lock-screen scoreboard is impossible. A button that opens the app is what the lock screen can do.
+
+#### Use Case:
+- **As a** lifter at the rack with a locked phone
+- **I want to** press one button on the lock screen and land in the app with the camera already running
+- **so that** starting a set costs one press, not unlock, find the app, open it, tap Live
+
+#### Acceptance Criteria:
+- **Scenario:** The Exercise control on the lock screen
+- **Given:** the Exercise control was added to the lock screen once (long-press → Customize)
+- **When:** I press it later, phone locked
+- **Then:** the app opens on Live with the camera running, and the log carries `launch_control` (`action: live`)
+
+- **Scenario:** The Exercise control in Control Center
+- **Given:** the Exercise control was added to Control Center
+- **When:** I tap it
+- **Then:** the app opens on Live with the camera running, same as from the lock screen
+
+- **Notes:** An iOS 18 `ControlWidget` in the `ExerciseAnalyzerControls` extension (bundle id
+  `com.idvorkin.exerciseanalyzer.controls`). Its `AppIntent` opens the app through the URL scheme
+  `exerciseanalyzer://live`; the app's scene hands the URL to the session, which logs `launch_control` and
+  starts the camera, the same route as the `RecordPrompt` notification tap. A URL, not a shared flag: the
+  extension and the app are separate processes (the 2026-09-15 review found the original UserDefaults flag
+  never reached the app). The extension targets iOS 18; the app stays on 17.
+
+- **Issues:** [#70](https://github.com/idvorkin/exercise-analyzer/issues/70)
+
+---
+
 ### User Story 054:
 
 - **Summary:** Count and score pull-ups
