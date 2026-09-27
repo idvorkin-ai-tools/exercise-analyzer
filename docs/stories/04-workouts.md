@@ -500,7 +500,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 062:
 
 - **Summary:** Put my own exercise and count on a set, even when the camera got it wrong, and keep it without its video
-- **Status:** implemented (commit to be recorded); verified on the host (`HandSetTests`) and by build; the sheet on the phone pending
+- **Status:** implemented in [8007b50](https://github.com/idvorkin/exercise-analyzer/commit/8007b50); verified on the host (`HandSetTests`) and by build; the sheet on the phone pending
 - **Why:** Igor, 2026-09-27, from the phone on a pull-up set counted 0: "Press and hold on [the] workouts to change what it was" and "I press and hold. Let me pop up a screen to pick the exercise and pick the reps, and leave that in even though I delete the video"
 
 #### Use Case:

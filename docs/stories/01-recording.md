@@ -278,7 +278,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 044:
 
 - **Summary:** A lock-screen button opens the app into Live
-- **Status:** implemented in [e9d47f1](https://github.com/idvorkin/exercise-analyzer/commit/e9d47f1); on the phone since 2026-09-13, Igor's check pending
+- **Status:** implemented in [e9d47f1](https://github.com/idvorkin/exercise-analyzer/commit/e9d47f1), [6932014](https://github.com/idvorkin/exercise-analyzer/commit/6932014) (#153, the press opens the app again); on the phone since 2026-09-27, Igor's press pending
 - **Why:** Igor: "There's a ChatGPT button I can put on my lock screen. Give me an exercise button I can put on my lock screen that pops me open." A Live Activity was considered and rejected: the recording phone is never on its lock screen (locking backgrounds the app and iOS stops the camera; story 019 keeps it awake for exactly this reason), so a live lock-screen scoreboard is impossible. A button that opens the app is what the lock screen can do.
 
 #### Use Case:

@@ -557,7 +557,7 @@ the first frame (story 001).
 ### User Story 059:
 
 - **Summary:** Add a set I forgot to record to the workout, with its count typed on the wrist
-- **Status:** implemented in [0c07704](https://github.com/idvorkin/exercise-analyzer/commit/0c07704); verified on the host (`HandSetTests`), by build (the signed phone and watch apps) and on the watch simulator (`just watch-screens`: setByHand); phone + watch pending
+- **Status:** implemented in [0c07704](https://github.com/idvorkin/exercise-analyzer/commit/0c07704), [7a86049](https://github.com/idvorkin/exercise-analyzer/commit/7a86049) (#154, the exercise on the count page); verified on the host (`HandSetTests`), by build (the signed phone and watch apps) and on the watch simulator (`just watch-screens`: setByHand, setByHandExercise); phone + watch pending
 - **Why:** Igor, 2026-09-25, from the phone: "Let's add a watch button. Rep happened if I forgot to record." Decided 2026-09-26: a watch button adds one unrecorded set to the running workout, its count typed on the wrist, no video, no score, marked "by hand" in Workouts.
 
 #### Use Case:
@@ -635,7 +635,7 @@ the first frame (story 001).
 ### User Story 061:
 
 - **Summary:** Log sit-ups and half-kneeling rotations by hand, though the camera cannot count them
-- **Status:** implemented (commit to be recorded); verified on the host (`HandSetTests`) and by build
+- **Status:** implemented in [674216e](https://github.com/idvorkin/exercise-analyzer/commit/674216e); verified on the host (`HandSetTests`) and by build; phone + watch pending
 - **Why:** Igor, 2026-09-27, from the phone: "An exercise to teach you sit-ups, even if I don't support videos. Also add half-kneeling rotations."
 
 #### Use Case:
