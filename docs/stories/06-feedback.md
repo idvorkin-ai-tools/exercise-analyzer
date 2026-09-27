@@ -49,7 +49,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 036:
 
 - **Summary:** A crash comes back with the logs (technical)
-- **Status:** implemented in [42b50ff](https://github.com/idvorkin/exercise-analyzer/commit/42b50ff); verified by build and by the first crash it caught (the Float16 tensor read, fixed in the same commit); the pruning in [#72](https://github.com/idvorkin/exercise-analyzer/issues/72) on the phone since 2026-09-13; the exception file and the once-only announcement in [183db20](https://github.com/idvorkin/exercise-analyzer/commit/183db20), on the phone since 2026-09-16, verified by the next exception
+- **Status:** implemented in [42b50ff](https://github.com/idvorkin/exercise-analyzer/commit/42b50ff); verified by build and by the first crash it caught (the Float16 tensor read, fixed in the same commit); the pruning (#72) in [a0a11ba](https://github.com/idvorkin/exercise-analyzer/commit/a0a11ba), on the phone since 2026-09-13; the exception file and the once-only announcement in [183db20](https://github.com/idvorkin/exercise-analyzer/commit/183db20), on the phone since 2026-09-16, verified by the next exception
 
 #### Use Case:
 - **As a** developer reading a session log that stops mid-work

@@ -9,7 +9,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 009:
 
 - **Summary:** Keep only the set, losslessly and fast
-- **Status:** implemented in [93cb349](https://github.com/idvorkin/exercise-analyzer/commit/93cb349), [6902937](https://github.com/idvorkin/exercise-analyzer/commit/6902937), [8309c6f](https://github.com/idvorkin/exercise-analyzer/commit/8309c6f); verified on the simulator (the `trim` check of `just test-sim`: passthrough, first frame at 0); an HDR clip on the phone is Igor's check; clip-operation isolation in [920e803](https://github.com/idvorkin/exercise-analyzer/commit/920e803), verified by host identity tests and simulator trim→B check; Photos undo and HDR on the phone pending; the automatic trim skipped on an implausible count: fix for #141 in [638f3e8](https://github.com/idvorkin/exercise-analyzer/commit/638f3e8), verified on the host
+- **Status:** implemented in [93cb349](https://github.com/idvorkin/exercise-analyzer/commit/93cb349), [6902937](https://github.com/idvorkin/exercise-analyzer/commit/6902937), [8309c6f](https://github.com/idvorkin/exercise-analyzer/commit/8309c6f); verified on the simulator (the `trim` check of `just test-sim`); the set switch (#52) in [920e803](https://github.com/idvorkin/exercise-analyzer/commit/920e803), verified on the host and the simulator; the implausible count (#141) in [638f3e8](https://github.com/idvorkin/exercise-analyzer/commit/638f3e8), verified on the host; on the phone since 2026-09-26, Igor's check pending (HDR, Photos undo)
 
 #### Use Case:
 - **As a** lifter who leaves the camera running while setting up
@@ -42,7 +42,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 010:
 
 - **Summary:** Open old clips from Photos with nothing copied
-- **Status:** implemented in [adc537a](https://github.com/idvorkin/exercise-analyzer/commit/adc537a); verified on the phone; clip-operation isolation in [920e803](https://github.com/idvorkin/exercise-analyzer/commit/920e803), verified by host identity tests and signed iOS/watch build; slow iCloud fetch on the phone pending
+- **Status:** implemented in [adc537a](https://github.com/idvorkin/exercise-analyzer/commit/adc537a); verified on the phone; the set switch (#52) in [920e803](https://github.com/idvorkin/exercise-analyzer/commit/920e803), verified on the host, on the phone since 2026-09-26, Igor's check pending (a slow iCloud fetch)
 
 #### Use Case:
 - **As a** lifter with months of sets in Photos
@@ -74,7 +74,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 011:
 
 - **Summary:** Save the trimmed set to Photos, clean, in place of the original
-- **Status:** implemented in [2376b1b](https://github.com/idvorkin/exercise-analyzer/commit/2376b1b); verified on the phone; clip-operation isolation in [920e803](https://github.com/idvorkin/exercise-analyzer/commit/920e803), verified by host identity tests and simulator delayed fake Photos→B check; real Photos replacement/undo on the phone pending
+- **Status:** implemented in [2376b1b](https://github.com/idvorkin/exercise-analyzer/commit/2376b1b); verified on the phone; the offer after a trim (#90) in [13579f0](https://github.com/idvorkin/exercise-analyzer/commit/13579f0), on the phone since 2026-09-17; the set switch (#52) in [920e803](https://github.com/idvorkin/exercise-analyzer/commit/920e803), verified on the host and the simulator, on the phone since 2026-09-26, Igor's check pending (a real Photos replace and undo)
 
 #### Use Case:
 - **As a** lifter who keeps sets to compare over months
@@ -105,7 +105,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 025:
 
 - **Summary:** Start from a centred panel; Open as a sheet with big rows, most-used first
-- **Status:** superseded by [058](04-workouts.md) in [8f3cffe](https://github.com/idvorkin/exercise-analyzer/commit/8f3cffe); before that implemented in [5fead59](https://github.com/idvorkin/exercise-analyzer/commit/5fead59), [387e252](https://github.com/idvorkin/exercise-analyzer/commit/387e252), [4059301](https://github.com/idvorkin/exercise-analyzer/commit/4059301)
+- **Status:** superseded by [058](04-workouts.md) in [8f3cffe](https://github.com/idvorkin/exercise-analyzer/commit/8f3cffe); before that implemented in [5fead59](https://github.com/idvorkin/exercise-analyzer/commit/5fead59), [387e252](https://github.com/idvorkin/exercise-analyzer/commit/387e252), [4059301](https://github.com/idvorkin/exercise-analyzer/commit/4059301), [724b054](https://github.com/idvorkin/exercise-analyzer/commit/724b054) (#89), [937aef3](https://github.com/idvorkin/exercise-analyzer/commit/937aef3) (#96)
 
 - **Notes:** There is no start panel and no Open button any more. The log is home: Live is its red button, and
   Photos, Files, Report a problem, Instrumented run and GitHub are in its "…" menu (058). The panel's criteria are
@@ -118,7 +118,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 028:
 
 - **Summary:** Stop an analysis I didn't mean to start
-- **Status:** implemented in [7ca6bbb](https://github.com/idvorkin/exercise-analyzer/commit/7ca6bbb), [6aa97f9](https://github.com/idvorkin/exercise-analyzer/commit/6aa97f9), [d3d4cf7](https://github.com/idvorkin/exercise-analyzer/commit/d3d4cf7); verified on the simulator (the `cancel` check of `just test-sim`, including paused playback); d3d4cf7 also passes host tests and the iOS/watch build; clip-operation isolation in [920e803](https://github.com/idvorkin/exercise-analyzer/commit/920e803), verified by host invalidation tests and simulator extraction-cancel check; render supersession also checked on the simulator; scrubbing the paused clip after Cancel kept working in [b114b2a](https://github.com/idvorkin/exercise-analyzer/commit/b114b2a) (review), built for the device; the cancelled worker keeps the models until its last frame ends and the next pass or live frame waits for it: fix for #147 in [9732367](https://github.com/idvorkin/exercise-analyzer/commit/9732367), verified on the host (lease tests) and the simulator (`cancel`, the new `cancel_reopen`, `clip_switch`)
+- **Status:** implemented in [7ca6bbb](https://github.com/idvorkin/exercise-analyzer/commit/7ca6bbb), [6aa97f9](https://github.com/idvorkin/exercise-analyzer/commit/6aa97f9), [d3d4cf7](https://github.com/idvorkin/exercise-analyzer/commit/d3d4cf7); verified on the simulator (the `cancel` check of `just test-sim`, paused playback included); the set switch (#52) in [920e803](https://github.com/idvorkin/exercise-analyzer/commit/920e803), [b114b2a](https://github.com/idvorkin/exercise-analyzer/commit/b114b2a), verified on the host and the simulator; one owner for the models (#147) in [9732367](https://github.com/idvorkin/exercise-analyzer/commit/9732367), verified on the host and the simulator (`cancel`, `cancel_reopen`, `clip_switch`); on the phone since 2026-09-26
 
 #### Use Case:
 - **As a** lifter who opened the wrong clip, or a long one

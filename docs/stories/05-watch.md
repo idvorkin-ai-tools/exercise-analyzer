@@ -38,7 +38,7 @@ the first frame (story 001).
 ### User Story 016:
 
 - **Summary:** Know from the wrist whether the camera can see me
-- **Status:** implemented in [96e6e19](https://github.com/idvorkin/exercise-analyzer/commit/96e6e19), [af22b11](https://github.com/idvorkin/exercise-analyzer/commit/af22b11), [fead72e](https://github.com/idvorkin/exercise-analyzer/commit/fead72e); verified on phone + watch; the preview gate of [#76](https://github.com/idvorkin/exercise-analyzer/issues/76) ([db90d52](https://github.com/idvorkin/exercise-analyzer/commit/db90d52), [ae93fb3](https://github.com/idvorkin/exercise-analyzer/commit/ae93fb3), [2c9cc58](https://github.com/idvorkin/exercise-analyzer/commit/2c9cc58)) on the phone since 2026-09-14, read from the logs after a few gym sessions
+- **Status:** implemented in [96e6e19](https://github.com/idvorkin/exercise-analyzer/commit/96e6e19), [af22b11](https://github.com/idvorkin/exercise-analyzer/commit/af22b11), [fead72e](https://github.com/idvorkin/exercise-analyzer/commit/fead72e); verified on phone + watch; the preview gate (#76) in [db90d52](https://github.com/idvorkin/exercise-analyzer/commit/db90d52), [ae93fb3](https://github.com/idvorkin/exercise-analyzer/commit/ae93fb3), [2c9cc58](https://github.com/idvorkin/exercise-analyzer/commit/2c9cc58), on the phone since 2026-09-14; the side edge (#135) in [2f8a9dd](https://github.com/idvorkin/exercise-analyzer/commit/2f8a9dd), verified on the host, on the phone since 2026-09-22
 
 #### Use Case:
 - **As a** lifter standing across the room from the tripod
@@ -64,7 +64,7 @@ the first frame (story 001).
 - **When:** the watch app is in front and reachable
 - **Then:** the phone sends a preview about once a second; when the watch app is not in front, none; any command from the wrist counts as "in front", because the watch's own scene message can arrive before the phone sees the watch as reachable and be lost
 
-- **Issues:** [#21](https://github.com/idvorkin/exercise-analyzer/issues/21) tuned the in-frame rule; [#38](https://github.com/idvorkin/exercise-analyzer/issues/38) the preview never started (gated on a scene message the watch did not send at launch); [#76](https://github.com/idvorkin/exercise-analyzer/issues/76) reachability flaps 54–126 times a session, the previews were streaming to a suspended app
+- **Issues:** [#21](https://github.com/idvorkin/exercise-analyzer/issues/21) tuned the in-frame rule; [#38](https://github.com/idvorkin/exercise-analyzer/issues/38) the preview never started (gated on a scene message the watch did not send at launch); [#76](https://github.com/idvorkin/exercise-analyzer/issues/76) reachability flaps 54–126 times a session, the previews were streaming to a suspended app; [#135](https://github.com/idvorkin/exercise-analyzer/issues/135) a rear foot off the side only flickered "FEET CUT OFF"
 
 ---
 
@@ -95,7 +95,7 @@ the first frame (story 001).
 ### User Story 018:
 
 - **Summary:** The watch never lies about the phone
-- **Status:** implemented in [c5c2d13](https://github.com/idvorkin/exercise-analyzer/commit/c5c2d13), [6199d9d](https://github.com/idvorkin/exercise-analyzer/commit/6199d9d), [b6c5d43](https://github.com/idvorkin/exercise-analyzer/commit/b6c5d43); verified on phone + watch; the heartbeat of [#122](https://github.com/idvorkin/exercise-analyzer/issues/122) in [0fed44b](https://github.com/idvorkin/exercise-analyzer/commit/0fed44b), verified on the host and the watch simulator, on the phone and the watch since 2026-09-22, read from the gym session of 2026-09-22 (the link is the wrist; lab note); the wrist-up edge and the phone's state at each flip in [66167c8](https://github.com/idvorkin/exercise-analyzer/commit/66167c8), built for the device (phone + watch targets), not yet installed: the phone was off the Mac; the one-way link of [#137](https://github.com/idvorkin/exercise-analyzer/issues/137) (controls kept, `watch_status_back`, `watch_context_failed`) in [1474aae](https://github.com/idvorkin/exercise-analyzer/commit/1474aae), verified by the device build and `just watch-screens` (the answersLost state), on the phone and the wrist pending
+- **Status:** implemented in [c5c2d13](https://github.com/idvorkin/exercise-analyzer/commit/c5c2d13), [6199d9d](https://github.com/idvorkin/exercise-analyzer/commit/6199d9d), [b6c5d43](https://github.com/idvorkin/exercise-analyzer/commit/b6c5d43); verified on phone + watch; the heartbeat (#122) in [0fed44b](https://github.com/idvorkin/exercise-analyzer/commit/0fed44b), verified on the host, the watch simulator and phone + watch (the gym log of 2026-09-22); the wake grace (#76) in [bcf3b59](https://github.com/idvorkin/exercise-analyzer/commit/bcf3b59) and the wrist-up edge (#76) in [66167c8](https://github.com/idvorkin/exercise-analyzer/commit/66167c8), built for the device; the one-way link (#137) in [1474aae](https://github.com/idvorkin/exercise-analyzer/commit/1474aae), verified by `just watch-screens` (answersLost); on the phone and the watch since 2026-09-26, Igor's check pending (a raised wrist, a real one-way outage)
 
 #### Use Case:
 - **As a** lifter glancing at the watch
@@ -161,7 +161,7 @@ the first frame (story 001).
 ### User Story 019:
 
 - **Summary:** The phone stays awake while the watch is in charge
-- **Status:** implemented in [73d41d5](https://github.com/idvorkin/exercise-analyzer/commit/73d41d5); on the phone, Igor's check pending; fix for #142 in [cb20f99](https://github.com/idvorkin/exercise-analyzer/commit/cb20f99), verified on the host
+- **Status:** implemented in [73d41d5](https://github.com/idvorkin/exercise-analyzer/commit/73d41d5); on the phone, Igor's check pending; the workout and ten-minute rule (#142) in [cb20f99](https://github.com/idvorkin/exercise-analyzer/commit/cb20f99), verified on the host (`KeepAwakeTests`), on the phone since 2026-09-26, Igor's check pending (a long rest wrist-down)
 - **Why:** Igor (2026-09-26, #142): keep the phone awake while a workout runs on the watch, and outside one for 10 minutes after the last contact. Reachability could not decide it: with the wrist down the watch reads as unreachable most of the time (#76).
 
 #### Use Case:
@@ -317,7 +317,7 @@ the first frame (story 001).
 ### User Story 043:
 
 - **Summary:** The watch face shows the set
-- **Status:** implemented in [375e3aa](https://github.com/idvorkin/exercise-analyzer/commit/375e3aa), [0bde654](https://github.com/idvorkin/exercise-analyzer/commit/0bde654), [3255a38](https://github.com/idvorkin/exercise-analyzer/commit/3255a38); verified on the host (`FaceStateTests`) and by device signing; on the watch since 2026-09-14, Igor's check pending (add the complication to a face; its bundle id changed, so the old one is gone from the face); the kettlebell icon and glyph of [#88](https://github.com/idvorkin/exercise-analyzer/issues/88) verified by the simulator build (the icon in the watch app's Assets.car) and installed on the watch 2026-09-16, Igor's look pending; fix for [#143](https://github.com/idvorkin/exercise-analyzer/issues/143) (a Cancel wiped the previous final) in [ddfd0e1](https://github.com/idvorkin/exercise-analyzer/commit/ddfd0e1), verified on the host (`FaceStateTests`) and by a signed iOS + watch build
+- **Status:** implemented in [375e3aa](https://github.com/idvorkin/exercise-analyzer/commit/375e3aa), [0bde654](https://github.com/idvorkin/exercise-analyzer/commit/0bde654), [3255a38](https://github.com/idvorkin/exercise-analyzer/commit/3255a38); verified on the host (`FaceStateTests`); on the watch since 2026-09-14, Igor's check pending (add the complication to a face; its bundle id changed); the kettlebell (#88) in [54761a6](https://github.com/idvorkin/exercise-analyzer/commit/54761a6), [4d51684](https://github.com/idvorkin/exercise-analyzer/commit/4d51684), verified by the simulator build, on the watch since 2026-09-16, Igor's check pending; the previous final kept across a Cancel (#143) in [ddfd0e1](https://github.com/idvorkin/exercise-analyzer/commit/ddfd0e1), verified on the host (`FaceStateTests`), on the phone and the watch since 2026-09-26
 - **Why:** with the wrist down the watch app is suspended (#32); the face is the one screen that stays right, and the complication was only a launcher.
 
 #### Use Case:
@@ -360,7 +360,7 @@ the first frame (story 001).
   so the face holds the previous final in face.json across the set and puts it back when the set lands none;
   Done and Cancel look alike at the stop, so it also shows for the instant before the phone says "analyzing".
 
-- **Issues:** [#70](https://github.com/idvorkin/exercise-analyzer/issues/70) read as "on the wrist"; [#75](https://github.com/idvorkin/exercise-analyzer/issues/75) the App Group registration; [#143](https://github.com/idvorkin/exercise-analyzer/issues/143) a Cancel wiped the previous final
+- **Issues:** [#70](https://github.com/idvorkin/exercise-analyzer/issues/70) read as "on the wrist"; [#75](https://github.com/idvorkin/exercise-analyzer/issues/75) the App Group registration; [#88](https://github.com/idvorkin/exercise-analyzer/issues/88) a kettlebell, not the system bullseye; [#143](https://github.com/idvorkin/exercise-analyzer/issues/143) a Cancel wiped the previous final
 
 ---
 
@@ -423,7 +423,7 @@ the first frame (story 001).
 ### User Story 046:
 
 - **Summary:** Rest timer on the wrist
-- **Status:** implemented in [da516fd](https://github.com/idvorkin/exercise-analyzer/commit/da516fd); on phone + watch since 2026-09-13, Igor's check pending; delayed-permission identity and deadline fix in [88768f5](https://github.com/idvorkin/exercise-analyzer/commit/88768f5), verified on the host (five regression tests), signed iOS + watch build, and watch simulator (`just watch-screens`: 14 states, done/workout/viewfinder inspected); fixed tap delivery on the wrist pending; fix for [#145](https://github.com/idvorkin/exercise-analyzer/issues/145) (the rest events reached the phone log as `watch_watch_rest…`) in [6a17b25](https://github.com/idvorkin/exercise-analyzer/commit/6a17b25), verified on the host and by a signed iOS + watch build, the names in a pulled log pending
+- **Status:** implemented in [da516fd](https://github.com/idvorkin/exercise-analyzer/commit/da516fd); on phone + watch since 2026-09-13, Igor's check pending; the late permission reply (#52) in [88768f5](https://github.com/idvorkin/exercise-analyzer/commit/88768f5), verified on the host and the watch simulator; the log names (#145) in [6a17b25](https://github.com/idvorkin/exercise-analyzer/commit/6a17b25), verified by build; on the watch since 2026-09-26, Igor's check pending (the tap at the rest length, the names in the next pulled log)
 - **Why:** rest length is the one number between sets, and the watch is the only screen on the lifter; it showed nothing between Done and the next Record.
 
 #### Use Case:
@@ -457,14 +457,14 @@ the first frame (story 001).
   prompt, on the watch, the first time; the notification is scheduled once the answer is known, so the first
   rest taps too if the answer precedes its deadline); without that permission the count still shows, the tap does not come, and the log says so.
 
-- **Issues:** [#67](https://github.com/idvorkin/exercise-analyzer/issues/67); [#145](https://github.com/idvorkin/exercise-analyzer/issues/145) the rest events were double-prefixed in the phone log
+- **Issues:** [#67](https://github.com/idvorkin/exercise-analyzer/issues/67); [#52](https://github.com/idvorkin/exercise-analyzer/issues/52) a late permission reply must not schedule a tap for another rest; [#145](https://github.com/idvorkin/exercise-analyzer/issues/145) the rest events were double-prefixed in the phone log
 
 ---
 
 ### User Story 047:
 
 - **Summary:** Preview the shot from the wrist before recording
-- **Status:** implemented in [4bf497b](https://github.com/idvorkin/exercise-analyzer/commit/4bf497b), [b3defc0](https://github.com/idvorkin/exercise-analyzer/commit/b3defc0) and the review fixes of [2c9cc58](https://github.com/idvorkin/exercise-analyzer/commit/2c9cc58); verified on the host, the simulator (the eight watch states, the six checks) and by two code reviews; on the phone since 2026-09-14, the watch app of 2c9cc58 pending the tunnel, Igor's check pending; the heart-rate chip for [#106](https://github.com/idvorkin/exercise-analyzer/issues/106) verified on the watch simulator (`just watch-screens`: the workoutViewfinder state), on the wrist pending; VIEWFINDER on the phone's watch mode too, fix for [#144](https://github.com/idvorkin/exercise-analyzer/issues/144) in [9120516](https://github.com/idvorkin/exercise-analyzer/commit/9120516), verified on the host and by signed build, on the phone pending
+- **Status:** implemented in [4bf497b](https://github.com/idvorkin/exercise-analyzer/commit/4bf497b), [b3defc0](https://github.com/idvorkin/exercise-analyzer/commit/b3defc0) and the review fixes of [2c9cc58](https://github.com/idvorkin/exercise-analyzer/commit/2c9cc58); verified on the host, the simulator (the eight watch states, the six checks) and by two code reviews; on the phone since 2026-09-14 and the watch since 2026-09-16, Igor's check pending; the heart-rate chip (#106) in [d272cbd](https://github.com/idvorkin/exercise-analyzer/commit/d272cbd), verified on the watch simulator (workoutViewfinder), on the watch since 2026-09-22; VIEWFINDER in watch mode (#144) in [9120516](https://github.com/idvorkin/exercise-analyzer/commit/9120516), verified on the host, on the phone since 2026-09-26
 - **Why:** Igor, 2026-09-14: "Can I start with two different buttons for Record? Start Recording, Start Viewfinder. Normally, when I start on my watch, I don't know if I'm in frame or not. I walk away from my phone, set my phone up, and think I'm in frame. Then I walk to my watch, make sure I'm good, maybe adjust the camera a bit, and then I hit Start."
 
 #### Use Case:
@@ -517,7 +517,7 @@ the first frame (story 001).
 ### User Story 048:
 
 - **Summary:** The whole gym session is one workout on the wrist, with heart rate and a clock, across every set
-- **Status:** implemented for [#82](https://github.com/idvorkin/exercise-analyzer/issues/82); verified by host tests (`WorkoutTests`), the watch simulator (`just watch-screens`: the workout, workoutEnd and workoutRecording states) and the phone simulator (a seeded workout on today's header); on the phone and the watch since 2026-09-16 (the HealthKit profiles came through once the phone was plugged in; a generic-destination build had said "No Accounts"); the wrist rung (Health permission, heart rate, the mirrored session on the phone, the workout in Health) is Igor's, read from the logs after his first workout
+- **Status:** implemented in [b2df153](https://github.com/idvorkin/exercise-analyzer/commit/b2df153); verified on the host (`WorkoutTests`), the watch simulator (`just watch-screens`: workout, workoutEnd, workoutRecording) and the phone simulator; on the phone and the watch since 2026-09-16, Igor's check pending (the Health permission, heart rate, the mirrored session, the workout in Health)
 - **Why:** Igor, 2026-09-16, from the gym: "Let's figure out how to do this with the workout mode and this will be the workout. We need to think through keeping the workout alive across many analysis sessions. I'm doing multiple exercises and warming up and stuff but let's figure out how to make this workout and record the whole workout. Need to think about what my workout UI looks like on the watch. Should probably have heart rate on there and a timer. Those are probably the big ones before the control."
 
 #### Use Case:
@@ -555,7 +555,7 @@ the first frame (story 001).
 ### User Story 050:
 
 - **Summary:** Rest time stays on the wrist in Preview and beside the workout clock
-- **Status:** implemented for [#91](https://github.com/idvorkin/exercise-analyzer/issues/91); verified on the watch simulator (`just watch-screens`: the viewfinder, workout and workoutStart states); the wrist rung is Igor's
+- **Status:** implemented in [bda4c00](https://github.com/idvorkin/exercise-analyzer/commit/bda4c00); verified on the watch simulator (`just watch-screens`: viewfinder, workout, workoutStart); on the watch since 2026-09-18, Igor's check pending
 - **Why:** Igor, 2026-09-18, from the gym: "When in watch preview keep time since last rep on small. On watch. Include time since last rep not just total work out time."
 
 #### Use Case:

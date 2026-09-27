@@ -34,7 +34,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 006:
 
 - **Summary:** Line up the same moment of every rep to compare form
-- **Status:** implemented in [49c6529](https://github.com/idvorkin/exercise-analyzer/commit/49c6529), [44030f5](https://github.com/idvorkin/exercise-analyzer/commit/44030f5), [70976ae](https://github.com/idvorkin/exercise-analyzer/commit/70976ae); verified on the simulator and the phone; the me-view stills of [#61](https://github.com/idvorkin/exercise-analyzer/issues/61) on the phone since 2026-09-13; eye-toggle fix [c30e384](https://github.com/idvorkin/exercise-analyzer/commit/c30e384) verified by simulator screenshots with the skeleton off and on (2026-09-20); installed and launched on the phone 2026-09-20; Igor's visual check pending; the Bulgarian Standing column in [77c6731](https://github.com/idvorkin/exercise-analyzer/commit/77c6731), verified on the host (`BulgarianStandingTests`)
+- **Status:** implemented in [49c6529](https://github.com/idvorkin/exercise-analyzer/commit/49c6529), [44030f5](https://github.com/idvorkin/exercise-analyzer/commit/44030f5), [70976ae](https://github.com/idvorkin/exercise-analyzer/commit/70976ae); verified on the simulator and the phone; the me-view stills (#61) in [369f3cb](https://github.com/idvorkin/exercise-analyzer/commit/369f3cb), on the phone since 2026-09-13; the eye toggle (#113) in [c30e384](https://github.com/idvorkin/exercise-analyzer/commit/c30e384), verified by simulator screenshots, on the phone since 2026-09-20, Igor's check pending; the Bulgarian Standing column (#132) in [77c6731](https://github.com/idvorkin/exercise-analyzer/commit/77c6731), verified on the host (`BulgarianStandingTests`), on the phone since 2026-09-22
 
 #### Use Case:
 - **As a** lifter looking for the rep where form slipped
@@ -75,14 +75,14 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **When:** I switch between video only and video with skeleton using the eye button
 - **Then:** the inline gallery, expanded gallery and comparison thumbnails immediately show the same skeleton setting as the main picture, while keeping their video stills
 
-- **Issues:** [#61](https://github.com/idvorkin/exercise-analyzer/issues/61), [#113](https://github.com/idvorkin/exercise-analyzer/issues/113)
+- **Issues:** [#61](https://github.com/idvorkin/exercise-analyzer/issues/61), [#113](https://github.com/idvorkin/exercise-analyzer/issues/113), [#132](https://github.com/idvorkin/exercise-analyzer/issues/132)
 
 ---
 
 ### User Story 007:
 
 - **Summary:** Step by frame and by position with targets big enough for the gym
-- **Status:** implemented in [564a753](https://github.com/idvorkin/exercise-analyzer/commit/564a753); verified by simulator screenshot; the fixes for [#54](https://github.com/idvorkin/exercise-analyzer/issues/54) and [#56](https://github.com/idvorkin/exercise-analyzer/issues/56) on the phone since 2026-09-13; the scrubber follow-up [#6](https://github.com/idvorkin/exercise-analyzer/issues/6) is Igor's check; Position labels [06c95d9](https://github.com/idvorkin/exercise-analyzer/commit/06c95d9) verified by simulator screenshot (2026-09-20); installed and launched on the phone 2026-09-20; Igor's visual check pending
+- **Status:** implemented in [564a753](https://github.com/idvorkin/exercise-analyzer/commit/564a753); verified by simulator screenshot; the fixes for #54 and #56 in [7763420](https://github.com/idvorkin/exercise-analyzer/commit/7763420), [7872730](https://github.com/idvorkin/exercise-analyzer/commit/7872730), on the phone since 2026-09-13, Igor's check pending (the scrubber of #6 too); the Position labels (#115) in [06c95d9](https://github.com/idvorkin/exercise-analyzer/commit/06c95d9), verified by simulator screenshot, on the phone since 2026-09-20, Igor's check pending
 
 #### Use Case:
 - **As a** lifter holding a phone with chalky hands
@@ -95,8 +95,6 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **When:** I tap the "position" button on the right (VoiceOver: "Next position")
 - **Then:** the playhead lands on rep 3's connect checkpoint and the scrubber moves with it; the left button also reads "position" (VoiceOver: "Previous position")
 
-- **Issues:** [#115](https://github.com/idvorkin/exercise-analyzer/issues/115) use Position consistently in playback and hold controls
-
 - **Scenario:** Stepping a rep keeps the phase
 - **Given:** a set is open and paused at the bottom of rep 3
 - **When:** I step to the next rep
@@ -107,14 +105,14 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **When:** I tap a gallery still, a pill, an edge key or a step button
 - **Then:** the clock follows the playhead (no stale scrub value), the HUD shows that rep in review, and the `phase` events log the rep I landed in
 
-- **Issues:** [#6](https://github.com/idvorkin/exercise-analyzer/issues/6) scrubber not following a gallery tap; [#23](https://github.com/idvorkin/exercise-analyzer/issues/23) slider not following playback; [#54](https://github.com/idvorkin/exercise-analyzer/issues/54) a stale scrub value past the end of the clip after gallery taps, and the completed count one behind the gallery's rep; [#56](https://github.com/idvorkin/exercise-analyzer/issues/56) a rep step should land in the phase the playhead is in
+- **Issues:** [#6](https://github.com/idvorkin/exercise-analyzer/issues/6) scrubber not following a gallery tap; [#23](https://github.com/idvorkin/exercise-analyzer/issues/23) slider not following playback; [#54](https://github.com/idvorkin/exercise-analyzer/issues/54) a stale scrub value past the end of the clip after gallery taps, and the completed count one behind the gallery's rep; [#56](https://github.com/idvorkin/exercise-analyzer/issues/56) a rep step should land in the phase the playhead is in; [#115](https://github.com/idvorkin/exercise-analyzer/issues/115) use Position consistently in playback and hold controls
 
 ---
 
 ### User Story 008:
 
 - **Summary:** Fill the screen with me, not the gym
-- **Status:** implemented in [cda8d1e](https://github.com/idvorkin/exercise-analyzer/commit/cda8d1e), [e4c86d9](https://github.com/idvorkin/exercise-analyzer/commit/e4c86d9); verified on the phone (HDR); the skeleton-inside-reps crop of [#84](https://github.com/idvorkin/exercise-analyzer/issues/84) verified by host test on the 20-rep track, on the phone since 2026-09-16 (stored sets recut their stills on the version bump); the lifter in the middle, head at the top, feet clear of the angle text for [#98](https://github.com/idvorkin/exercise-analyzer/issues/98): host `ZoomTransformTests`, simulator at both gallery heights, the phone (HDR unchanged, the feel) pending
+- **Status:** implemented in [cda8d1e](https://github.com/idvorkin/exercise-analyzer/commit/cda8d1e), [e4c86d9](https://github.com/idvorkin/exercise-analyzer/commit/e4c86d9); verified on the phone (HDR); the skeleton-inside-reps crop (#84) in [7e7caf9](https://github.com/idvorkin/exercise-analyzer/commit/7e7caf9), verified on the host, on the phone since 2026-09-16; the lifter in the middle, head at the top (#98) in [f37d9a7](https://github.com/idvorkin/exercise-analyzer/commit/f37d9a7), [e38f509](https://github.com/idvorkin/exercise-analyzer/commit/e38f509), [87d3e00](https://github.com/idvorkin/exercise-analyzer/commit/87d3e00), [0bc3a9b](https://github.com/idvorkin/exercise-analyzer/commit/0bc3a9b), verified on the host (`ZoomTransformTests`) and the simulator, on the phone since 2026-09-19, Igor's check pending (HDR, the feel)
 
 #### Use Case:
 - **As a** small figure in a wide tripod shot
@@ -138,14 +136,14 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Then:** I am in the middle of the picture left to right, my head at the top of the picture with a little air over it (the count and the phase pills may lie over the top of my head, never over my eyes: when they would, I am fitted from my eyes, 4 pt under the pills, to my feet, 1.34× in place of 1.42× on the 8:45 set with the gallery up, no change with it down) and my feet above the angle text, so my legs always show; where the video ends there is black, and as much black on the other side, so the picture is even about me; dragging the gallery down makes me larger, never cut
 - **And:** with the zoom off the whole frame is where it always was, no centring (the first build slid it sideways; Igor on seeing it: "when zoom off leave it as normal")
 
-- **Issues:** [#98](https://github.com/idvorkin/exercise-analyzer/issues/98) the zoom filled the whole picture area with me, head under the count and the pills, feet under the angle text, and with the zoom off I stood 38 pt right of the middle (Igor: "I want to be centered, not just zoom state", "you always need to see my legs", "I actually want my head to be at the top of the screen"); `ZoomTransform.centring` in ExerciseCore, host `ZoomTransformTests`, simulator screenshots at both gallery heights, on the phone pending; [#84](https://github.com/idvorkin/exercise-analyzer/issues/84) the 20-rep set of 2026-09-16 zoomed with the body in the left third and empty gym on the right: the crop was the detector's person box over the first-to-last-rep span, and on a swing that box runs out to the bell at the top (5–7 % of the frame past the hands) and the walk between the halves pushed it further; fixed by the skeleton-inside-reps rule (crop 5–63 % → 15–52 % of the frame), fixture `kettlebell-swing-20260916-F677269B` in `StableCropTests`
+- **Issues:** [#98](https://github.com/idvorkin/exercise-analyzer/issues/98) the zoom filled the whole picture area with me, head under the count and the pills, feet under the angle text, and with the zoom off I stood 38 pt right of the middle (Igor: "I want to be centered, not just zoom state", "you always need to see my legs", "I actually want my head to be at the top of the screen"); `ZoomTransform.centring` in ExerciseCore; [#84](https://github.com/idvorkin/exercise-analyzer/issues/84) the 20-rep set of 2026-09-16 zoomed with the body in the left third and empty gym on the right: the crop was the detector's person box over the first-to-last-rep span, and on a swing that box runs out to the bell at the top (5–7 % of the frame past the hands) and the walk between the halves pushed it further; fixed by the skeleton-inside-reps rule (crop 5–63 % → 15–52 % of the frame), fixture `kettlebell-swing-20260916-F677269B` in `StableCropTests`
 
 ---
 
 ### User Story 024:
 
 - **Summary:** Jump to a phase by tapping its name, and play or pause by tapping the picture
-- **Status:** implemented in [3abd301](https://github.com/idvorkin/exercise-analyzer/commit/3abd301); on the phone, Igor's check pending; the Bulgarian Bottom pill of [#55](https://github.com/idvorkin/exercise-analyzer/issues/55) on the phone since 2026-09-13
+- **Status:** implemented in [3abd301](https://github.com/idvorkin/exercise-analyzer/commit/3abd301); on the phone, Igor's check pending; the Bulgarian Bottom pill (#55) in [48f8013](https://github.com/idvorkin/exercise-analyzer/commit/48f8013), on the phone since 2026-09-13
 
 #### Use Case:
 - **As a** lifter comparing the same moment across reps
@@ -170,7 +168,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 030:
 
 - **Summary:** Move through a set from the edges of the picture, no chrome needed
-- **Status:** implemented in [04b1922](https://github.com/idvorkin/exercise-analyzer/commit/04b1922), [53e7a04](https://github.com/idvorkin/exercise-analyzer/commit/53e7a04); on the phone, Igor's check pending (gestures); unified holds [49046c0](https://github.com/idvorkin/exercise-analyzer/commit/49046c0) verified on the host (six PlaybackTouchTests) and by simulator build/screenshot; installed and launched on the phone 2026-09-20; Igor's touch check pending
+- **Status:** implemented in [04b1922](https://github.com/idvorkin/exercise-analyzer/commit/04b1922), [53e7a04](https://github.com/idvorkin/exercise-analyzer/commit/53e7a04); on the phone, Igor's check pending (gestures); the unified holds (#116) in [49046c0](https://github.com/idvorkin/exercise-analyzer/commit/49046c0), verified on the host (`PlaybackTouchTests`) and the simulator, on the phone since 2026-09-20, Igor's check pending
 
 #### Use Case:
 - **As a** lifter scrubbing a rep with a thumb on each edge of the phone
@@ -190,7 +188,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 033:
 
 - **Summary:** See a get-up step by step: floor, elbow, hand, kneel, lunge, stand, and back down to the floor
-- **Status:** implemented in [1f815f5](https://github.com/idvorkin/exercise-analyzer/commit/1f815f5) and the floor stage of [#48](https://github.com/idvorkin/exercise-analyzer/issues/48); verified on the host (`GetUpStageTests`); the pills and the eleven-column gallery are Igor's check on the phone
+- **Status:** implemented in [1f815f5](https://github.com/idvorkin/exercise-analyzer/commit/1f815f5), the floor stage (#48) in [238a828](https://github.com/idvorkin/exercise-analyzer/commit/238a828); verified on the host (`GetUpStageTests`); the pills and the eleven columns are Igor's check on the phone
 - **Why:** Igor: "the get-up is going to need more stages."
 
 #### Use Case:
@@ -211,7 +209,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 034:
 
 - **Summary:** See the bell on the video, and its weight from its colour
-- **Status:** implemented, **off by default**; the "Bell detector (slower pass)" toggle in the exercise menu turns it on ([22162af](https://github.com/idvorkin/exercise-analyzer/commit/22162af), on the phone since 2026-09-16, Igor's check pending: the dot on a swing set reopened with the switch on), as do `SWING_BELLS=1` and the `bellDetector` default; the detector in [3b997e1](https://github.com/idvorkin/exercise-analyzer/commit/3b997e1), [ab4f1a5](https://github.com/idvorkin/exercise-analyzer/commit/ab4f1a5), [9552f70](https://github.com/idvorkin/exercise-analyzer/commit/9552f70), the tracker in [85ed8e5](https://github.com/idvorkin/exercise-analyzer/commit/85ed8e5), [be9c75d](https://github.com/idvorkin/exercise-analyzer/commit/be9c75d), [fd97209](https://github.com/idvorkin/exercise-analyzer/commit/fd97209), [a6a2cf5](https://github.com/idvorkin/exercise-analyzer/commit/a6a2cf5), [a9065a5](https://github.com/idvorkin/exercise-analyzer/commit/a9065a5), live bells in [f17bf11](https://github.com/idvorkin/exercise-analyzer/commit/f17bf11), no bell outside a swing or a get-up in [92b5b7a](https://github.com/idvorkin/exercise-analyzer/commit/92b5b7a); verified on the host (`BellTests`, `TuningReports.testBellTrackerHeldPerFixture`), the Mac model rung and the phone; the numbers, by proxy and by eye, are in [docs/analysis/kettlebell-detector.md](../analysis/kettlebell-detector.md); the dot on the video with `SWING_BELLS=1` is Igor's check
+- **Status:** implemented, **off by default** (the "Bell detector (slower pass)" toggle in the exercise menu turns it on), in [3b997e1](https://github.com/idvorkin/exercise-analyzer/commit/3b997e1), [ab4f1a5](https://github.com/idvorkin/exercise-analyzer/commit/ab4f1a5), [9552f70](https://github.com/idvorkin/exercise-analyzer/commit/9552f70) (the detector), [85ed8e5](https://github.com/idvorkin/exercise-analyzer/commit/85ed8e5), [be9c75d](https://github.com/idvorkin/exercise-analyzer/commit/be9c75d), [fd97209](https://github.com/idvorkin/exercise-analyzer/commit/fd97209), [a6a2cf5](https://github.com/idvorkin/exercise-analyzer/commit/a6a2cf5), [a9065a5](https://github.com/idvorkin/exercise-analyzer/commit/a9065a5) (the tracker), [f17bf11](https://github.com/idvorkin/exercise-analyzer/commit/f17bf11) (live bells), [22162af](https://github.com/idvorkin/exercise-analyzer/commit/22162af) (the toggle), [92b5b7a](https://github.com/idvorkin/exercise-analyzer/commit/92b5b7a) (swings and get-ups only); verified on the host (`BellTests`, `TuningReports.testBellTrackerHeldPerFixture`), the Mac model rung and the phone; the toggle on the phone since 2026-09-16 and 92b5b7a since 2026-09-22, Igor's check pending (the dot on a reopened swing set)
 - **Why:** Igor, 2026-09-12: fun, made nothing better yet, halves the pass; so it stays off until it earns its keep.
 
 #### Use Case:
@@ -247,7 +245,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 039:
 
 - **Summary:** Hold anywhere on the picture to get both edges' keys at once, and hold a key to repeat it
-- **Status:** implemented in [1fcdc3c](https://github.com/idvorkin/exercise-analyzer/commit/1fcdc3c), [b96aec3](https://github.com/idvorkin/exercise-analyzer/commit/b96aec3) and the cadence and cross-drag of [#63](https://github.com/idvorkin/exercise-analyzer/issues/63); on the phone since 2026-09-13, Igor's check pending (gestures); lighter cards [8799878](https://github.com/idvorkin/exercise-analyzer/commit/8799878) and unified holds [49046c0](https://github.com/idvorkin/exercise-analyzer/commit/49046c0) verified by simulator screenshots and six host PlaybackTouchTests (2026-09-20); signed phone build passes; installed and launched on the phone 2026-09-20, Igor's touch check pending
+- **Status:** implemented in [1fcdc3c](https://github.com/idvorkin/exercise-analyzer/commit/1fcdc3c), [b96aec3](https://github.com/idvorkin/exercise-analyzer/commit/b96aec3), [c3a5e67](https://github.com/idvorkin/exercise-analyzer/commit/c3a5e67) (#63), [8fece4f](https://github.com/idvorkin/exercise-analyzer/commit/8fece4f) (#64), [ce8023f](https://github.com/idvorkin/exercise-analyzer/commit/ce8023f) (#65); on the phone since 2026-09-13, Igor's check pending (gestures); the lighter cards (#114) in [8799878](https://github.com/idvorkin/exercise-analyzer/commit/8799878) and the unified holds (#116) in [49046c0](https://github.com/idvorkin/exercise-analyzer/commit/49046c0), verified on the host (`PlaybackTouchTests`) and the simulator, on the phone since 2026-09-20, Igor's check pending
 - **Why:** Igor, 2026-09-13: "press and hold in middle gives both left and right so I can finger over, and when on one of them if I hold while on a button it presses every 2 seconds."
 
 #### Use Case:
@@ -276,8 +274,6 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **When:** I look through an idle or active key
 - **Then:** I can still see the lifter behind it: idle cards use 25% black and active cards use 55% accent colour, with shadowed white labels
 
-- **Issues:** [#114](https://github.com/idvorkin/exercise-analyzer/issues/114) seek cards hid too much of the picture; the split-squat checkpoint part is tracked in #118
-
 - **Scenario:** Tapping a key while the stacks are up
 - **Given:** both stacks are up from an earlier hold
 - **When:** I tap the forward Rep key
@@ -303,14 +299,14 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **When:** I hold the middle, slide onto a key, and lift after it fires
 - **Then:** the set is paused and stays paused
 
-- **Issues:** [#59](https://github.com/idvorkin/exercise-analyzer/issues/59), [#60](https://github.com/idvorkin/exercise-analyzer/issues/60), [#63](https://github.com/idvorkin/exercise-analyzer/issues/63)
+- **Issues:** [#59](https://github.com/idvorkin/exercise-analyzer/issues/59), [#60](https://github.com/idvorkin/exercise-analyzer/issues/60), [#63](https://github.com/idvorkin/exercise-analyzer/issues/63), [#64](https://github.com/idvorkin/exercise-analyzer/issues/64), [#65](https://github.com/idvorkin/exercise-analyzer/issues/65); [#114](https://github.com/idvorkin/exercise-analyzer/issues/114) seek cards hid too much of the picture (the split-squat checkpoint part is #118); [#116](https://github.com/idvorkin/exercise-analyzer/issues/116)
 
 ---
 
 ### User Story 051:
 
 - **Summary:** See my heart rate over the replay when the set was part of a workout
-- **Status:** implemented for [#92](https://github.com/idvorkin/exercise-analyzer/issues/92); the series math verified on the host (`HeartRateSeriesTests`), the chip on the simulator with a made-up series (`SWING_HEART_RATE=1`); the Health read, the alignment with the playhead and the real cadence are the phone's, read from the `heart_rate` event after a gym session inside a workout; the re-ask for a set just recorded ([#107](https://github.com/idvorkin/exercise-analyzer/issues/107)) in [713fa65](https://github.com/idvorkin/exercise-analyzer/commit/713fa65), verified on the host (`HeartRateSeriesTests`) and built for the simulator, on the phone since 2026-09-19, read from the log after the next set inside a workout (`heart_rate` with `attempt` > 1)
+- **Status:** implemented in [091585e](https://github.com/idvorkin/exercise-analyzer/commit/091585e); verified on the host (`HeartRateSeriesTests`) and the simulator (`SWING_HEART_RATE=1`); on the phone since 2026-09-18, Igor's check pending (the alignment, from the `heart_rate` event after a workout); the set's numbers (#100) in [dff8b1c](https://github.com/idvorkin/exercise-analyzer/commit/dff8b1c), [b7f7eb2](https://github.com/idvorkin/exercise-analyzer/commit/b7f7eb2), verified on the host (`WorkoutTimelineTests`) and the simulator, on the phone since 2026-09-18, Igor's check pending; the re-ask (#107) in [713fa65](https://github.com/idvorkin/exercise-analyzer/commit/713fa65), verified on the host, on the phone since 2026-09-19, read from the log after the next set in a workout (`heart_rate` with `attempt` > 1)
 - **Why:** Igor, 2026-09-18: "Let's have heart rate overlay in exercise replay if I have it."
 
 #### Use Case:
@@ -359,4 +355,4 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 
 - **Notes:** The phone keeps only a workout's average and max (`StoredWorkout`), and the mirrored live value reaches it about once a minute (17 `workout_data` events in the 17-minute workout of 2026-09-18), so the series is read from Health, where the watch's live workout builder writes it; the read permission is the one already asked when a workout first arrives (048), and Health is only asked about time inside a workout the app knows. The samples are kept raw with their own timestamps in the set's folder (`heartrate.json`, the set's span plus 30 s before and 2 min after, for the drop of 053) and the value at the playhead is read between the two around it. Igor asked for a value every second (board, 2026-09-18): the sensor reports every few seconds during a workout, so per-second rows would be the same readings repeated; the chip moves every second by reading between them, and `heart_rate` (samples, median_interval_s, newest_age_s) logs the real cadence and how late the watch's samples reach the phone, which decides whether the watch has to send the series itself. The log of 2026-09-19 answered it: the four sets of that workout read 0 to 5 samples at Done (the newest 51 to 160 s old) and 32 to 54 when opened again later, the first of them 130 s after Done with the newest 28 s old; so the samples do come by themselves, a minute or two late, and asking again (every 20 s, `attempt` on the event) is enough (#107). Lining up needs the wall-clock time of the clip's first frame, `RecentEntry.clipStartedAt`: only sets recorded in the app have it (`recordedAt` is when the recording ended), a trim moves it, and paused or rotated sets and imported clips have none yet, so no chip. Igor picked the chip (92A); the curve belongs to 053.
 
-- **Issues:** [#92](https://github.com/idvorkin/exercise-analyzer/issues/92); [#100](https://github.com/idvorkin/exercise-analyzer/issues/100) Igor: "If I was part of a tracked workout, I'd love to see the heart rate statistics as well" (peak, drop and average beside the workout button; host `WorkoutTimelineTests`, simulator with `SWING_HEART_RATE=1`, the phone pending); [#107](https://github.com/idvorkin/exercise-analyzer/issues/107) Igor: "On review show heart rate during the video if video has multiple samples" (a set just recorded showed no chip: Health had no samples yet)
+- **Issues:** [#92](https://github.com/idvorkin/exercise-analyzer/issues/92); [#100](https://github.com/idvorkin/exercise-analyzer/issues/100) Igor: "If I was part of a tracked workout, I'd love to see the heart rate statistics as well" (peak, drop and average beside the workout button); [#107](https://github.com/idvorkin/exercise-analyzer/issues/107) Igor: "On review show heart rate during the video if video has multiple samples" (a set just recorded showed no chip: Health had no samples yet)
