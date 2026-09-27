@@ -18,7 +18,8 @@ state and is not in the table.
 | idle | "Phone ready", exercise picker, rest length picker, the rest count while resting, the last-set line (or "Analyzing…" while the pass runs) | Start workout (green), Record (red), Preview (below it) | 017, 041, 045, 046, 047, 048 |
 | workoutStart | a workout before its first set: WORKOUT in green over the session clock (counting up by itself), "♥ 96 BPM", "0 sets · 0 reps"; no figure art, no Start workout | Record (red), Preview, "+ Set by hand" under Preview, the pickers; End workout and Discard below the pickers | 048, 059 |
 | workout | between sets the head is the rest: "REST · 1:30" in orange over the rest count, large, white until the rest length and orange after; then "♥ 128 BPM · 42:13" with the session clock small and green, "6 sets · 47 reps", the last-set line and the pickers as idle; no second rest line | Record (red), Preview, "+ Set by hand" under Preview (a Crown turn below the first screen), the pickers; End workout and Discard below the pickers (the workoutEnd shot) | 048, 050, 059 |
-| setByHand | the count page over the workout page: the exercise ("Kettlebell Swing"), one large number starting at the last set's count (9), − and + either side (44 pt), the sheet's close button | Save (green), Cancel; the Crown steps the count by one, 1…200 | 059 |
+| setByHand | the count page over the workout page: the exercise ("Kettlebell Swing ⌄"), one large number starting at the last set's count (9), − and + either side (44 pt), the sheet's close button | the exercise (opens the list), Save (green), Cancel; the Crown steps the count by one, 1…200 | 059 |
+| setByHandExercise | the count page's exercise list over it: every exercise, a green check on the current one, the sheet's close button | an exercise (sets it and closes the list) | 059 (#154) |
 | workoutEnd | the bottom of the workout page: the exercise picker's tail, then "End writes one workout to Health" under the buttons | End workout (green), Discard (red, asks first) | 048 |
 | workoutRecording | as recording, with a "♥ 141" chip between the count and the time | as recording | 048 |
 | viewfinder (Preview) | the picture filling the face, a PREVIEW chip, beside it a "REST 1:45" chip while a rest is counting (orange past the rest length), both whole inside the face, the in-frame capsule | Record (red) · Camera · Cancel; no Pause, no Done | 047, 050 |
@@ -571,6 +572,12 @@ the first frame (story 001).
   the pickers (Record and Preview stay where they are; Igor's pick, 2026-09-26)
 - **Then:** a count page opens with the exercise on top (the exercise picker's choice, or the last set's exercise when the picker is on Auto, Kettlebell Swing with no set yet), one large number in the middle starting at the last set's count (10 when there is none), a − and a + either side of it, and Save (green) and Cancel under it
 
+- **Scenario:** Choosing the exercise on the count page (#154)
+- **Given:** the count page reads "Kettlebell Swing ⌄" over 8, and the set I did was split squats
+- **When:** I tap the exercise and tap "Split Squat" in the list that opens (the current one carries a green check)
+- **Then:** the list closes, the page reads "Split Squat ⌄" over the same 8, the Crown steps the count again, and
+  Save adds 8 split squats; the exercise picker on the workout page keeps its own choice
+
 - **Scenario:** Setting the count
 - **Given:** the count page reads 10
 - **When:** I turn the Digital Crown down two clicks, or tap − twice
@@ -620,7 +627,8 @@ the first frame (story 001).
   source is `RecentEntry.Source.byHand`, which an index from before it never carries. Log: `watch_set_by_hand` on
   Save, `set_by_hand` (with `duplicate`) on the phone ([DEBUGGING.md](../DEBUGGING.md)).
 
-- **Issues:** [#136](https://github.com/idvorkin/exercise-analyzer/issues/136)
+- **Issues:** [#136](https://github.com/idvorkin/exercise-analyzer/issues/136),
+  [#154](https://github.com/idvorkin/exercise-analyzer/issues/154) (choose the exercise on the count page)
 
 ---
 

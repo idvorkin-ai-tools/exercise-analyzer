@@ -127,8 +127,10 @@ struct WatchContentView: View {
       }
       .sheet(isPresented: $countingSet) {
         let start = HandSet.start(mode: status.mode, analyzed: status.lastSet, byHand: phone.handSet)
-        SetByHandPage(exercise: start.exercise, start: start.reps) { reps in
-          phone.saveSetByHand(exercise: start.exercise, reps: reps)
+        SetByHandPage(
+          exercise: start.exercise, start: start.reps, choosing: phone.screenshotOpensExerciseList
+        ) { exercise, reps in
+          phone.saveSetByHand(exercise: exercise, reps: reps)
         }
       }
     }
@@ -477,26 +479,37 @@ struct WatchContentView: View {
 }
 
 /// The count of a set typed by hand (059): the exercise on top, one large number, − and + (44 pt) and the Crown
-/// step it by one with a tick each, 1…200. Save adds the set; Cancel, or the sheet's close button, adds nothing.
+/// step it by one with a tick each, 1…200. The exercise is a button: it opens the list of exercises, and the one
+/// tapped there is the set's (#154). Save adds the set; Cancel, or the sheet's close button, adds nothing.
 private struct SetByHandPage: View {
-  let exercise: ExerciseKind
-  let onSave: (Int) -> Void
+  let onSave: (ExerciseKind, Int) -> Void
+  @State private var exercise: ExerciseKind
   /// The Crown's value; the count is it rounded and clamped.
   @State private var count: Double
+  @State private var choosing = false
   @FocusState private var crownFocused: Bool
   @Environment(\.dismiss) private var dismiss
 
-  init(exercise: ExerciseKind, start: Int, onSave: @escaping (Int) -> Void) {
-    self.exercise = exercise
+  init(exercise: ExerciseKind, start: Int, choosing: Bool = false, onSave: @escaping (ExerciseKind, Int) -> Void) {
     self.onSave = onSave
+    _exercise = State(initialValue: exercise)
     _count = State(initialValue: Double(start))
+    _choosing = State(initialValue: choosing)
   }
 
   private var reps: Int { HandSet.clamp(Int(count.rounded())) }
 
   var body: some View {
     VStack(spacing: 4) {
-      Text(exercise.definition.name).font(.headline).lineLimit(1).minimumScaleFactor(0.7)
+      Button { choosing = true } label: {
+        HStack(spacing: 4) {
+          Text(exercise.definition.name).font(.headline).lineLimit(1).minimumScaleFactor(0.7)
+          Image(systemName: "chevron.down").font(.caption2.bold())
+        }
+        .frame(maxWidth: .infinity)
+      }
+      .buttonStyle(.plain)
+      .accessibilityLabel("Exercise: \(exercise.definition.name). Change")
       HStack(spacing: 2) {
         stepButton("minus", by: -1)
         Text("\(reps)")
@@ -511,7 +524,7 @@ private struct SetByHandPage: View {
         stepButton("plus", by: 1)
       }
       Button {
-        onSave(reps)
+        onSave(exercise, reps)
         dismiss()
       } label: {
         Text("Save").frame(maxWidth: .infinity)
@@ -520,6 +533,20 @@ private struct SetByHandPage: View {
       Button("Cancel", role: .cancel) { dismiss() }
     }
     .onAppear { crownFocused = true }
+    .sheet(isPresented: $choosing, onDismiss: { crownFocused = true }) {
+      List(ExerciseKind.allCases) { kind in
+        Button {
+          exercise = kind
+          choosing = false
+        } label: {
+          HStack {
+            Text(kind.definition.name)
+            Spacer()
+            if kind == exercise { Image(systemName: "checkmark").foregroundStyle(.green) }
+          }
+        }
+      }
+    }
   }
 
   private func stepButton(_ symbol: String, by step: Int) -> some View {
