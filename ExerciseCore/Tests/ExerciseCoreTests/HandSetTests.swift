@@ -12,6 +12,22 @@ final class HandSetTests: XCTestCase {
   private let swing = ExerciseKind.kettlebellSwing
   private let getUp = ExerciseKind.turkishGetUp
 
+  /// #158: sit-ups and half-kneeling rotations are typed by hand only; nothing points the camera's analysis at them.
+  func testCountOnlyExercisesTravelByHandButNeverSetTheAnalysisMode() throws {
+    for kind in [ExerciseKind.sitUp, .halfKneelingRotation] {
+      XCTAssertTrue(kind.countOnly)
+      XCTAssertFalse(ExerciseKind.analyzable.contains(kind))
+      XCTAssertEqual(ExerciseMode(storageValue: kind.rawValue), .auto)
+      let set = HandSet(exercise: kind, reps: 12, at: 1000)
+      XCTAssertEqual(HandSet(userInfo: set.userInfo), set)
+      XCTAssertEqual(set.entry.exercise, kind)
+    }
+    XCTAssertEqual(ExerciseKind.analyzable.count, ExerciseKind.allCases.count - 2)
+    // In Auto the count page reopens on the last typed exercise, count-only or not.
+    let sitUps = HandSet(exercise: .sitUp, reps: 20, at: 2000)
+    XCTAssertTrue(HandSet.start(mode: "auto", analyzed: nil, byHand: sitUps) == (.sitUp, 20))
+  }
+
   func testTheCountStopsAtOneAndTwoHundred() {
     XCTAssertEqual(HandSet.clamp(0), 1)
     XCTAssertEqual(HandSet.clamp(8), 8)

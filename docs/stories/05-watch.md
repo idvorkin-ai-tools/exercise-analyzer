@@ -632,6 +632,38 @@ the first frame (story 001).
 
 ---
 
+### User Story 061:
+
+- **Summary:** Log sit-ups and half-kneeling rotations by hand, though the camera cannot count them
+- **Status:** implemented (commit to be recorded); verified on the host (`HandSetTests`) and by build
+- **Why:** Igor, 2026-09-27, from the phone: "An exercise to teach you sit-ups, even if I don't support videos. Also add half-kneeling rotations."
+
+#### Use Case:
+- **As a** lifter whose workout includes moves the camera does not analyze
+- **I want to** type a set of them on the wrist like any forgotten set
+- **so that** the workout's sets and reps include everything I did
+
+#### Acceptance Criteria:
+- **Scenario:** Typing a set of sit-ups
+- **Given:** a workout is running and I open "+ Set by hand" (059)
+- **When:** I tap the exercise, pick "Sit-Up" (or "Half-Kneeling Rotation") from the list, set 20 and tap Save
+- **Then:** the set counts on the wrist as "20 reps · Sit-Up · by hand", and the phone's workout page and day list
+  show it with its own drawing and colour (mint for sit-ups, indigo for rotations) and "20 sit-ups"
+
+- **Scenario:** The camera never tries to count them
+- **Given:** the exercise menus that choose what the camera analyzes, on the phone and the wrist's picker
+- **When:** I open either
+- **Then:** Sit-Up and Half-Kneeling Rotation are not offered there; they appear only in the count page's list
+
+- **Notes:** `ExerciseKind.sitUp` / `.halfKneelingRotation` with `countOnly`; the analysis pickers list
+  `ExerciseKind.analyzable`, `ExerciseMode` refuses a count-only value (a stored mode falls back to Auto), and
+  the detector never returns one. `CountOnlyAnalyzer` stands in for `makeAnalyzer()` and counts nothing. The two
+  drawings match the glyph family but are not yet approved in Lavish.
+
+- **Issues:** [#158](https://github.com/idvorkin/exercise-analyzer/issues/158)
+
+---
+
 ### What a workout session costs
 
 Heart rate during a set, surviving wrist-down (#32) and launching the watch app from the phone all need an

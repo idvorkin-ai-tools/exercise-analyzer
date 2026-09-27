@@ -14,8 +14,17 @@ public enum ExerciseKind: String, Codable, CaseIterable, Identifiable {
   case turkishGetUp = "turkish-get-up"
   case pullUp = "pull-up"
   case splitSquat = "split-squat"
+  /// Count-only (#158): typed by hand, never analyzed from a video.
+  case sitUp = "sit-up"
+  case halfKneelingRotation = "half-kneeling-rotation"
 
   public var id: String { rawValue }
+
+  /// No analyzer reads this exercise from a video: a set of it is only ever typed by hand (#158).
+  public var countOnly: Bool { self == .sitUp || self == .halfKneelingRotation }
+
+  /// What the camera can count: the exercise pickers that set the analysis mode offer only these.
+  public static var analyzable: [ExerciseKind] { allCases.filter { !$0.countOnly } }
 
   /// Whether a kettlebell is in play. The detector can't tell a dumbbell in the hand from a kettlebell, so a
   /// Bulgarian with dumbbells tracked a phantom bell in 58 % of its frames (#131); only these exercises track one.
@@ -29,6 +38,9 @@ public enum ExerciseKind: String, Codable, CaseIterable, Identifiable {
     case .turkishGetUp: return TurkishGetUpAnalyzer.definition
     case .pullUp: return PullUpAnalyzer.definition
     case .splitSquat: return SplitSquatAnalyzer.definition
+    case .sitUp: return ExerciseDefinition(name: "Sit-Up", phases: [], galleryOrder: [], hudMetrics: [])
+    case .halfKneelingRotation:
+      return ExerciseDefinition(name: "Half-Kneeling Rotation", phases: [], galleryOrder: [], hudMetrics: [])
     }
   }
 
@@ -40,7 +52,19 @@ public enum ExerciseKind: String, Codable, CaseIterable, Identifiable {
     case .turkishGetUp: return TurkishGetUpAnalyzer()
     case .pullUp: return PullUpAnalyzer()
     case .splitSquat: return SplitSquatAnalyzer()
+    case .sitUp, .halfKneelingRotation: return CountOnlyAnalyzer(kind: self)
     }
+  }
+}
+
+/// A count-only exercise's stand-in (#158): no mode or detection ever picks one for a video, so this runs only if
+/// something slips through, and then it counts nothing rather than guessing.
+final class CountOnlyAnalyzer: ExerciseAnalyzer {
+  let kind: ExerciseKind
+  init(kind: ExerciseKind) { self.kind = kind }
+  func reset() {}
+  func process(pose: Pose, time: Double, image: () -> CGImage?) -> ExerciseFrameResult {
+    ExerciseFrameResult(phase: "", repCount: 0, metrics: [:], completedRep: nil)
   }
 }
 
@@ -57,7 +81,7 @@ public enum ExerciseMode: Equatable {
   }
 
   public init(storageValue: String?) {
-    if let value = storageValue, let kind = ExerciseKind(rawValue: value) {
+    if let value = storageValue, let kind = ExerciseKind(rawValue: value), !kind.countOnly {
       self = .fixed(kind)
     } else {
       self = .auto

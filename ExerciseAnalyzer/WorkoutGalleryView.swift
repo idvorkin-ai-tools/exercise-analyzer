@@ -300,6 +300,8 @@ extension ExerciseKind {
     case .turkishGetUp: return .green
     case .pullUp: return .blue
     case .splitSquat: return .pink
+    case .sitUp: return .mint
+    case .halfKneelingRotation: return .indigo
     }
   }
 }

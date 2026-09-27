@@ -454,7 +454,7 @@ struct WatchContentView: View {
 
   /// Auto or a specific exercise; the phone re-analyzes and reports back through `mode`.
   private var exercisePicker: some View {
-    let options: [(String, String)] = [("auto", "Auto")] + ExerciseKind.allCases.map { ($0.rawValue, $0.definition.name) }
+    let options: [(String, String)] = [("auto", "Auto")] + ExerciseKind.analyzable.map { ($0.rawValue, $0.definition.name) }
     return Picker("Exercise", selection: Binding(get: { status.mode }, set: { phone.pick(exercise: $0) })) {
       ForEach(options, id: \.0) { option in Text(option.1).tag(option.0) }
     }

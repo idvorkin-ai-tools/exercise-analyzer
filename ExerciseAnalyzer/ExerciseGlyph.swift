@@ -14,6 +14,8 @@ extension ExerciseKind {
     case .bulgarianSplitSquat: return "Bulgarian"
     case .pullUp: return "pull-ups"
     case .splitSquat: return "split squat"
+    case .sitUp: return "sit-ups"
+    case .halfKneelingRotation: return "rotations"
     }
   }
 
@@ -28,6 +30,8 @@ extension ExerciseKind {
     case .bulgarianSplitSquat: one = "split squat"
     case .pullUp: one = "pull-up"
     case .splitSquat: one = "split squat"
+    case .sitUp: one = "sit-up"
+    case .halfKneelingRotation: one = "rotation"
     }
     return count == 1 ? one : one + "s"
   }
@@ -151,6 +155,33 @@ struct ExerciseGlyph: View {
       d.line([(40, 3.5), (40, 10.5)], width: 3)
       d.line([(4.5, 5), (4.5, 9)], width: 3)
       d.line([(43.5, 5), (43.5, 9)], width: 3)
+
+    // ponytail: the two count-only glyphs (#158) are drawn to match the family but not yet approved in Lavish;
+    // replace them when Igor picks drawings there.
+    case .sitUp:
+      d.circle(25, 13)
+      d.line([(15, 39), (22, 21)])
+      d.line([(22, 22), (29, 23), (27, 16)])
+      d.line([(15, 39), (29, 29), (39, 40)])
+      d.line([(5, 42), (43, 42)], width: 1.5)
+      var arc = Path()
+      arc.move(to: CGPoint(x: 6, y: 34))
+      arc.addQuadCurve(to: CGPoint(x: 13, y: 20), control: CGPoint(x: 6, y: 24))
+      d.strokes.append((arc, 1.5))
+      d.line([(10, 20.5), (13, 20), (13, 23)], width: 1.5)
+
+    case .halfKneelingRotation:
+      d.circle(22, 8)
+      d.line([(22, 15), (22, 28)])
+      d.line([(10, 18), (34, 18)])
+      d.line([(22, 28), (32, 29), (32, 41)])
+      d.line([(22, 28), (16, 41), (8, 41)])
+      d.line([(5, 42), (43, 42)], width: 1.5)
+      var arc = Path()
+      arc.move(to: CGPoint(x: 12, y: 24))
+      arc.addQuadCurve(to: CGPoint(x: 34, y: 24), control: CGPoint(x: 23, y: 31))
+      d.strokes.append((arc, 1.5))
+      d.line([(31.5, 22), (34, 24), (31.5, 26.5)], width: 1.5)
     }
     return d
   }

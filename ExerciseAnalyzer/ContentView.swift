@@ -662,7 +662,7 @@ struct ContentView: View {
         Label("Auto-detect", systemImage: session.exerciseMode == .auto ? "checkmark" : "wand.and.stars")
       }
       Divider()
-      ForEach(ExerciseKind.allCases) { kind in
+      ForEach(ExerciseKind.analyzable) { kind in
         Button {
           session.setExerciseMode(.fixed(kind))
         } label: {
