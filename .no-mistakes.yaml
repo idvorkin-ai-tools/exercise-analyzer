@@ -31,9 +31,10 @@ review:
     - path: "docs/stories/*.md"
       instructions: |
         These are the spec, not prose: Mike Cohn use case plus Gherkin scenarios, one When
-        and one Then each. A later change adds a scenario rather than rewriting an earlier
-        one, and story numbers are never reused. Status lives only here -- a `Status:` line
-        names the verifying commit(s). Do not request test coverage for story-only edits.
+        and one Then each. The criteria describe what the app does now: a behaviour change
+        edits the scenario it changes, and a new condition adds a scenario. Story numbers are
+        never reused. Status lives only here -- a `Status:` line names the commits and the
+        rung that verified them. Do not request test coverage for story-only edits.
     - path: "docs/analysis/*.md"
       instructions: |
         These own each exercise's phase/rep/score thresholds. A rule change adds an
@@ -45,8 +46,3 @@ review:
         Video: never transform, clip, or attach a pixel output to `AVPlayerLayer` or its
         ancestors -- it washes out HDR; zoom by resizing the layer frame instead. Audio
         session stays `.ambient` + `.mixWithOthers` -- the app must never interrupt music.
-
-ignore_patterns:
-  # Xcode-managed project files (pbxproj, schemes, resolved SwiftPM versions); noisy,
-  # machine-generated diffs, never hand-authored.
-  - "ExerciseAnalyzer.xcodeproj/**"
