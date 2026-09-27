@@ -579,6 +579,71 @@ the first frame (story 001).
 
 ---
 
+### User Story 059:
+
+- **Summary:** Add a set I forgot to record to the workout, with its count typed on the wrist
+- **Status:** not implemented ([#136](https://github.com/idvorkin/exercise-analyzer/issues/136)); where the button sits waits for Igor's pick
+- **Why:** Igor, 2026-09-25, from the phone: "Let's add a watch button. Rep happened if I forgot to record." Decided 2026-09-26: a watch button adds one unrecorded set to the running workout, its count typed on the wrist, no video, no score, marked "by hand" in Workouts.
+
+#### Use Case:
+- **As a** lifter in a workout who did a set without tapping Record
+- **I want to** add that set from the watch with the number of reps I did
+- **so that** the workout's sets and reps are the ones I did, not only the ones the camera saw
+
+#### Acceptance Criteria:
+- **Scenario:** Adding a forgotten set
+- **Given:** a workout is running on the wrist (048), the camera is not live, and I just did 8 swings without recording them
+- **When:** I tap the add-a-set button on the workout page
+- **Then:** a count page opens with the exercise on top (the exercise picker's choice, or the last set's exercise when the picker is on Auto), one large number in the middle starting at the last set's count (10 when there is none), a − and a + either side of it, and Save (green) and Cancel under it
+
+- **Scenario:** Setting the count
+- **Given:** the count page reads 10
+- **When:** I turn the Digital Crown down two clicks, or tap − twice
+- **Then:** it reads 8, one rep per click or tap with a tick of haptic each; it stops at 1 and at 200, and the − and + are 44 pt targets
+
+- **Scenario:** Saving the set
+- **Given:** the count page reads 8 swings, in a workout of 6 sets and 47 reps
+- **When:** I tap Save
+- **Then:** the wrist is back on the workout page reading "7 sets · 55 reps" at once, the last-set line reads "8 reps · Kettlebell Swing · by hand", and the rest count starts from the save as Done starts it (046)
+
+- **Scenario:** Cancelling
+- **Given:** the count page is open
+- **When:** I tap Cancel, or swipe back
+- **Then:** nothing is added: the workout's sets and reps, the last-set line and the rest count are as they were before the button
+
+- **Scenario:** The set on the phone's workout page
+- **Given:** the set was saved on the wrist and the phone app is open on the running workout's page (053)
+- **When:** I read the page
+- **Then:** the set's row sits at the time of the save with "8 [swing]" and a "by hand" tag in place of the picture and the score capsule, and a thin mark at that time on the heart-rate chart; the heart numbers come from Health as for any set; tapping it opens nothing (there is no video), a long press offers "Remove from Workouts…" (056); the green strip and the day header count it among the sets and reps
+
+- **Scenario:** The set in the day list
+- **Given:** the same set
+- **When:** I open Workouts' day list
+- **Then:** the set's card is the exercise's drawing with "8 reps · by hand", no score, and it counts in the exercise row's sets and reps and in the folded day's chips (012)
+
+- **Scenario:** No workout running
+- **Given:** no workout is running on the wrist
+- **When:** I look at the idle page
+- **Then:** there is no add-a-set button: a set typed on the wrist belongs to a workout, so Start workout comes first and the button appears with the workout page
+
+- **Scenario:** The phone out of reach
+- **Given:** a workout is running and the phone does not answer (in the background, locked or out of range)
+- **When:** I save a set by hand
+- **Then:** the wrist counts it at once as above, and the set reaches the phone's Workouts as soon as the phone hears from the watch again, once, with the time it was saved
+
+- **Notes:** A set with no clip: its entry carries the exercise, the count, the time and a "by hand" source, no
+  thumbnail, no score, no analysis, and the re-analysis of a new `AnalysisVersion` (story 015) skips it. It goes
+  to the phone as queued user info (the path `logEvent` already takes), not a command, so an unreachable phone
+  loses nothing; the set's id is made on the wrist so a repeat delivery is one set. The wrist counts it in
+  `WorkoutController.sets`/`reps` beside the pass's final counts (045). Health gets no activity for it (an
+  activity needs a start and an end, and the set has only an end); the workout's duration and heart rate cover
+  it anyway. The button is not on the recording or Preview pages: while the camera is live the set is being
+  recorded. When built, the control inventory's workoutStart and workout rows gain the button.
+
+- **Issues:** [#136](https://github.com/idvorkin/exercise-analyzer/issues/136)
+
+---
+
 ### What a workout session costs
 
 Heart rate during a set, surviving wrist-down (#32) and launching the watch app from the phone all need an
