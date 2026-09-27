@@ -333,7 +333,7 @@ struct ContentView: View {
         if galleryHeight >= 40 {
           RepGalleryWidget(
             reps: session.reps, columns: session.exercise.definition.galleryOrder,
-            currentRep: session.currentRep?.number, focusedPhase: $focusedPhase,
+            currentRep: session.currentRep?.number, playhead: session.currentTime, focusedPhase: $focusedPhase,
             focusedRep: $focusedRep,
             onSeek: { chromeSeek(to: $0.time, from: "gallery") },
             onOpen: { _ in showKeyframeViewer = true }

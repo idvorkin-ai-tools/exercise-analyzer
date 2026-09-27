@@ -34,7 +34,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 006:
 
 - **Summary:** Line up the same moment of every rep to compare form
-- **Status:** implemented in [49c6529](https://github.com/idvorkin/exercise-analyzer/commit/49c6529), [44030f5](https://github.com/idvorkin/exercise-analyzer/commit/44030f5), [70976ae](https://github.com/idvorkin/exercise-analyzer/commit/70976ae); verified on the simulator and the phone; the me-view stills (#61) in [369f3cb](https://github.com/idvorkin/exercise-analyzer/commit/369f3cb), on the phone since 2026-09-13; the eye toggle (#113) in [c30e384](https://github.com/idvorkin/exercise-analyzer/commit/c30e384), verified by simulator screenshots, on the phone since 2026-09-20, Igor's check pending; the Bulgarian Standing column (#132) in [77c6731](https://github.com/idvorkin/exercise-analyzer/commit/77c6731), verified on the host (`BulgarianStandingTests`), on the phone since 2026-09-22
+- **Status:** implemented in [49c6529](https://github.com/idvorkin/exercise-analyzer/commit/49c6529), [44030f5](https://github.com/idvorkin/exercise-analyzer/commit/44030f5), [70976ae](https://github.com/idvorkin/exercise-analyzer/commit/70976ae); verified on the simulator and the phone; the me-view stills (#61) in [369f3cb](https://github.com/idvorkin/exercise-analyzer/commit/369f3cb), on the phone since 2026-09-13; the eye toggle (#113) in [c30e384](https://github.com/idvorkin/exercise-analyzer/commit/c30e384), verified by simulator screenshots, on the phone since 2026-09-20, Igor's check pending; the Bulgarian Standing column (#132) in [77c6731](https://github.com/idvorkin/exercise-analyzer/commit/77c6731), verified on the host (`BulgarianStandingTests`), on the phone since 2026-09-22; the gallery following the playhead (#152) verified on the host (`RepGalleryFollowTests`) and the simulator (`SWING_VIDEO` swing sample: rep 4's Release zoomed at the end)
 
 #### Use Case:
 - **As a** lifter looking for the rep where form slipped
@@ -52,6 +52,13 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Given:** a set is open with its rep gallery
 - **When:** I double-tap one rep's Bottom still
 - **Then:** that rep's row grows taller and its Bottom column widens; a second double-tap on it puts the row back
+
+- **Scenario:** The gallery follows the playhead (#152)
+- **Given:** a set is playing, or I step through it, with the gallery open
+- **When:** the playhead reaches a new position of a rep (its Top, then Connect, Bottom, Release)
+- **Then:** that rep's row grows and that position's column widens, as a double-tap on it would, and the zoom moves on
+  with each position; a double-tap picks another until the playhead reaches the next one, and between reps (or
+  past the last) the last zoom stays
 
 - **Scenario:** Reps side by side
 - **Given:** the Rep gallery sheet is open
@@ -75,7 +82,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **When:** I switch between video only and video with skeleton using the eye button
 - **Then:** the inline gallery, expanded gallery and comparison thumbnails immediately show the same skeleton setting as the main picture, while keeping their video stills
 
-- **Issues:** [#61](https://github.com/idvorkin/exercise-analyzer/issues/61), [#113](https://github.com/idvorkin/exercise-analyzer/issues/113), [#132](https://github.com/idvorkin/exercise-analyzer/issues/132)
+- **Issues:** [#61](https://github.com/idvorkin/exercise-analyzer/issues/61), [#113](https://github.com/idvorkin/exercise-analyzer/issues/113), [#132](https://github.com/idvorkin/exercise-analyzer/issues/132), [#152](https://github.com/idvorkin/exercise-analyzer/issues/152)
 
 ---
 

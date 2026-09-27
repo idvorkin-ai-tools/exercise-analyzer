@@ -187,6 +187,13 @@ public struct RepRecord: Identifiable, Codable {
   public var startTime: Double { checkpoints.first?.time ?? 0 }
   public var endTime: Double { checkpoints.last?.time ?? 0 }
 
+  /// The gallery column the playhead has reached in this rep (#152): the latest position at or before `time`
+  /// (the same 0.05 s slop as the current rep), the first one before the rep begins.
+  public func phase(at time: Double) -> String? {
+    let ordered = positions.sorted { $0.value.time < $1.value.time }
+    return (ordered.last { $0.value.time <= time + 0.05 } ?? ordered.first)?.key
+  }
+
   public func shifted(by offset: Double) -> RepRecord {
     RepRecord(number: number, positions: positions.mapValues { $0.shifted(by: offset) }, quality: quality)
   }
