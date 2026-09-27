@@ -20,7 +20,6 @@ struct ExerciseAnalyzerApp: App {
   var body: some Scene {
     WindowGroup {
       ContentView()
-        .onOpenURL { url in ControlLaunch.handle(url) }  // the lock-screen control (#70)
     }
   }
 }

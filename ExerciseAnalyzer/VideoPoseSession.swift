@@ -318,16 +318,19 @@ final class VideoPoseSession: NSObject, ObservableObject {
         self.startCamera(position: self.cameraPosition, viewfinder: viewfinder)
       }
     }
-    // Lock-screen / Control Center button (#70): the control opens exerciseanalyzer://live, the scene posts it
-    // here, once per press, cold or warm. A camera already live is left alone and the press is still logged.
-    NotificationCenter.default.addObserver(forName: ControlLaunch.live, object: nil, queue: .main) { [weak self] _ in
-      Task { @MainActor in
-        guard let self else { return }
-        self.log.event("launch_control", ["action": "live", "already_live": self.source == .camera])
-        guard self.source != .camera else { return }
-        self.startCamera(position: self.cameraPosition)
-      }
+    // Lock-screen / Control Center button (#70, #153): the app's OpenLiveIntent posts here, once per press. A
+    // cold launch can run the intent before this session exists, so init also takes a press left pending
+    // (warm: false). A camera already live is left alone and the press is still logged.
+    let takeControlLaunch: @MainActor (Bool) -> Void = { [weak self] warm in
+      guard let self, ControlLaunch.take() else { return }
+      self.log.event("launch_control", ["action": "live", "already_live": self.source == .camera, "warm": warm])
+      guard self.source != .camera else { return }
+      self.startCamera(position: self.cameraPosition)
     }
+    NotificationCenter.default.addObserver(forName: ControlLaunch.live, object: nil, queue: .main) { _ in
+      Task { @MainActor in takeControlLaunch(true) }
+    }
+    Task { @MainActor in takeControlLaunch(false) }
     player.actionAtItemEnd = .pause
     timeObserver = player.addPeriodicTimeObserver(
       forInterval: CMTime(value: 1, timescale: 30), queue: .main

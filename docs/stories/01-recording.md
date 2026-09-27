@@ -298,13 +298,16 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Then:** the app opens on Live with the camera running, same as from the lock screen
 
 - **Notes:** An iOS 18 `ControlWidget` in the `ExerciseAnalyzerControls` extension (bundle id
-  `com.idvorkin.exerciseanalyzer.controls`). Its `AppIntent` opens the app through the URL scheme
-  `exerciseanalyzer://live`; the app's scene hands the URL to the session, which logs `launch_control` and
-  starts the camera, the same route as the `RecordPrompt` notification tap. A URL, not a shared flag: the
-  extension and the app are separate processes (the 2026-09-15 review found the original UserDefaults flag
-  never reached the app). The extension targets iOS 18; the app stays on 17.
+  `com.idvorkin.exerciseanalyzer.controls`). Its `OpenLiveIntent` has `openAppWhenRun` and is declared in both
+  the extension and the app with the same name and shape, so the system opens the app and runs the app's
+  `perform()` in the app's process; the session logs `launch_control` (`warm`: false when the press launched
+  the app cold and waited for the session) and starts the camera, the same route as the `RecordPrompt`
+  notification tap. Two handoffs failed first: a UserDefaults flag in the extension's own container (the
+  app opened, Live never started), then `OpenURLIntent` with `exerciseanalyzer://live`, which takes only
+  universal links, so the press did nothing at all (#153). The extension targets iOS 18; the app stays on 17.
 
-- **Issues:** [#70](https://github.com/idvorkin/exercise-analyzer/issues/70)
+- **Issues:** [#70](https://github.com/idvorkin/exercise-analyzer/issues/70),
+  [#153](https://github.com/idvorkin/exercise-analyzer/issues/153) (the press stopped opening the app)
 
 ---
 
