@@ -1,0 +1,52 @@
+# no-mistakes gate config. commands, review, and no_ci are read only from main.
+
+commands:
+  test: "just test"
+
+# Rung 1 of the test ladder only (host `swift test` over stored pose tracks, ~1s, no
+# simulator/device). Rungs 2+ (simulator smoke, phone) need a booted sim or attached
+# hardware and are not run here.
+
+# No GitHub workflows in this repo; `just test` is the whole automated suite.
+no_ci: true
+
+review:
+  path_instructions:
+    - path: "ExerciseCore/Sources/ExerciseCore/*.swift"
+      instructions: |
+        Any change to an analyzer, the detector, or skeleton math must bump
+        `AnalysisVersion.current` (AnalysisVersion.swift) in the same commit -- stored sets
+        re-analyze themselves against it (#19). Unmeasured joints read 0 degrees and must
+        never drive a phase transition; joints are chosen per frame by the confident side,
+        not by label. Rep semantics are exact and non-obvious (docs/analysis/ has the
+        numbers): e.g. a swing rep is top-to-top ~1.2s, a rep over 4s drops its setup and
+        counts only a fast hike, an upswing over 1s isn't a swing. Check the exercise's doc
+        in docs/analysis/ before assuming a threshold is wrong.
+    - path: "ExerciseCore/Tests/ExerciseCoreTests/**"
+      instructions: |
+        A wrong rep count is fixed via a fixture, not by reinstalling and eyeballing the
+        device: export the pose track into Fixtures/, make `swift test` fail, then fix.
+        Mark a fixture `humanVerified` only when Igor confirmed the count by hand -- never
+        set that flag from a model's or agent's count.
+    - path: "docs/stories/*.md"
+      instructions: |
+        These are the spec, not prose: Mike Cohn use case plus Gherkin scenarios, one When
+        and one Then each. A later change adds a scenario rather than rewriting an earlier
+        one, and story numbers are never reused. Status lives only here -- a `Status:` line
+        names the verifying commit(s). Do not request test coverage for story-only edits.
+    - path: "docs/analysis/*.md"
+      instructions: |
+        These own each exercise's phase/rep/score thresholds. A rule change adds an
+        Experiments entry (date, fixture, the numbers that decided it, the commit); a
+        TuningReports printout is the preferred evidence. Hypotheses and rejected ideas
+        belong in docs/analysis/lab/, not here.
+    - path: "ExerciseAnalyzer/*.swift"
+      instructions: |
+        Video: never transform, clip, or attach a pixel output to `AVPlayerLayer` or its
+        ancestors -- it washes out HDR; zoom by resizing the layer frame instead. Audio
+        session stays `.ambient` + `.mixWithOthers` -- the app must never interrupt music.
+
+ignore_patterns:
+  # Xcode-managed project files (pbxproj, schemes, resolved SwiftPM versions); noisy,
+  # machine-generated diffs, never hand-authored.
+  - "ExerciseAnalyzer.xcodeproj/**"
