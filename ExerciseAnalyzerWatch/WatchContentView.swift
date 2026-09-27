@@ -2,6 +2,7 @@
 
 import ExerciseCore
 import SwiftUI
+import WatchKit
 
 struct WatchContentView: View {
   @ObservedObject var phone: PhoneLink
@@ -9,6 +10,8 @@ struct WatchContentView: View {
   /// Ticks so a status that stops arriving turns stale on screen.
   @State private var now = Date()
   @State private var confirmDiscard = false
+  /// The count page of a set typed by hand is up (059).
+  @State private var countingSet = false
   private let clock = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
 
   private var status: WatchStatus { phone.status }
@@ -59,6 +62,7 @@ struct WatchContentView: View {
             }
             startWorkoutButton
             Button { phone.ping() } label: { Label("Retry", systemImage: "arrow.clockwise").frame(maxWidth: .infinity) }
+            setByHandButton  // the set waits for the phone (059)
           } else if !status.phoneActive {
             if !workout.running {
               Image(systemName: "iphone.gen3").font(.largeTitle).foregroundStyle(.secondary)
@@ -69,6 +73,7 @@ struct WatchContentView: View {
             Button { phone.send(.start) } label: {
               Label("Send a reminder to the phone", systemImage: "bell").frame(maxWidth: .infinity)
             }
+            setByHandButton
           } else {
             if !workout.running {
               Image(systemName: "figure.strengthtraining.traditional").font(.largeTitle).foregroundStyle(.secondary)
@@ -79,6 +84,11 @@ struct WatchContentView: View {
             // next recording status carries neither and the line goes.
             if status.phase == "analyzing" {
               Text("Analyzing…").font(.caption).foregroundStyle(.secondary)
+            } else if let hand = phone.handSet, hand.isNewer(than: status.lastSet) {
+              // A set typed here after the phone's last one (059).
+              Text("Last set").font(.caption2).foregroundStyle(.secondary)
+              Text("\(hand.reps) reps · \(hand.exercise.definition.name) · by hand")
+                .font(.headline).monospacedDigit()
             } else if let last = status.lastSet {
               Text("Last set").font(.caption2).foregroundStyle(.secondary)
               Text("\(last.reps) reps · \(last.exercise) · \(Self.duration(last.seconds))")
@@ -95,6 +105,8 @@ struct WatchContentView: View {
               Label("Preview", systemImage: "camera.fill").frame(maxWidth: .infinity)
             }
             .disabled(!phone.reachable)
+            // Under Preview, above the pickers (Igor's pick, 2026-09-26): Record and Preview stay where the hand goes.
+            setByHandButton
             if !workout.running { restStatus }  // inside a workout the head carries the rest (050)
             restPicker
             exercisePicker
@@ -107,10 +119,28 @@ struct WatchContentView: View {
         .padding(.horizontal, 4)
       }
       .onAppear {
+        // The screenshot rung's setByHand state: the workout page with the count page over it.
+        if phone.screenshotOpensSetByHand { countingSet = true }
         // The screenshot rung's workoutEnd state: the same page, scrolled to its bottom.
         guard phone.screenshotScrollsToEnd else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { proxy.scrollTo("workout-end", anchor: .bottom) }
       }
+      .sheet(isPresented: $countingSet) {
+        let start = HandSet.start(mode: status.mode, analyzed: status.lastSet, byHand: phone.handSet)
+        SetByHandPage(exercise: start.exercise, start: start.reps) { reps in
+          phone.saveSetByHand(exercise: start.exercise, reps: reps)
+        }
+      }
+    }
+  }
+
+  /// A set done without Record (059): only inside a workout, which it belongs to; the count page does the rest.
+  @ViewBuilder private var setByHandButton: some View {
+    if workout.running {
+      Button { countingSet = true } label: {
+        Label("Set by hand", systemImage: "plus").frame(maxWidth: .infinity)
+      }
+      .disabled(workout.phase == .ending)
     }
   }
 
@@ -443,5 +473,66 @@ struct WatchContentView: View {
   private static func duration(_ seconds: Double) -> String {
     let total = Int(seconds)
     return String(format: "%d:%02d", total / 60, total % 60)
+  }
+}
+
+/// The count of a set typed by hand (059): the exercise on top, one large number, − and + (44 pt) and the Crown
+/// step it by one with a tick each, 1…200. Save adds the set; Cancel, or the sheet's close button, adds nothing.
+private struct SetByHandPage: View {
+  let exercise: ExerciseKind
+  let onSave: (Int) -> Void
+  /// The Crown's value; the count is it rounded and clamped.
+  @State private var count: Double
+  @FocusState private var crownFocused: Bool
+  @Environment(\.dismiss) private var dismiss
+
+  init(exercise: ExerciseKind, start: Int, onSave: @escaping (Int) -> Void) {
+    self.exercise = exercise
+    self.onSave = onSave
+    _count = State(initialValue: Double(start))
+  }
+
+  private var reps: Int { HandSet.clamp(Int(count.rounded())) }
+
+  var body: some View {
+    VStack(spacing: 4) {
+      Text(exercise.definition.name).font(.headline).lineLimit(1).minimumScaleFactor(0.7)
+      HStack(spacing: 2) {
+        stepButton("minus", by: -1)
+        Text("\(reps)")
+          .font(.system(size: 40, weight: .bold, design: .rounded)).monospacedDigit()
+          .frame(maxWidth: .infinity)
+          .focusable()
+          .focused($crownFocused)
+          .digitalCrownRotation(
+            $count, from: Double(HandSet.range.lowerBound), through: Double(HandSet.range.upperBound), by: 1,
+            sensitivity: .low, isContinuous: false, isHapticFeedbackEnabled: true)
+          .accessibilityLabel("\(reps) reps")
+        stepButton("plus", by: 1)
+      }
+      Button {
+        onSave(reps)
+        dismiss()
+      } label: {
+        Text("Save").frame(maxWidth: .infinity)
+      }
+      .tint(.green)
+      Button("Cancel", role: .cancel) { dismiss() }
+    }
+    .onAppear { crownFocused = true }
+  }
+
+  private func stepButton(_ symbol: String, by step: Int) -> some View {
+    Button {
+      count = Double(HandSet.clamp(reps + step))
+      WKInterfaceDevice.current().play(.click)
+    } label: {
+      Image(systemName: symbol)
+        .font(.title3.bold())
+        .frame(width: 44, height: 44)
+        .background(Color.secondary.opacity(0.3), in: Circle())
+    }
+    .buttonStyle(.plain)
+    .accessibilityLabel(step < 0 ? "One rep fewer" : "One rep more")
   }
 }

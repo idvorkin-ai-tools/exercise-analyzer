@@ -117,7 +117,8 @@ struct ContentView: View {
           case .workout(let workout):
             WorkoutDetailView(
               identity: workout, store: session.recents, workouts: workouts, onOpen: openSet,
-              thumbnail: { session.recents.thumbnailImage(for: $0) }, onEvent: { session.log.event($0, $1) })
+              thumbnail: { session.recents.thumbnailImage(for: $0) }, onEvent: { session.log.event($0, $1) },
+              onDelete: { session.delete(set: $0, from: "workout_page") })
           case .player:
             // Full screen, as the picture always was: the HUD's "‹" is the way back, and the edge swipe stays
             // the frame steppers' (story 030), so the system back and its swipe are off.
@@ -216,6 +217,7 @@ struct ContentView: View {
 
   /// Opens a stored set on the player, over whatever page it was tapped on.
   private func openSet(_ entry: RecentEntry) {
+    guard !entry.isByHand else { return }  // typed on the wrist: no video to open (059)
     session.open(recent: entry)
     showPlayer()
   }

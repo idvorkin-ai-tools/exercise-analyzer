@@ -11,6 +11,8 @@ public struct RecentEntry: Codable, Identifiable {
   public enum Source: Codable {
     case photos(identifier: String)
     case file(name: String)
+    /// Typed on the wrist (story 059): no clip anywhere. Rows from before it never carry it.
+    case byHand
 
     public var isPhotos: Bool {
       if case .photos = self { return true }
@@ -70,7 +72,13 @@ public struct RecentEntry: Codable, Identifiable {
   /// that never recorded one, or none readable — and every caller that needs the poses guards the snapshot
   /// load first (open) or skips the entry when it fails (refresh), so the nil case changes no decision.
   public func isStale(currentVersion: String) -> Bool {
-    analysisVersion != currentVersion
+    !isByHand && analysisVersion != currentVersion
+  }
+
+  /// A set typed on the wrist (story 059): nothing to open, re-read or re-run, and no video to delete.
+  public var isByHand: Bool {
+    if case .byHand = source { return true }
+    return false
   }
 
   /// Same Photos asset, or the same imported file name with the same length (within a frame or two): opening
@@ -104,8 +112,12 @@ public struct SetDeletionPrompt: Equatable {
   public let isFinal: Bool
 
   public init(for entry: RecentEntry) {
-    isFinal = !entry.isInPhotos
-    if isFinal {
+    isFinal = !entry.isInPhotos && !entry.isByHand
+    if entry.isByHand {
+      title = "Remove this set from Workouts?"
+      message = "It was added by hand on the watch; there is no video."
+      confirm = "Remove"
+    } else if isFinal {
       title = "Delete this set and its video?"
       message = "The video is only in this app: this is the only copy, and deleting it is final."
       confirm = "Delete for good"

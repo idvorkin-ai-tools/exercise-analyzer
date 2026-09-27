@@ -69,6 +69,8 @@ public struct WorkoutTimeline: Equatable {
     /// Seconds after the set's end the drop is measured over: 60, or the whole rest when the next set started
     /// sooner (Igor, 2026-09-18: "drop in 60 seconds or however much total rest I got").
     public let dropOver: TimeInterval
+    /// Typed on the wrist (story 059): a moment, not a span, with nothing to open.
+    public let byHand: Bool
   }
 
   public static let dropSeconds = 60.0
@@ -93,18 +95,19 @@ public struct WorkoutTimeline: Equatable {
       return SetRow(
         id: set.id, start: span.lowerBound, end: span.upperBound, exercise: set.exerciseKind, reps: set.repCount,
         score: set.bestScore, peak: peak, average: heartRate?.average(from: span.lowerBound, to: peakEnd), restAfter: rest,
-        drop: peak.flatMap { peak in later.map { peak - $0 } }, dropOver: dropOver)
+        drop: peak.flatMap { peak in later.map { peak - $0 } }, dropOver: dropOver, byHand: set.isByHand)
     }
     workSeconds = rows.reduce(0) { $0 + $1.end.timeIntervalSince($1.start) }
     restSeconds = rows.compactMap(\.restAfter).reduce(0, +)
   }
 
   /// The set a tap on the chart at `time` means (#101): the one the time falls in, else the nearest within `slop`
-  /// seconds (a set's band is a few points wide, a thumb is not), else none.
+  /// seconds (a set's band is a few points wide, a thumb is not), else none. A set typed by hand has nothing to
+  /// open, so it never takes the tap from a recorded set beside it (059).
   public func row(near time: Date, slop: TimeInterval) -> SetRow? {
     func distance(_ row: SetRow) -> TimeInterval {
       max(row.start.timeIntervalSince(time), time.timeIntervalSince(row.end), 0)
     }
-    return rows.min { distance($0) < distance($1) }.flatMap { distance($0) <= slop ? $0 : nil }
+    return rows.filter { !$0.byHand }.min { distance($0) < distance($1) }.flatMap { distance($0) <= slop ? $0 : nil }
   }
 }

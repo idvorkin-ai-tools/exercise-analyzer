@@ -17,6 +17,9 @@ final class PhoneLink: NSObject, ObservableObject {
   @Published private(set) var receivedAt: Date?
   /// Latest preview frame from the phone (about 1 fps while recording).
   @Published private(set) var preview: UIImage?
+  /// The last set typed here (story 059): the last-set line shows it while it is newer than the phone's
+  /// `lastSet`; the next set that rolls clears it, as the phone clears its own.
+  @Published private(set) var handSet: HandSet?
   /// Last face.json write, and whether its failure is already logged (once per spell, story 043).
   private var lastFaceWrite = Date.distantPast
   private var faceWriteFailedLogged = false
@@ -60,6 +63,8 @@ final class PhoneLink: NSObject, ObservableObject {
   private var screenshot: WatchScreenshotState?
   /// The screenshot rung wants the idle page scrolled to its End and Discard buttons.
   var screenshotScrollsToEnd: Bool { screenshot == .workoutEnd }
+  /// The screenshot rung wants the count page of a set typed by hand open over the workout page (059).
+  var screenshotOpensSetByHand: Bool { screenshot == .setByHand }
 
   /// The phone is reachable and has reported within the last few seconds; only then are its status and the
   /// recording controls trustworthy (a stored application context can say "recording" long after the fact).
@@ -250,6 +255,21 @@ final class PhoneLink: NSObject, ObservableObject {
     workout.end(discard: discard)
   }
 
+  /// Save on the count page (059): the wrist counts the set at once and starts the rest as Done does; the phone
+  /// gets it as queued user info, like `logEvent`, so an unreachable phone gets it when it hears from us again.
+  /// No Health activity: an activity needs a start, and this set has only its save.
+  func saveSetByHand(exercise: ExerciseKind, reps: Int) {
+    guard screenshot == nil else { return }
+    let set = HandSet(exercise: exercise, reps: HandSet.clamp(reps), at: Date().timeIntervalSince1970)
+    handSet = set
+    workout.setAnalyzed(reps: set.reps)
+    rest.setEnded()
+    logEvent("set_by_hand", ["id": set.id, "exercise": exercise.rawValue, "reps": set.reps, "reachable": reachable])
+    WKInterfaceDevice.current().play(.success)
+    guard WCSession.default.activationState == .activated else { return }
+    WCSession.default.transferUserInfo(set.userInfo)
+  }
+
   private func apply(_ message: [String: Any], via channel: String) {
     guard let data = message["status"] as? Data, let next = try? JSONDecoder().decode(WatchStatus.self, from: data)
     else { return }
@@ -280,6 +300,7 @@ final class PhoneLink: NSObject, ObservableObject {
       rest.setEnded()
     } else if next.rolling, !previous.rolling {
       rest.clear()
+      handSet = nil  // the phone drops its last set here too (045)
     }
     // The workout (048): a rolling recorder is an activity inside it, and the pass's final count is a set of
     // it. `at` keeps a stored context's old last set (a relaunch) from counting: only sets analyzed after

@@ -26,7 +26,8 @@ final class WorkoutController: NSObject, ObservableObject {
   @Published private(set) var heartRate: Int?
   @Published private(set) var heartRateAverage: Int?
   @Published private(set) var heartRateMax: Int?
-  /// Analyzed sets since Start and their reps: the phone's post-pass counts (045), never the live count.
+  /// Analyzed sets since Start and their reps: the phone's post-pass counts (045), never the live count, and the
+  /// sets typed by hand (059).
   @Published private(set) var sets = 0
   @Published private(set) var reps = 0
   @Published private(set) var lastError: String?
@@ -167,7 +168,8 @@ final class WorkoutController: NSObject, ObservableObject {
     log("workout_activity", ["begin": false])
   }
 
-  /// The phone's final count for a set recorded inside this workout (story 045's LastSet).
+  /// The phone's final count for a set recorded inside this workout (story 045's LastSet), or a set typed by hand
+  /// on the wrist (059).
   func setAnalyzed(reps count: Int) {
     guard phase == .running else { return }
     sets += 1

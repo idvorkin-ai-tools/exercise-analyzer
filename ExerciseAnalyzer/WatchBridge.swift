@@ -16,6 +16,8 @@ final class WatchBridge: NSObject, ObservableObject {
   var onEvent: ((String, [String: Any]) -> Void)?
   /// The watch just became reachable (a raised wrist): push a fresh status without waiting to be asked.
   var onReachable: (() -> Void)?
+  /// A set typed on the wrist (story 059), queued user info like the watch's log lines; may arrive more than once.
+  var onHandSet: ((HandSet) -> Void)?
   @Published private(set) var reachable = false
   /// The last command, status, heartbeat or scene message from the watch (#142); not published, as heartbeats
   /// arrive every second.
@@ -188,8 +190,13 @@ extension WatchBridge: WCSessionDelegate {
 
   nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any]) { handle(message) }
 
-  /// Watch-side log lines arrive as user info (queued, delivered even when the watch was not reachable at the time).
+  /// Watch-side log lines arrive as user info (queued, delivered even when the watch was not reachable at the time),
+  /// and so do sets typed on the wrist (059).
   nonisolated func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+    if let set = HandSet(userInfo: userInfo) {
+      Task { @MainActor in self.onHandSet?(set) }
+      return
+    }
     guard let type = userInfo["watch_log"] as? String else { return }
     var fields = userInfo
     fields.removeValue(forKey: "watch_log")

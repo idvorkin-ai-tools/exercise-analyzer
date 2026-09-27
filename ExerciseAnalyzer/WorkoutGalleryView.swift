@@ -464,12 +464,13 @@ struct ExerciseSetsRow: View {
         HStack(spacing: 8) {
           ForEach(group.sets) { entry in
             SetCard(entry: entry, thumbnail: store.thumbnailImage(for: entry), tint: group.kind.tint)
-              .onTapGesture { onOpen(entry) }
+              // A set typed on the wrist has no video: nothing opens, only Remove (059).
+              .onTapGesture { if !entry.isByHand { onOpen(entry) } }
               .contextMenu {
-                Button("Open") { onOpen(entry) }
+                if !entry.isByHand { Button("Open") { onOpen(entry) } }
                 // Asks first, and says whether the video goes too: this used to remove at once, the only copy
                 // of an in-app video with it (#111).
-                Button(entry.isInPhotos ? "Remove from Workouts…" : "Delete set and video…", role: .destructive) {
+                Button(entry.isInPhotos || entry.isByHand ? "Remove from Workouts…" : "Delete set and video…", role: .destructive) {
                   deleting = entry
                 }
               }
@@ -537,7 +538,7 @@ struct SetCard: View {
         LinearGradient(colors: [.clear, .black.opacity(0.75)], startPoint: .center, endPoint: .bottom)
         HStack(alignment: .firstTextBaseline, spacing: 2) {
           Text("\(entry.repCount)").font(.title3.bold().monospacedDigit())
-          Text("reps").font(.caption2)
+          Text(entry.isByHand ? "reps · by hand" : "reps").font(.caption2)
         }
         .foregroundStyle(.white)
         .padding(6)
@@ -555,15 +556,19 @@ struct SetCard: View {
       .clipShape(RoundedRectangle(cornerRadius: 8))
       HStack(spacing: 3) {
         Text(Self.timeFormatter.string(from: entry.start))
-        Text("· " + Self.duration(entry.duration))
-        if !entry.isInPhotos {
-          Image(systemName: "iphone").accessibilityLabel("Kept in app")
+        // Typed on the wrist (059): no length, no video to keep.
+        if !entry.isByHand {
+          Text("· " + Self.duration(entry.duration))
+          if !entry.isInPhotos {
+            Image(systemName: "iphone").accessibilityLabel("Kept in app")
+          }
         }
       }
       .font(.caption2).foregroundStyle(.secondary)
     }
     .accessibilityElement(children: .combine)
-    .accessibilityLabel("\(entry.exerciseKind.definition.name), \(entry.repCount) reps, \(Self.timeFormatter.string(from: entry.start))")
+    .accessibilityLabel(
+      "\(entry.exerciseKind.definition.name), \(entry.repCount) reps\(entry.isByHand ? " by hand" : ""), \(Self.timeFormatter.string(from: entry.start))")
   }
 
   private static func scoreColor(_ score: Int) -> Color {

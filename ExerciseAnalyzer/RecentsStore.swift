@@ -118,6 +118,16 @@ final class RecentsStore: ObservableObject {
     var description: String { "set \(id) was deleted while this pass ran; not saved" }
   }
 
+  /// A set typed on the wrist (story 059): an entry with no folder and no files. False for an id already here
+  /// or removed since launch: a repeat delivery is one set.
+  func add(_ set: HandSet) -> Bool {
+    var index = RecentsIndex(entries: entries)
+    guard !removedIDs.contains(set.id), index.add(set) else { return false }
+    entries = index.entries
+    try? persistIndex()
+    return true
+  }
+
   func remove(id: String) {
     removedIDs.insert(id)
     entries.removeAll { $0.id == id }
@@ -215,6 +225,8 @@ final class RecentsStore: ObservableObject {
       return FileManager.default.fileExists(atPath: url.path) ? url : nil
     case .photos(let identifier):
       return await Self.photosClipURL(identifier: identifier)
+    case .byHand:
+      return nil
     }
   }
 

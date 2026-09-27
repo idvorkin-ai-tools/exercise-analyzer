@@ -280,6 +280,14 @@ final class VideoPoseSession: NSObject, ObservableObject {
     watch.onCommand = { [weak self] command in self?.handleWatch(command) }
     watch.onReachable = { [weak self] in self?.pushWatchStatus(force: true) }
     watch.onContact = { [weak self] in self?.updateKeepAwake() }
+    // A set typed on the wrist (059): a Workouts entry with no clip, once per id however often it arrives.
+    watch.onHandSet = { [weak self] set in
+      guard let self else { return }
+      let added = self.recents.add(set)
+      self.log.event(
+        "set_by_hand",
+        ["id": set.id, "exercise": set.exercise.rawValue, "reps": set.reps, "at": set.at, "duplicate": !added])
+    }
     WorkoutMirror.shared.$live.map { $0 != nil }.removeDuplicates().dropFirst().receive(on: DispatchQueue.main)
       .sink { [weak self] _ in self?.updateKeepAwake() }.store(in: &cancellables)
     watch.onExercise = { [weak self] mode in
@@ -391,7 +399,10 @@ final class VideoPoseSession: NSObject, ObservableObject {
       "recents_refresh_wait",
       ["predictor": predictor != nil, "waited_ms": Int(Date().timeIntervalSince(waitStarted) * 1000), "plans": plans])
     log.event("recents_refresh_wait", ["plans": "done", "models": models.names])
-    let stale = recents.entries.filter { recents.isStale($0) || !Set(models.names).isSubset(of: storedModels($0)) }
+    // A set typed on the wrist has no poses and no clip: nothing to re-read or re-run (059).
+    let stale = recents.entries.filter {
+      !$0.isByHand && (recents.isStale($0) || !Set(models.names).isSubset(of: storedModels($0)))
+    }
     guard !stale.isEmpty else {
       log.event("recents_refresh_start", ["count": 0, "version": AnalysisVersion.current, "models": models.names])
       return

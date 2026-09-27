@@ -13,11 +13,12 @@ state and is not in the table.
 
 | State | Must show | Must offer | Stories |
 |---|---|---|---|
-| disconnected | no-phone art, "Not connected…" with the reconnect note, "Last heard Ns ago"; "Last seen recording: N reps" when the last status had the recorder rolling; in a workout, the workout head in place of the art | Start workout (green), Retry; in a workout, End workout and Discard at the bottom in place of Start workout | 018, 048 |
-| background | phone-in-background art, the unlock-and-open instruction; in a workout, the workout head in place of the art | Start workout (green), "Send a reminder to the phone" (no Record: it would die silently); in a workout, End workout and Discard at the bottom in place of Start workout | 018, 048 |
+| disconnected | no-phone art, "Not connected…" with the reconnect note, "Last heard Ns ago"; "Last seen recording: N reps" when the last status had the recorder rolling; in a workout, the workout head in place of the art | Start workout (green), Retry; in a workout, "+ Set by hand" under Retry and End workout and Discard at the bottom in place of Start workout | 018, 048, 059 |
+| background | phone-in-background art, the unlock-and-open instruction; in a workout, the workout head in place of the art | Start workout (green), "Send a reminder to the phone" (no Record: it would die silently); in a workout, "+ Set by hand" under the reminder and End workout and Discard at the bottom in place of Start workout | 018, 048, 059 |
 | idle | "Phone ready", exercise picker, rest length picker, the rest count while resting, the last-set line (or "Analyzing…" while the pass runs) | Start workout (green), Record (red), Preview (below it) | 017, 041, 045, 046, 047, 048 |
-| workoutStart | a workout before its first set: WORKOUT in green over the session clock (counting up by itself), "♥ 96 BPM", "0 sets · 0 reps"; no figure art, no Start workout | Record (red), Preview, the pickers; End workout and Discard below the pickers | 048 |
-| workout | between sets the head is the rest: "REST · 1:30" in orange over the rest count, large, white until the rest length and orange after; then "♥ 128 BPM · 42:13" with the session clock small and green, "6 sets · 47 reps", the last-set line and the pickers as idle; no second rest line | Record (red), Preview, the pickers; End workout and Discard below the pickers (the workoutEnd shot) | 048, 050 |
+| workoutStart | a workout before its first set: WORKOUT in green over the session clock (counting up by itself), "♥ 96 BPM", "0 sets · 0 reps"; no figure art, no Start workout | Record (red), Preview, "+ Set by hand" under Preview, the pickers; End workout and Discard below the pickers | 048, 059 |
+| workout | between sets the head is the rest: "REST · 1:30" in orange over the rest count, large, white until the rest length and orange after; then "♥ 128 BPM · 42:13" with the session clock small and green, "6 sets · 47 reps", the last-set line and the pickers as idle; no second rest line | Record (red), Preview, "+ Set by hand" under Preview (a Crown turn below the first screen), the pickers; End workout and Discard below the pickers (the workoutEnd shot) | 048, 050, 059 |
+| setByHand | the count page over the workout page: the exercise ("Kettlebell Swing"), one large number starting at the last set's count (9), − and + either side (44 pt), the sheet's close button | Save (green), Cancel; the Crown steps the count by one, 1…200 | 059 |
 | workoutEnd | the bottom of the workout page: the exercise picker's tail, then "End writes one workout to Health" under the buttons | End workout (green), Discard (red, asks first) | 048 |
 | workoutRecording | as recording, with a "♥ 141" chip between the count and the time | as recording | 048 |
 | viewfinder (Preview) | the picture filling the face, a PREVIEW chip, beside it a "REST 1:45" chip while a rest is counting (orange past the rest length), both whole inside the face, the in-frame capsule | Record (red) · Camera · Cancel; no Pause, no Done | 047, 050 |
@@ -555,7 +556,8 @@ the first frame (story 001).
 ### User Story 059:
 
 - **Summary:** Add a set I forgot to record to the workout, with its count typed on the wrist
-- **Status:** not implemented ([#136](https://github.com/idvorkin/exercise-analyzer/issues/136))- **Why:** Igor, 2026-09-25, from the phone: "Let's add a watch button. Rep happened if I forgot to record." Decided 2026-09-26: a watch button adds one unrecorded set to the running workout, its count typed on the wrist, no video, no score, marked "by hand" in Workouts.
+- **Status:** implemented in this commit; verified on the host (`HandSetTests`), by build (the signed phone and watch apps) and on the watch simulator (`just watch-screens`: setByHand); phone + watch pending
+- **Why:** Igor, 2026-09-25, from the phone: "Let's add a watch button. Rep happened if I forgot to record." Decided 2026-09-26: a watch button adds one unrecorded set to the running workout, its count typed on the wrist, no video, no score, marked "by hand" in Workouts.
 
 #### Use Case:
 - **As a** lifter in a workout who did a set without tapping Record
@@ -567,7 +569,7 @@ the first frame (story 001).
 - **Given:** a workout is running on the wrist (048), the camera is not live, and I just did 8 swings without recording them
 - **When:** I turn the Crown past Preview and tap "+ Set by hand", a full-width button under Preview and above
   the pickers (Record and Preview stay where they are; Igor's pick, 2026-09-26)
-- **Then:** a count page opens with the exercise on top (the exercise picker's choice, or the last set's exercise when the picker is on Auto), one large number in the middle starting at the last set's count (10 when there is none), a − and a + either side of it, and Save (green) and Cancel under it
+- **Then:** a count page opens with the exercise on top (the exercise picker's choice, or the last set's exercise when the picker is on Auto, Kettlebell Swing with no set yet), one large number in the middle starting at the last set's count (10 when there is none), a − and a + either side of it, and Save (green) and Cancel under it
 
 - **Scenario:** Setting the count
 - **Given:** the count page reads 10
@@ -581,7 +583,7 @@ the first frame (story 001).
 
 - **Scenario:** Cancelling
 - **Given:** the count page is open
-- **When:** I tap Cancel, or swipe back
+- **When:** I tap Cancel, or the page's close button (×)
 - **Then:** nothing is added: the workout's sets and reps, the last-set line and the rest count are as they were before the button
 
 - **Scenario:** The set on the phone's workout page
@@ -601,7 +603,8 @@ the first frame (story 001).
 
 - **Scenario:** The phone out of reach
 - **Given:** a workout is running and the phone does not answer (in the background, locked or out of range)
-- **When:** I save a set by hand
+- **When:** I save a set by hand, from "+ Set by hand" under Retry on the not-connected page or under "Send a
+  reminder to the phone" on the background page (those pages have no Preview)
 - **Then:** the wrist counts it at once as above, and the set reaches the phone's Workouts as soon as the phone hears from the watch again, once, with the time it was saved
 
 - **Notes:** A set with no clip: its entry carries the exercise, the count, the time and a "by hand" source, no
@@ -611,7 +614,11 @@ the first frame (story 001).
   `WorkoutController.sets`/`reps` beside the pass's final counts (045). Health gets no activity for it (an
   activity needs a start and an end, and the set has only an end); the workout's duration and heart rate cover
   it anyway. The button is not on the recording or Preview pages: while the camera is live the set is being
-  recorded. When built, the control inventory's workoutStart and workout rows gain the button.
+  recorded. The count page is a sheet (the watch app has no navigation stack to swipe back through), so its
+  close button stands in for the swipe back. The rules are `HandSet` in ExerciseCore (the start count and
+  exercise, the 1…200 clamp, the user-info wire, the entry, one per id; host tests in `HandSetTests`); the entry's
+  source is `RecentEntry.Source.byHand`, which an index from before it never carries. Log: `watch_set_by_hand` on
+  Save, `set_by_hand` (with `duplicate`) on the phone ([DEBUGGING.md](../DEBUGGING.md)).
 
 - **Issues:** [#136](https://github.com/idvorkin/exercise-analyzer/issues/136)
 

@@ -19,12 +19,14 @@ enum WatchScreenshotState: String, CaseIterable {
   /// A set recording while the phone reads reachable but has stopped answering (#137): the recording pages
   /// keep their controls under the orange "PHONE NOT ANSWERING" hint.
   case answersLost
+  /// The count page of a set typed by hand (059), over the workout page, opened on the last set's 9 swings.
+  case setByHand
 
   /// The fixed workout the controller presents: 42:10 in, 128 bpm (141 while a set runs); nil for no workout.
   var workout: (elapsed: TimeInterval, heartRate: Int)? {
     switch self {
     case .workoutStart: return (190, 96)
-    case .workout, .workoutEnd, .workoutViewfinder: return (2530, 128)
+    case .workout, .workoutEnd, .workoutViewfinder, .setByHand: return (2530, 128)
     case .workoutRecording: return (2530, 141)
     default: return nil
     }
@@ -86,7 +88,7 @@ enum WatchScreenshotState: String, CaseIterable {
         phase: "", elapsed: 0, camera: "back", exercise: "Kettlebell Swing")
       status.viewfinder = true
       return (status, true, WatchPreviewFigure.image())
-    case .workout, .workoutEnd:
+    case .workout, .workoutEnd, .setByHand:
       var status = WatchStatus.idle
       status.lastSet = LastSet(
         reps: 9, exercise: "Kettlebell Swing", seconds: 24, at: Date().timeIntervalSince1970 - 95)
@@ -107,7 +109,7 @@ enum WatchScreenshotState: String, CaseIterable {
   var restEndedAt: Date? {
     switch self {
     case .done: return Date().addingTimeInterval(-35)
-    case .workout, .workoutEnd: return Date().addingTimeInterval(-95)
+    case .workout, .workoutEnd, .setByHand: return Date().addingTimeInterval(-95)
     case .viewfinder, .workoutViewfinder: return Date().addingTimeInterval(-102)
     default: return nil
     }

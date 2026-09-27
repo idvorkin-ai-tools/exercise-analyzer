@@ -15,6 +15,8 @@ struct WorkoutDetailView: View {
   let onOpen: (RecentEntry) -> Void
   var thumbnail: (RecentEntry) -> UIImage? = { _ in nil }
   var onEvent: ((String, [String: Any]) -> Void)? = nil
+  /// Removes a set typed on the wrist once its dialog is confirmed (059, 056).
+  var onDelete: ((RecentEntry) -> Void)? = nil
   @Environment(\.scenePhase) private var scenePhase
   @State private var tick = Date()
   @State private var heartRate: HeartRateSeries?
@@ -29,7 +31,7 @@ struct WorkoutDetailView: View {
       if let snapshot {
         WorkoutPageView(
           snapshot: snapshot, sets: store.entries, heartRate: heartRate, onOpen: onOpen,
-          thumbnail: thumbnail, onEvent: onEvent)
+          thumbnail: thumbnail, onEvent: onEvent, onDelete: onDelete)
           // Twenty seconds matches the set page's Health re-ask (#107). A saved id triggers one final read.
           .task(id: HeartRateRequest(workout: snapshot.workout, active: scenePhase == .active)) {
             guard scenePhase == .active else { return }
@@ -82,6 +84,8 @@ private struct WorkoutPageView: View {
   let onOpen: (RecentEntry) -> Void
   var thumbnail: (RecentEntry) -> UIImage?
   var onEvent: ((String, [String: Any]) -> Void)?
+  var onDelete: ((RecentEntry) -> Void)?
+  @State private var deleting: RecentEntry?
   private var workout: StoredWorkout { snapshot.workout }
   /// The rows' pictures by set id, read once (see `.task`).
   @State private var thumbnails: [String: UIImage] = [:]
@@ -136,14 +140,25 @@ private struct WorkoutPageView: View {
         }
         VStack(spacing: 8) {
           ForEach(Array(timeline.rows.enumerated()), id: \.element.id) { index, row in
-            Button {
-              if let entry = sets.first(where: { $0.id == row.id }) { onOpen(entry) }
-            } label: {
-              SetTimelineRow(number: index + 1, row: row, thumbnail: thumbnails[row.id])
+            if row.byHand {
+              // Typed on the wrist (059): no video to open; a long press removes it, asking first (056).
+              SetTimelineRow(number: index + 1, row: row, thumbnail: nil)
+                .contextMenu {
+                  if onDelete != nil, let entry = sets.first(where: { $0.id == row.id }) {
+                    Button("Remove from Workouts…", role: .destructive) { deleting = entry }
+                  }
+                }
+            } else {
+              Button {
+                if let entry = sets.first(where: { $0.id == row.id }) { onOpen(entry) }
+              } label: {
+                SetTimelineRow(number: index + 1, row: row, thumbnail: thumbnails[row.id])
+              }
+              .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
           }
         }
+        .setDeletionDialog($deleting) { onDelete?($0) }
         if timeline.rows.isEmpty {
           Text("No sets were recorded inside this workout.").font(.subheadline).foregroundStyle(.secondary)
         }
@@ -225,11 +240,18 @@ private struct WorkoutPageView: View {
       : whole
     return Chart {
       ForEach(timeline.rows) { row in
-        RectangleMark(
-          xStart: .value("Set start", row.start), xEnd: .value("Set end", row.end),
-          yStart: .value("Low", low), yEnd: .value("High", high)
-        )
-        .foregroundStyle(row.exercise.tint.opacity(0.3))
+        if row.byHand {
+          // A set typed on the wrist is a moment, not a span: a thin mark at the save (059).
+          RuleMark(x: .value("Set by hand", row.start), yStart: .value("Low", low), yEnd: .value("High", high))
+            .foregroundStyle(row.exercise.tint.opacity(0.6))
+            .lineStyle(StrokeStyle(lineWidth: 2))
+        } else {
+          RectangleMark(
+            xStart: .value("Set start", row.start), xEnd: .value("Set end", row.end),
+            yStart: .value("Low", low), yEnd: .value("High", high)
+          )
+          .foregroundStyle(row.exercise.tint.opacity(0.3))
+        }
       }
       ForEach(samples, id: \.at) { sample in
         LineMark(x: .value("Time", Date(timeIntervalSince1970: sample.at)), y: .value("Heart rate", sample.bpm))
@@ -391,7 +413,12 @@ private struct SetTimelineRow: View {
     HStack(spacing: 12) {
       // The set's own picture, a rep of the exercise that was done; the exercise's symbol when it has none.
       Group {
-        if let thumbnail {
+        if row.byHand {
+          // Typed on the wrist (059): no picture and no score, the tag says why.
+          Text("by hand").font(.caption.bold()).multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(.tertiarySystemFill))
+        } else if let thumbnail {
           Image(uiImage: thumbnail).resizable().scaledToFill()
         } else {
           ExerciseGlyph(kind: row.exercise, size: 24)
@@ -419,8 +446,8 @@ private struct SetTimelineRow: View {
       }
       .accessibilityElement(children: .combine)
       .accessibilityLabel(
-        "\(row.reps) \(row.exercise.repWord(row.reps))" + (row.score.map { ", score \($0)" } ?? "")
-          + ", set \(number) at \(Self.clock.string(from: row.start))")
+        "\(row.reps) \(row.exercise.repWord(row.reps))" + (row.byHand ? ", by hand" : "")
+          + (row.score.map { ", score \($0)" } ?? "") + ", set \(number) at \(Self.clock.string(from: row.start))")
       Spacer(minLength: 8)
       VStack(alignment: .trailing, spacing: 2) {
         if let peak = row.peak {
@@ -435,7 +462,7 @@ private struct SetTimelineRow: View {
           Text("rest \(WorkoutPageView.minutes(rest))").font(.subheadline).monospacedDigit().foregroundStyle(.secondary)
         }
       }
-      Image(systemName: "chevron.right").font(.caption.bold()).foregroundStyle(.tertiary)
+      if !row.byHand { Image(systemName: "chevron.right").font(.caption.bold()).foregroundStyle(.tertiary) }
     }
     .padding(.horizontal, 12)
     .frame(minHeight: 60)

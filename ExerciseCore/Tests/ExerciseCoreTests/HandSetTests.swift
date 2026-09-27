@@ -1,0 +1,120 @@
+// Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
+
+//  Story 059 (#136): a set typed on the wrist. The count page's start and range, the wire to the phone, and the
+//  phone's "by hand" entry: one per id, counted in the workout, never re-read, removed without a video.
+
+import Foundation
+import XCTest
+
+@testable import ExerciseCore
+
+final class HandSetTests: XCTestCase {
+  private let swing = ExerciseKind.kettlebellSwing
+  private let getUp = ExerciseKind.turkishGetUp
+
+  func testTheCountStopsAtOneAndTwoHundred() {
+    XCTAssertEqual(HandSet.clamp(0), 1)
+    XCTAssertEqual(HandSet.clamp(8), 8)
+    XCTAssertEqual(HandSet.clamp(201), 200)
+  }
+
+  func testWithNoSetThePageOpensOnTenAndThePickersExercise() {
+    XCTAssertTrue(HandSet.start(mode: "auto", analyzed: nil, byHand: nil) == (swing, 10))
+    XCTAssertTrue(HandSet.start(mode: getUp.rawValue, analyzed: nil, byHand: nil) == (getUp, 10))
+  }
+
+  func testInAutoThePageOpensOnTheLastSet() {
+    let analyzed = LastSet(reps: 3, exercise: getUp.definition.name, seconds: 90, at: 1000)
+    XCTAssertTrue(HandSet.start(mode: "auto", analyzed: analyzed, byHand: nil) == (getUp, 3))
+    // A fixed picker wins over the last set's exercise; the count is still the last set's.
+    XCTAssertTrue(HandSet.start(mode: swing.rawValue, analyzed: analyzed, byHand: nil) == (swing, 3))
+  }
+
+  func testTheNewerOfTheAnalyzedAndTheTypedSetIsTheLastSet() {
+    let analyzed = LastSet(reps: 3, exercise: getUp.definition.name, seconds: 90, at: 1000)
+    let later = HandSet(exercise: swing, reps: 8, at: 1100)
+    let earlier = HandSet(exercise: swing, reps: 8, at: 900)
+    XCTAssertTrue(later.isNewer(than: analyzed))
+    XCTAssertFalse(earlier.isNewer(than: analyzed))
+    XCTAssertTrue(earlier.isNewer(than: nil))
+    XCTAssertTrue(HandSet.start(mode: "auto", analyzed: analyzed, byHand: later) == (swing, 8))
+    XCTAssertTrue(HandSet.start(mode: "auto", analyzed: analyzed, byHand: earlier) == (getUp, 3))
+  }
+
+  func testAnAnalyzedCountOutsideTheRangeStartsClamped() {
+    let big = LastSet(reps: 250, exercise: swing.definition.name, seconds: 600, at: 1000)
+    let none = LastSet(reps: 0, exercise: swing.definition.name, seconds: 20, at: 1000)
+    XCTAssertEqual(HandSet.start(mode: "auto", analyzed: big, byHand: nil).reps, 200)
+    XCTAssertEqual(HandSet.start(mode: "auto", analyzed: none, byHand: nil).reps, 1)
+  }
+
+  func testTheSetCrossesAsUserInfo() throws {
+    let set = HandSet(id: "abc", exercise: swing, reps: 8, at: 1234.5)
+    XCTAssertEqual(HandSet(userInfo: set.userInfo), set)
+    // The watch's log lines share the channel and are not sets.
+    XCTAssertNil(HandSet(userInfo: ["watch_log": "command", "watch_t": 1.0]))
+  }
+
+  func testThePhonesEntryHasNoClipNoScoreAndIsNeverStale() {
+    let entry = HandSet(id: "abc", exercise: swing, reps: 8, at: 5000).entry
+    XCTAssertTrue(entry.isByHand)
+    XCTAssertFalse(entry.isInPhotos)
+    XCTAssertNil(entry.bestScore)
+    XCTAssertNil(entry.thumbnail)
+    XCTAssertEqual(entry.repCount, 8)
+    XCTAssertEqual(entry.span, Date(timeIntervalSince1970: 5000)...Date(timeIntervalSince1970: 5000))
+    XCTAssertFalse(entry.isStale(currentVersion: AnalysisVersion.current))
+    XCTAssertFalse(entry.isStale(currentVersion: "some later analyzer"))
+  }
+
+  func testARepeatDeliveryIsOneSetAndTheIndexKeepsIt() throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let recorded = RecentEntry(
+      id: "rec", analyzedAt: Date(timeIntervalSince1970: 4000), recordedAt: nil, duration: 30, repCount: 10,
+      bestScore: 80, source: .file(name: "clip.mov"), thumbnail: nil, exercise: swing, originalName: nil,
+      analysisVersion: AnalysisVersion.current, models: ["yolo26n-pose"])
+    var index = RecentsIndex(entries: [recorded])
+    let set = HandSet(id: "abc", exercise: getUp, reps: 2, at: 5000)
+    XCTAssertTrue(index.add(set))
+    XCTAssertFalse(index.add(set))
+    XCTAssertEqual(index.entries.map(\.id), ["abc", "rec"])
+    try index.save(root: root)
+    var loaded = RecentsIndex.load(root: root)
+    XCTAssertEqual(loaded.entries.map(\.id), ["abc", "rec"])
+    XCTAssertTrue(loaded.entries[0].isByHand)
+    XCTAssertEqual(loaded.entries[0].exercise, getUp)
+    // The launch backfill has no analysis.json to read for it and leaves it alone.
+    XCTAssertFalse(loaded.backfill(root: root))
+  }
+
+  func testAnIndexFromBeforeTheWristStillDecodes() throws {
+    let old = #"[{"id":"a","analyzedAt":0,"duration":30,"repCount":10,"bestScore":80,"source":{"file":{"name":"clip.mov"}}}]"#
+    let entries = try JSONDecoder().decode([RecentEntry].self, from: Data(old.utf8))
+    XCTAssertEqual(entries.map(\.id), ["a"])
+    XCTAssertFalse(entries[0].isByHand)
+  }
+
+  func testRemovingItSaysThereIsNoVideo() {
+    let prompt = SetDeletionPrompt(for: HandSet(exercise: swing, reps: 8, at: 5000).entry)
+    XCTAssertFalse(prompt.isFinal)
+    XCTAssertEqual(prompt.title, "Remove this set from Workouts?")
+    XCTAssertEqual(prompt.confirm, "Remove")
+  }
+
+  func testTheWorkoutCountsItAndATapNearItOpensTheRecordedSet() {
+    let workout = StoredWorkout(start: Date(timeIntervalSince1970: 1000), end: Date(timeIntervalSince1970: 2000))
+    let recorded = RecentEntry(
+      id: "rec", analyzedAt: Date(timeIntervalSince1970: 1130), recordedAt: nil, duration: 30, repCount: 10,
+      bestScore: 80, source: .file(name: "clip.mov"), thumbnail: nil, exercise: swing, originalName: nil,
+      clipStartedAt: Date(timeIntervalSince1970: 1100))
+    let typed = HandSet(id: "hand", exercise: swing, reps: 8, at: 1140).entry
+    let timeline = WorkoutTimeline(workout: workout, sets: [recorded, typed], heartRate: nil)
+    XCTAssertEqual(timeline.rows.map(\.id), ["rec", "hand"])
+    XCTAssertEqual(timeline.rows.map(\.byHand), [false, true])
+    XCTAssertEqual(timeline.rows.reduce(0) { $0 + $1.reps }, 18)
+    XCTAssertEqual(timeline.row(near: Date(timeIntervalSince1970: 1140), slop: 20)?.id, "rec")
+    XCTAssertNil(timeline.row(near: Date(timeIntervalSince1970: 1200), slop: 20))
+  }
+}
