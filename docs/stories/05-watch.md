@@ -582,8 +582,7 @@ the first frame (story 001).
 ### User Story 059:
 
 - **Summary:** Add a set I forgot to record to the workout, with its count typed on the wrist
-- **Status:** not implemented ([#136](https://github.com/idvorkin/exercise-analyzer/issues/136)); where the button sits waits for Igor's pick
-- **Why:** Igor, 2026-09-25, from the phone: "Let's add a watch button. Rep happened if I forgot to record." Decided 2026-09-26: a watch button adds one unrecorded set to the running workout, its count typed on the wrist, no video, no score, marked "by hand" in Workouts.
+- **Status:** not implemented ([#136](https://github.com/idvorkin/exercise-analyzer/issues/136))- **Why:** Igor, 2026-09-25, from the phone: "Let's add a watch button. Rep happened if I forgot to record." Decided 2026-09-26: a watch button adds one unrecorded set to the running workout, its count typed on the wrist, no video, no score, marked "by hand" in Workouts.
 
 #### Use Case:
 - **As a** lifter in a workout who did a set without tapping Record
@@ -593,7 +592,8 @@ the first frame (story 001).
 #### Acceptance Criteria:
 - **Scenario:** Adding a forgotten set
 - **Given:** a workout is running on the wrist (048), the camera is not live, and I just did 8 swings without recording them
-- **When:** I tap the add-a-set button on the workout page
+- **When:** I turn the Crown past Preview and tap "+ Set by hand", a full-width button under Preview and above
+  the pickers (Record and Preview stay where they are; Igor's pick, 2026-09-26)
 - **Then:** a count page opens with the exercise on top (the exercise picker's choice, or the last set's exercise when the picker is on Auto), one large number in the middle starting at the last set's count (10 when there is none), a − and a + either side of it, and Save (green) and Cancel under it
 
 - **Scenario:** Setting the count
