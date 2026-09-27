@@ -9,7 +9,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 001:
 
 - **Summary:** Record a set and get a trusted rep count without touching the phone afterwards
-- **Status:** implemented in [0517562](https://github.com/idvorkin/exercise-analyzer/commit/0517562), [49c6529](https://github.com/idvorkin/exercise-analyzer/commit/49c6529); verified on the phone (daily use); the camera memory (#66) in [8e9f076](https://github.com/idvorkin/exercise-analyzer/commit/8e9f076), on the phone since 2026-09-13; the Bulgarian rules (#132, #134, #135) in [77c6731](https://github.com/idvorkin/exercise-analyzer/commit/77c6731), [7f809a5](https://github.com/idvorkin/exercise-analyzer/commit/7f809a5), [7e114b3](https://github.com/idvorkin/exercise-analyzer/commit/7e114b3), verified on the host (4CF19A9A and 7424BEDD by Igor's count), on the phone since 2026-09-22, Igor's count of 79271425 and 599F988A pending; the first swing (#148) in [09779df](https://github.com/idvorkin/exercise-analyzer/commit/09779df), verified on the host (swing-pickup-10reps, Igor's count), on the phone since 2026-09-26
+- **Status:** implemented in [0517562](https://github.com/idvorkin/exercise-analyzer/commit/0517562), [49c6529](https://github.com/idvorkin/exercise-analyzer/commit/49c6529); verified on the phone (daily use); the camera memory (#66) in [8e9f076](https://github.com/idvorkin/exercise-analyzer/commit/8e9f076), on the phone since 2026-09-13; the first swing (#148) in [09779df](https://github.com/idvorkin/exercise-analyzer/commit/09779df), verified on the host (swing-pickup-10reps, Igor's count), on the phone since 2026-09-26
 
 #### Use Case:
 - **As a** solo lifter with the phone on a tripod
@@ -23,29 +23,6 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **When:** I perform ten kettlebell swings and tap Done
 - **Then:** the clip shows exactly ten reps, each with a 0–100 score and a one-line reason for any lost points
 
-- **Scenario:** A Bulgarian set counts the reps, not the setup or a wobble
-- **Given:** I crouch while putting my rear foot up on the bench, sway once while standing, then do eight reps
-- **When:** the set is analyzed as a Bulgarian split squat
-- **Then:** it counts eight: a dip before the rear foot has been up for 2.5 s is setup, and a head drop under a
-  fifth of my standing height (ankle to ear) is not a rep (Igor, 2026-09-22: "Rep 1 was just me setting up. I think rep 2 was
-  garbage too", [#132](https://github.com/idvorkin/exercise-analyzer/issues/132))
-
-- **Scenario:** A Bulgarian counts with the bench nearer the camera than me
-- **Given:** the phone stands in front of me and to one side, so the bench sits between it and me and my rear foot
-  looks no higher than my front one on screen
-- **When:** the set is analyzed as a Bulgarian split squat
-- **Then:** it counts my reps, because my rear foot resting on the top of the bench the app sees counts as up
-  (7424BEDD: six, Igor's count; it had counted none, [#134](https://github.com/idvorkin/exercise-analyzer/issues/134))
-
-- **Scenario:** A Bulgarian counts after I walk up close to the camera
-- **Given:** I stand tall further from the phone first, then set up near it, where my head sits lower on screen
-- **When:** the set is analyzed as a Bulgarian split squat
-- **Then:** it counts my reps: a rep whose head turns back down far short of the standing height is not a rep and
-  resets it, and one that turns just short (under 0.15 of my height) is a rep that didn't quite stand tall
-  ([#135](https://github.com/idvorkin/exercise-analyzer/issues/135): 79271425 had counted none, 599F988A six of eight)
-- **and Then:** not yet: putting the dumbbells down after the last rep still counts as a rep when the head drops
-  as deep as one (79271425 counts nine for eight; 599F988A counts its eight; #135 open)
-
 - **Scenario:** Live opens on the camera I used last time
 - **Given:** my last set was recorded on the front camera (or the back camera at 0.5×)
 - **When:** I open Live for the next set
@@ -53,9 +30,66 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 
 - **Notes:** Live is the set: the recorder rolls from the camera's first frame and Trim cuts the walk-in
   (story 009). Framing before the recorder rolls is the watch's Preview (story 047); the phone has no
-  camera-only state of its own.
+  camera-only state of its own. What counts as a Bulgarian split squat rep is story 060.
 
-- **Issues:** [#66](https://github.com/idvorkin/exercise-analyzer/issues/66); [#132](https://github.com/idvorkin/exercise-analyzer/issues/132) a Bulgarian counted its setup and a wobble; [#134](https://github.com/idvorkin/exercise-analyzer/issues/134) a Bulgarian with the bench nearer the camera counted none; [#135](https://github.com/idvorkin/exercise-analyzer/issues/135) two Bulgarians set up near the camera, the dumbbell put-down still counted; [#148](https://github.com/idvorkin/exercise-analyzer/issues/148) the first swing off the floor was not counted, so ten swings read nine
+- **Issues:** [#66](https://github.com/idvorkin/exercise-analyzer/issues/66); [#148](https://github.com/idvorkin/exercise-analyzer/issues/148) the first swing off the floor was not counted, so ten swings read nine
+
+---
+
+### User Story 060:
+
+- **Summary:** Count the Bulgarian split squats that are reps, not the setup, a wobble or a bad camera angle
+- **Status:** implemented in [681f98d](https://github.com/idvorkin/exercise-analyzer/commit/681f98d), [77c6731](https://github.com/idvorkin/exercise-analyzer/commit/77c6731) (#132), [7f809a5](https://github.com/idvorkin/exercise-analyzer/commit/7f809a5) (#134), [7e114b3](https://github.com/idvorkin/exercise-analyzer/commit/7e114b3) (#135); verified on the host (the five Bulgarian fixtures; 4CF19A9A and 7424BEDD by Igor's count); on the phone since 2026-09-22, Igor's count of 79271425 and 599F988A pending
+- **Why:** Igor, 2026-09-22, on a set counted 10: "Rep 1 was just me setting up. I think rep 2 was garbage too."
+
+#### Use Case:
+- **As a** lifter doing Bulgarian split squats with my rear foot on a bench, filmed from wherever the tripod fits
+- **I want to** have only the real reps counted
+- **so that** the count matches what I would count by eye
+
+#### Acceptance Criteria:
+- **Scenario:** The reps are read from my head, not my front knee
+- **Given:** the phone films me from a diagonal, where my front knee seems to bend only a little, and my rear foot is up on the bench
+- **When:** the set is analyzed as a Bulgarian split squat
+- **Then:** each time my head drops at least a fifth of my standing height (front ankle to ear) and comes back
+  near the standing height, that is one rep; the front knee only scores it (bulgarian-phone: 8)
+
+- **Scenario:** The setup and a wobble are not reps
+- **Given:** I crouch while putting my rear foot up on the bench, sway once while standing, then do eight reps
+- **When:** the set is analyzed as a Bulgarian split squat
+- **Then:** it counts eight: a dip before the rear foot has been up for 2.5 s is setup, a dip while the rear foot
+  does not read up is not a rep, and a head drop under a fifth of my standing height is not a rep
+  ([#132](https://github.com/idvorkin/exercise-analyzer/issues/132), 4CF19A9A, Igor's count)
+
+- **Scenario:** The bench nearer the camera than me
+- **Given:** the phone stands in front of me and to one side, so the bench sits between it and me and my rear foot
+  looks no higher than my front one on screen
+- **When:** the set is analyzed as a Bulgarian split squat
+- **Then:** it counts my reps, because my rear foot resting on the top of the bench the app sees counts as up
+  (7424BEDD: six, Igor's count; it had counted none, [#134](https://github.com/idvorkin/exercise-analyzer/issues/134))
+
+- **Scenario:** I walk up close to the camera after standing tall further away
+- **Given:** I stand tall further from the phone first, then set up near it, where my head sits lower on screen
+- **When:** the set is analyzed as a Bulgarian split squat
+- **Then:** it counts my reps: a rep whose head turns back down far short of the standing height is not a rep and
+  resets the standing height there, and one that turns just short (under 0.15 of my height) is a rep that didn't
+  quite stand tall ([#135](https://github.com/idvorkin/exercise-analyzer/issues/135): 79271425 had counted none,
+  599F988A six of eight)
+
+- **Scenario:** Putting the dumbbells down after the last rep
+- **Given:** I finish a set and bend to put the dumbbells on the floor with my rear foot still on the bench
+- **When:** the set is analyzed as a Bulgarian split squat
+- **Then:** not yet: the put-down counts as a rep when my head drops as deep as one (79271425 counts nine for
+  eight; 599F988A counts its eight; [#135](https://github.com/idvorkin/exercise-analyzer/issues/135) open)
+
+- **Notes:** Rules and thresholds: [docs/analysis/bulgarian-split-squat.md](../analysis/bulgarian-split-squat.md).
+  The front leg is the foot lower on screen (or the one not on the bench), chosen in the first frames and kept
+  for the set. The bench detector runs only in the offline pass, so a live count can differ from the stored one.
+  Not built: keeping the legs' left and right names steady where the pose model trades them for under a second
+  (#131 step 2, held for Igor's call); the count runs on the ears, so it only makes the skeleton scissor on
+  screen. The Standing picture is story 006's.
+
+- **Issues:** [#131](https://github.com/idvorkin/exercise-analyzer/issues/131) standing didn't look like standing, dumbbells, the legs trading names; [#132](https://github.com/idvorkin/exercise-analyzer/issues/132) a Bulgarian counted its setup and a wobble; [#134](https://github.com/idvorkin/exercise-analyzer/issues/134) a Bulgarian with the bench nearer the camera counted none; [#135](https://github.com/idvorkin/exercise-analyzer/issues/135) two Bulgarians set up near the camera, the dumbbell put-down still counted
 
 ---
 
