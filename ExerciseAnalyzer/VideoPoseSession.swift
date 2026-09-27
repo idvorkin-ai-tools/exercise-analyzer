@@ -1194,18 +1194,36 @@ final class VideoPoseSession: NSObject, ObservableObject {
     log.event(
       "set_deleted",
       ["id": entry.id, "in_photos": entry.isInPhotos, "reps": entry.repCount, "on_screen": entry.id == currentEntryID, "where": place])
+    letGo(of: entry, status: entry.isInPhotos ? "Removed from Workouts" : "Set deleted")
+    recents.remove(id: entry.id)
+  }
+
+  /// The lifter's own exercise and count for a stored set (#156, #157): it stays in Workouts as a by-hand set and
+  /// its in-app video goes (a Photos original stays in Photos). The sheet has said so before Save.
+  func keepByHand(set entry: RecentEntry, exercise: ExerciseKind, reps: Int, from place: String) {
+    log.event(
+      "set_kept_by_hand",
+      ["id": entry.id, "exercise": exercise.rawValue, "reps": reps, "was_exercise": entry.exerciseKind.rawValue,
+       "was_reps": entry.repCount, "was": entry.isByHand ? "by_hand" : entry.isInPhotos ? "photos" : "file",
+       "on_screen": entry.id == currentEntryID, "where": place])
+    letGo(of: entry, status: "Kept as \(reps) \(exercise.definition.name) by hand")
+    recents.keepByHand(id: entry.id, exercise: exercise, reps: reps)
+  }
+
+  /// A stored set is leaving the player (deleted, or kept by hand): when it is the one on screen the player lets go
+  /// of it, so nothing can save it back; when it is still fetching, that pending open is dropped.
+  private func letGo(of entry: RecentEntry, status: String) {
     if entry.id == currentEntryID {
       pause()
       player.replaceCurrentItem(with: nil)
       // The scratch copies of a recording or a trim; the set's own clip goes with its folder.
       if case .recording = currentOrigin, let url = currentFileURL { try? FileManager.default.removeItem(at: url) }
       if let trimmedURL { try? FileManager.default.removeItem(at: trimmedURL) }
-      closeDeletedClip(status: entry.isInPhotos ? "Removed from Workouts" : "Set deleted")
+      closeDeletedClip(status: status)
     } else if clipOperations.current?.entryID == entry.id {
-      // The deleted set is still fetching; retain the visible clip and invalidate that pending open.
+      // The set is still fetching; retain the visible clip and invalidate that pending open.
       _ = beginCurrentOperation()
     }
-    recents.remove(id: entry.id)
   }
 
   /// The clip on screen was deleted: whatever pass is still running for it must not save it. Cleared when the

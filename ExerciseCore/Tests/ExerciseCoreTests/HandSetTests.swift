@@ -28,6 +28,31 @@ final class HandSetTests: XCTestCase {
     XCTAssertTrue(HandSet.start(mode: "auto", analyzed: nil, byHand: sitUps) == (.sitUp, 20))
   }
 
+  /// #156, #157: a recorded set the camera got wrong (a pull-up set read as 0) becomes the lifter's own count,
+  /// in place, and stops being a video.
+  func testASetKeptByHandTakesTheLiftersCountAndDropsItsVideo() {
+    let start = Date(timeIntervalSince1970: 5000)
+    let recorded = RecentEntry(
+      id: "330486D3", analyzedAt: start.addingTimeInterval(40), recordedAt: start, duration: 38, repCount: 0,
+      bestScore: 71, source: .file(name: "clip.mov"), thumbnail: "thumb.jpg", exercise: .pullUp,
+      originalName: "swing-recording.mov", originalBackup: "original.mov", analysisVersion: "2026-09-26.3",
+      models: ["yolo26n-pose"], clipStartedAt: start)
+    let kept = recorded.keptByHand(exercise: .pullUp, reps: 6)
+    XCTAssertEqual(kept.id, recorded.id)
+    XCTAssertEqual(kept.recordedAt, recorded.recordedAt)
+    XCTAssertEqual(kept.analyzedAt, recorded.analyzedAt)
+    XCTAssertEqual(kept.repCount, 6)
+    XCTAssertEqual(kept.exercise, .pullUp)
+    XCTAssertTrue(kept.isByHand)
+    XCTAssertNil(kept.thumbnail)
+    XCTAssertNil(kept.bestScore)
+    XCTAssertNil(kept.originalBackup)
+    XCTAssertNil(kept.analysisVersion)
+    // The exercise can change too, and the count is clamped like the wrist's.
+    XCTAssertEqual(recorded.keptByHand(exercise: .sitUp, reps: 0).exerciseKind, .sitUp)
+    XCTAssertEqual(recorded.keptByHand(exercise: .sitUp, reps: 0).repCount, 1)
+  }
+
   func testTheCountStopsAtOneAndTwoHundred() {
     XCTAssertEqual(HandSet.clamp(0), 1)
     XCTAssertEqual(HandSet.clamp(8), 8)
