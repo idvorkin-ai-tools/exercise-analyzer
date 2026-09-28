@@ -187,10 +187,16 @@ the first frame (story 001).
 - **When:** ten minutes pass without a command, status, heartbeat or scene message from the watch
 - **Then:** the phone locks on its own auto-lock again; any message from the watch restarts the ten minutes
 
+- **Scenario:** Held awake, dimmed (#160)
+- **Given:** the phone is held awake for a wrist workout or the ten minutes after the watch's last message, and nothing is recording, analyzing or in watch mode
+- **When:** 30 seconds pass without a touch on the screen
+- **Then:** the screen dims to 5 % and stays on; a touch anywhere (the touch still does what it touches), Record from the wrist, a pass starting, the app leaving the front or the hold ending puts my own brightness back at once
+
 #### Notes:
 - The rule is `KeepAwake.decide` in ExerciseCore (host tests in `KeepAwakeTests`); recording, an offline pass and watch mode keep the phone awake too, and a backgrounded app never does. The phone re-checks it on every watch message, on the workout starting or ending, and on its 3 s tick. `keep_awake` logs `reason` (recording, analyzing, watch_mode, workout, watch_contact, idle, background) and `contact_s`.
+- The dim: `KeepAwake.dims` (workout, watch_contact), `dimAfter` 30 s, `dimBrightness` 0.05; `ScreenDimmer` in the app checks on each decision and the 3 s tick (so it dims 30–33 s after the last touch) and sees touches through a window recognizer that never claims them. Log: `screen_dim` (on, reason, brightness: the lifter's level it restores).
 
-- **Issues:** [#142](https://github.com/idvorkin/exercise-analyzer/issues/142) the phone locked during a rest in a wrist workout
+- **Issues:** [#142](https://github.com/idvorkin/exercise-analyzer/issues/142) the phone locked during a rest in a wrist workout; [#160](https://github.com/idvorkin/exercise-analyzer/issues/160) dim while held awake
 
 ---
 

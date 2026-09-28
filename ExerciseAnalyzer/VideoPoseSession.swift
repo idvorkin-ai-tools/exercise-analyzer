@@ -1810,6 +1810,11 @@ final class VideoPoseSession: NSObject, ObservableObject {
   private(set) var cameraCancelled = false
   private var cancellables = Set<AnyCancellable>()
   private var keepAwake = KeepAwake.idle
+  private lazy var dimmer: ScreenDimmer = {
+    let dimmer = ScreenDimmer()
+    dimmer.onEvent = { [weak self] in self?.log.event($0, $1) }
+    return dimmer
+  }()
 
   /// The phone must stay in front for the watch to start a set (iOS keeps the camera and the foreground away from
   /// a backgrounded app), so while a workout runs on the wrist, or within ten minutes of the watch's last message,
@@ -1820,6 +1825,7 @@ final class VideoPoseSession: NSObject, ObservableObject {
       appActive: UIApplication.shared.applicationState == .active, recording: source == .camera,
       analyzing: currentJob != nil, watchMode: watchMode, workoutRunning: WorkoutMirror.shared.live != nil,
       lastWatchContact: watch.lastContact, now: Date())
+    dimmer.update(reason)  // every call, not just on a change: the 3 s tick is the dim's clock (#160)
     guard reason != keepAwake else { return }
     keepAwake = reason
     UIApplication.shared.isIdleTimerDisabled = reason.on

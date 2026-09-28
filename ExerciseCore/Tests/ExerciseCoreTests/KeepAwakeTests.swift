@@ -27,6 +27,17 @@ final class KeepAwakeTests: XCTestCase {
     XCTAssertFalse(decide(contactAgo: 10 * 60).on)
   }
 
+  /// #160: held awake for the wrist between sets dims; anything being looked at stays bright.
+  func testOnlyTheWristsHoldDims() {
+    XCTAssertTrue(decide(workout: true).dims)
+    XCTAssertTrue(decide(contactAgo: 60).dims)
+    XCTAssertFalse(decide(recording: true, workout: true).dims)
+    XCTAssertFalse(decide(analyzing: true, workout: true).dims)
+    XCTAssertFalse(decide(watchMode: true, workout: true).dims)
+    XCTAssertFalse(decide().dims)
+    XCTAssertFalse(decide(active: false, workout: true).dims)
+  }
+
   func testNoWatchEverIsIdle() {
     XCTAssertEqual(decide(), .idle)
     XCTAssertFalse(decide().on)
