@@ -275,6 +275,8 @@ final class VideoPoseSession: NSObject, ObservableObject {
     pipeline = AnalysisPipeline(exercise: exercise)
     watch.onEvent = { [weak self] type, fields in self?.log.event(type, fields) }
     WorkoutMirror.shared.onEvent = { [weak self] type, fields in self?.log.event(type, fields) }
+    WorkoutLiveActivity.shared.onEvent = { [weak self] type, fields in self?.log.event(type, fields) }
+    WorkoutLiveActivity.shared.install()  // the workout on the lock screen and in the Dynamic Island (#161)
     CrashReports.shared.onEvent = { [weak self] type, fields in self?.log.event(type, fields) }
     CrashReports.shared.reportSignalLogs { [weak self] type, fields in self?.log.event(type, fields) }
     watch.onCommand = { [weak self] command in self?.handleWatch(command) }

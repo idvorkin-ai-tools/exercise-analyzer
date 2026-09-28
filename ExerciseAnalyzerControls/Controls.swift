@@ -37,5 +37,8 @@ struct ExerciseControl: ControlWidget {
 @main
 @available(iOS 18, *)
 struct ControlsBundle: WidgetBundle {
-  var body: some Widget { ExerciseControl() }
+  var body: some Widget {
+    ExerciseControl()
+    WorkoutActivityWidget()  // the running workout on the lock screen and in the Dynamic Island (#161)
+  }
 }

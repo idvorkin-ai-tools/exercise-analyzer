@@ -670,6 +670,51 @@ the first frame (story 001).
 
 ---
 
+### User Story 064:
+
+- **Summary:** The running wrist workout sits on the phone's lock screen and in the Dynamic Island, one tap back to the app
+- **Status:** implemented (commit to be recorded); verified on the host (`WorkoutTests`) and the simulator (`SWING_LIVE_WORKOUT=30`: `live_activity` start, and chronod rendered the activity from the Controls extension); the phone pending
+- **Why:** Igor, 2026-09-27, from the phone: "Can we leave an icon at the top so I can get back to the workout app if I switch out or want to come back?" Picked the same day: a Live Activity. Story 044's rejection of one stands for the recording phone only; between sets the phone does sit locked or in another app.
+
+#### Use Case:
+- **As a** lifter in a wrist workout who switched to music or messages between sets
+- **I want to** see the workout at the top of the phone and tap it to get back
+- **so that** returning to the app is one tap, not a hunt through the app switcher
+
+#### Acceptance Criteria:
+- **Scenario:** In another app mid-workout
+- **Given:** a workout runs on the wrist, 6 sets and 47 reps in, and I opened Spotify on the phone
+- **When:** I look at the top of the screen
+- **Then:** the Dynamic Island shows the green figure and the workout's clock counting up; pressed, it shows WORKOUT, the clock, ♥ 128 and "6 sets · 47 reps"; a tap opens the app
+
+- **Scenario:** On the lock screen
+- **Given:** the same workout and the phone locked
+- **When:** I wake it
+- **Then:** the lock screen carries WORKOUT with the clock large, ♥ and sets · reps; a new set shows at once, heart rate refreshes at most every 30 s
+
+- **Scenario:** The workout ends
+- **Given:** the activity is up
+- **When:** I end or discard the workout on the wrist
+- **Then:** the activity goes at once
+
+- **Scenario:** A workout that started while the app was away
+- **Given:** I started the workout on the wrist with the phone app in the background
+- **When:** I next open the app
+- **Then:** the activity starts then (iOS lets an app start one only from the front), and stays up when I leave again
+
+- **Notes:** `WorkoutLiveActivity` in the app follows `WorkoutMirror.live`: start (from the front only; `deferred` logged
+  once otherwise), update per `WorkoutGlance.shouldShow` (ExerciseCore, host tests: sets or reps at once, heart rate
+  every 30 s), end on `ending` or nil. The clock is `Text(timerInterval:)` from the start, so it needs no update.
+  `WorkoutActivityAttributes` is declared in the app and in the Controls extension with the same name and shape
+  (ActivityKit matches by name; the extension links neither the app nor ExerciseCore); the view is
+  `WorkoutActivityWidget` in `ControlsBundle`. `NSSupportsLiveActivities` in Info.plist. Launch leaves an
+  activity from a previous run alone until the mirror hears of the workout (its first nil is not an end). Log:
+  `live_activity` (action: start, end with reason ended / discarded / replaced, deferred, disabled, failed).
+
+- **Issues:** [#161](https://github.com/idvorkin/exercise-analyzer/issues/161), [#153](https://github.com/idvorkin/exercise-analyzer/issues/153) (the report it was split from)
+
+---
+
 ### What a workout session costs
 
 Heart rate during a set, surviving wrist-down (#32) and launching the watch app from the phone all need an
