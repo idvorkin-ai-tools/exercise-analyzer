@@ -11,10 +11,18 @@ struct RepGalleryWidget: View {
   let reps: [RepRecord]
   let columns: [PhaseInfo]
   let currentRep: Int?
+  /// The player's clock: the gallery zooms the position it has reached (#152).
+  let playhead: Double
   @Binding var focusedPhase: String?
   @Binding var focusedRep: Int?
   let onSeek: (RepPosition) -> Void
   let onOpen: (RepPosition) -> Void
+
+  /// The rep and column under the playhead, nil between reps.
+  private var reached: PlayheadPosition? {
+    guard let rep = reps.first(where: { $0.number == currentRep }), let phase = rep.phase(at: playhead) else { return nil }
+    return PlayheadPosition(rep: rep.number, phase: phase)
+  }
 
   var body: some View {
     GeometryReader { geo in
@@ -50,12 +58,26 @@ struct RepGalleryWidget: View {
         .onChange(of: currentRep) { _, rep in
           if let rep { withAnimation { proxy.scrollTo(rep, anchor: .center) } }
         }
+        // Each new position the playhead reaches gets the double tap's zoom (#152); a double tap still picks
+        // another until the playhead moves on, and between reps the last zoom stays.
+        .onChange(of: reached) { _, reached in
+          guard let reached else { return }
+          withAnimation(.easeInOut(duration: 0.2)) {
+            focusedRep = reached.rep
+            focusedPhase = reached.phase
+          }
+        }
         .onChange(of: reps.count) { _, _ in
           if let last = reps.last { withAnimation { proxy.scrollTo(last.number, anchor: .bottom) } }
         }
       }
     }
   }
+}
+
+private struct PlayheadPosition: Equatable {
+  let rep: Int
+  let phase: String
 }
 
 /// Column layout shared by the widget and the sheet: rep-number gutter plus one column per phase, with the

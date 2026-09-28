@@ -10,6 +10,22 @@ import XCTest
 final class WorkoutTests: XCTestCase {
   private let calendar = Calendar(identifier: .gregorian)
 
+  /// #161: the Live Activity takes a new set or rep at once, heart rate only every 30 s, nothing unchanged.
+  func testTheGlanceFollowsSetsAtOnceAndHeartRateEveryThirtySeconds() {
+    let t0 = Date(timeIntervalSince1970: 1000)
+    let shown = WorkoutGlance(heartRate: 120, sets: 6, reps: 47)
+    XCTAssertTrue(WorkoutGlance.shouldShow(shown, over: nil, shownAt: t0, now: t0))
+    XCTAssertFalse(WorkoutGlance.shouldShow(shown, over: shown, shownAt: t0, now: t0.addingTimeInterval(300)))
+    let beat = WorkoutGlance(heartRate: 131, sets: 6, reps: 47)
+    XCTAssertFalse(WorkoutGlance.shouldShow(beat, over: shown, shownAt: t0, now: t0.addingTimeInterval(29)))
+    XCTAssertTrue(WorkoutGlance.shouldShow(beat, over: shown, shownAt: t0, now: t0.addingTimeInterval(30)))
+    let set = WorkoutGlance(heartRate: 131, sets: 7, reps: 55)
+    XCTAssertTrue(WorkoutGlance.shouldShow(set, over: shown, shownAt: t0, now: t0.addingTimeInterval(1)))
+    XCTAssertEqual(
+      WorkoutGlance(WorkoutWire(startedAt: 0, heartRate: 99, sets: 2, reps: 17)),
+      WorkoutGlance(heartRate: 99, sets: 2, reps: 17))
+  }
+
   private func date(_ day: Int, _ hour: Int, _ minute: Int = 0) -> Date {
     calendar.date(from: DateComponents(year: 2026, month: 9, day: day, hour: hour, minute: minute))!
   }

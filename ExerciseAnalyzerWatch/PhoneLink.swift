@@ -64,7 +64,9 @@ final class PhoneLink: NSObject, ObservableObject {
   /// The screenshot rung wants the idle page scrolled to its End and Discard buttons.
   var screenshotScrollsToEnd: Bool { screenshot == .workoutEnd }
   /// The screenshot rung wants the count page of a set typed by hand open over the workout page (059).
-  var screenshotOpensSetByHand: Bool { screenshot == .setByHand }
+  var screenshotOpensSetByHand: Bool { screenshot == .setByHand || screenshot == .setByHandExercise }
+  /// ...and its exercise list open over it (#154).
+  var screenshotOpensExerciseList: Bool { screenshot == .setByHandExercise }
 
   /// The phone is reachable and has reported within the last few seconds; only then are its status and the
   /// recording controls trustworthy (a stored application context can say "recording" long after the fact).

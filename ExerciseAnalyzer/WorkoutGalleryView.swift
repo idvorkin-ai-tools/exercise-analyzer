@@ -77,6 +77,14 @@ struct WorkoutGalleryView: View {
                         onOpen: onOpen,
                         onDelete: { entry in
                           if let session { session.delete(set: entry, from: "workouts") } else { store.remove(id: entry.id) }
+                        },
+                        onKeepByHand: { entry, kind, reps in
+                          if let session {
+                            session.keepByHand(set: entry, exercise: kind, reps: reps, from: "workouts")
+                          } else {
+                            store.keepByHand(id: entry.id, exercise: kind, reps: reps)
+                          }
+                          if entry.isInPhotos { suggestions.refresh(known: knownPhotosIDs) }
                         })
                     }
                   }
@@ -300,6 +308,8 @@ extension ExerciseKind {
     case .turkishGetUp: return .green
     case .pullUp: return .blue
     case .splitSquat: return .pink
+    case .sitUp: return .mint
+    case .halfKneelingRotation: return .indigo
     }
   }
 }
@@ -447,7 +457,10 @@ struct ExerciseSetsRow: View {
   let onOpen: (RecentEntry) -> Void
   /// Deletes the set once the dialog is confirmed (#111); the session does it, so a set on screen is let go of.
   let onDelete: (RecentEntry) -> Void
+  /// The lifter's own exercise and count, from the long-press sheet (#156, #157).
+  let onKeepByHand: (RecentEntry, ExerciseKind, Int) -> Void
   @State private var deleting: RecentEntry?
+  @State private var editing: RecentEntry?
 
   var body: some View {
     VStack(alignment: .leading, spacing: 6) {
@@ -468,6 +481,7 @@ struct ExerciseSetsRow: View {
               .onTapGesture { if !entry.isByHand { onOpen(entry) } }
               .contextMenu {
                 if !entry.isByHand { Button("Open") { onOpen(entry) } }
+                Button("Set exercise and reps…") { editing = entry }
                 // Asks first, and says whether the video goes too: this used to remove at once, the only copy
                 // of an in-app video with it (#111).
                 Button(entry.isInPhotos || entry.isByHand ? "Remove from Workouts…" : "Delete set and video…", role: .destructive) {
@@ -479,6 +493,7 @@ struct ExerciseSetsRow: View {
       }
     }
     .setDeletionDialog($deleting, onConfirm: onDelete)
+    .setByHandSheet($editing, onSave: onKeepByHand)
   }
 
   private var totals: String {
@@ -488,7 +503,98 @@ struct ExerciseSetsRow: View {
   }
 }
 
+/// "Set exercise and reps" for a stored set (#156, #157): the exercise as big drawn tiles, the count as − N + with
+/// 60 pt buttons, and a line saying what happens to the video before Save makes the set a by-hand set.
+struct SetByHandSheet: View {
+  let entry: RecentEntry
+  let onSave: (ExerciseKind, Int) -> Void
+  @State private var exercise: ExerciseKind
+  @State private var reps: Int
+  @Environment(\.dismiss) private var dismiss
+
+  init(entry: RecentEntry, onSave: @escaping (ExerciseKind, Int) -> Void) {
+    self.entry = entry
+    self.onSave = onSave
+    _exercise = State(initialValue: entry.exerciseKind)
+    _reps = State(initialValue: HandSet.clamp(entry.repCount == 0 ? HandSet.defaultReps : entry.repCount))
+  }
+
+  /// What Save does to the video, said before it happens.
+  private var videoLine: String? {
+    if entry.isByHand { return nil }
+    return entry.isInPhotos
+      ? "The set stops pointing at its video; the video stays in Photos."
+      : "The set's video is deleted from the app; the set stays with this count."
+  }
+
+  var body: some View {
+    NavigationStack {
+      ScrollView {
+        VStack(spacing: 20) {
+          LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+            ForEach(ExerciseKind.allCases) { kind in
+              Button { exercise = kind } label: {
+                HStack(spacing: 8) {
+                  ExerciseGlyph(kind: kind, size: 28)
+                  Text(kind.definition.name).font(.subheadline.weight(.semibold)).lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                  Spacer(minLength: 0)
+                }
+                .padding(10)
+                .frame(maxWidth: .infinity, minHeight: 60)
+                .background(kind.tint.opacity(kind == exercise ? 0.3 : 0.08), in: RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                  RoundedRectangle(cornerRadius: 12).stroke(kind == exercise ? kind.tint : .clear, lineWidth: 2))
+              }
+              .buttonStyle(.plain)
+              .accessibilityAddTraits(kind == exercise ? .isSelected : [])
+            }
+          }
+          HStack(spacing: 24) {
+            stepButton("minus", by: -1)
+            Text("\(reps)").font(.system(size: 64, weight: .bold, design: .rounded)).monospacedDigit()
+              .frame(minWidth: 110).accessibilityLabel("\(reps) reps")
+            stepButton("plus", by: 1)
+          }
+          if let videoLine { Text(videoLine).font(.footnote).foregroundStyle(.secondary) }
+          Button {
+            onSave(exercise, reps)
+            dismiss()
+          } label: {
+            Text("Save \(reps) \(exercise.repWord(reps))").font(.headline).frame(maxWidth: .infinity, minHeight: 44)
+          }
+          .buttonStyle(.borderedProminent)
+          .tint(.green)
+        }
+        .padding()
+      }
+      .navigationTitle("Set exercise and reps")
+      .navigationBarTitleDisplayMode(.inline)
+      .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
+    }
+  }
+
+  private func stepButton(_ symbol: String, by step: Int) -> some View {
+    Button { reps = HandSet.clamp(reps + step) } label: {
+      Image(systemName: symbol).font(.title.bold()).frame(width: 60, height: 60)
+        .background(Color.secondary.opacity(0.2), in: Circle())
+    }
+    .buttonStyle(.plain)
+    .buttonRepeatBehavior(.enabled)
+    .accessibilityLabel(step < 0 ? "One rep fewer" : "One rep more")
+  }
+}
+
 extension View {
+  /// The by-hand sheet for a set, from a card's or a row's long-press (#156, #157).
+  func setByHandSheet(_ entry: Binding<RecentEntry?>, onSave: @escaping (RecentEntry, ExerciseKind, Int) -> Void)
+    -> some View
+  {
+    sheet(item: entry) { set in
+      SetByHandSheet(entry: set) { onSave(set, $0, $1) }
+    }
+  }
+
   /// "Delete?" for a set, in the words `SetDeletionPrompt` picks by where its video lives (#111): the review
   /// screen's trash button and a card's long-press both ask through here, and nothing is deleted without it.
   func setDeletionDialog(_ entry: Binding<RecentEntry?>, onConfirm: @escaping (RecentEntry) -> Void) -> some View {

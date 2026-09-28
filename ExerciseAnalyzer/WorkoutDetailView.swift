@@ -17,6 +17,8 @@ struct WorkoutDetailView: View {
   var onEvent: ((String, [String: Any]) -> Void)? = nil
   /// Removes a set typed on the wrist once its dialog is confirmed (059, 056).
   var onDelete: ((RecentEntry) -> Void)? = nil
+  /// The lifter's own exercise and count for a set, from a row's long-press sheet (#156, #157).
+  var onKeepByHand: ((RecentEntry, ExerciseKind, Int) -> Void)? = nil
   @Environment(\.scenePhase) private var scenePhase
   @State private var tick = Date()
   @State private var heartRate: HeartRateSeries?
@@ -31,7 +33,7 @@ struct WorkoutDetailView: View {
       if let snapshot {
         WorkoutPageView(
           snapshot: snapshot, sets: store.entries, heartRate: heartRate, onOpen: onOpen,
-          thumbnail: thumbnail, onEvent: onEvent, onDelete: onDelete)
+          thumbnail: thumbnail, onEvent: onEvent, onDelete: onDelete, onKeepByHand: onKeepByHand)
           // Twenty seconds matches the set page's Health re-ask (#107). A saved id triggers one final read.
           .task(id: HeartRateRequest(workout: snapshot.workout, active: scenePhase == .active)) {
             guard scenePhase == .active else { return }
@@ -85,7 +87,9 @@ private struct WorkoutPageView: View {
   var thumbnail: (RecentEntry) -> UIImage?
   var onEvent: ((String, [String: Any]) -> Void)?
   var onDelete: ((RecentEntry) -> Void)?
+  var onKeepByHand: ((RecentEntry, ExerciseKind, Int) -> Void)?
   @State private var deleting: RecentEntry?
+  @State private var editing: RecentEntry?
   private var workout: StoredWorkout { snapshot.workout }
   /// The rows' pictures by set id, read once (see `.task`).
   @State private var thumbnails: [String: UIImage] = [:]
@@ -141,11 +145,13 @@ private struct WorkoutPageView: View {
         VStack(spacing: 8) {
           ForEach(Array(timeline.rows.enumerated()), id: \.element.id) { index, row in
             if row.byHand {
-              // Typed on the wrist (059): no video to open; a long press removes it, asking first (056).
+              // Typed on the wrist (059): no video to open; a long press changes it (#156) or removes it, asking
+              // first (056).
               SetTimelineRow(number: index + 1, row: row, thumbnail: nil)
                 .contextMenu {
-                  if onDelete != nil, let entry = sets.first(where: { $0.id == row.id }) {
-                    Button("Remove from Workouts…", role: .destructive) { deleting = entry }
+                  if let entry = sets.first(where: { $0.id == row.id }) {
+                    if onKeepByHand != nil { Button("Set exercise and reps…") { editing = entry } }
+                    if onDelete != nil { Button("Remove from Workouts…", role: .destructive) { deleting = entry } }
                   }
                 }
             } else {
@@ -155,10 +161,17 @@ private struct WorkoutPageView: View {
                 SetTimelineRow(number: index + 1, row: row, thumbnail: thumbnails[row.id])
               }
               .buttonStyle(.plain)
+              .contextMenu {
+                // A count the camera got wrong becomes the lifter's own, the video going (#157).
+                if onKeepByHand != nil, let entry = sets.first(where: { $0.id == row.id }) {
+                  Button("Set exercise and reps…") { editing = entry }
+                }
+              }
             }
           }
         }
         .setDeletionDialog($deleting) { onDelete?($0) }
+        .setByHandSheet($editing) { onKeepByHand?($0, $1, $2) }
         if timeline.rows.isEmpty {
           Text("No sets were recorded inside this workout.").font(.subheadline).foregroundStyle(.secondary)
         }

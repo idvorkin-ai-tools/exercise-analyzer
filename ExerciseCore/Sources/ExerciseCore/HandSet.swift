@@ -71,6 +71,18 @@ public struct HandSet: Codable, Equatable {
   }
 }
 
+extension RecentEntry {
+  /// The set as the lifter says it was (#156, #157): their exercise and count, kept by hand from now on. Same id
+  /// and time, so it stays where it was in its workout; no clip, picture, score or analysis, so nothing re-reads
+  /// it and a new AnalysisVersion leaves it alone.
+  public func keptByHand(exercise: ExerciseKind, reps: Int) -> RecentEntry {
+    RecentEntry(
+      id: id, analyzedAt: analyzedAt, recordedAt: recordedAt, duration: duration, repCount: HandSet.clamp(reps),
+      bestScore: nil, source: .byHand, thumbnail: nil, exercise: exercise, originalName: nil,
+      clipStartedAt: clipStartedAt)
+  }
+}
+
 extension RecentsIndex {
   /// Adds a set typed on the wrist, newest first; false when its id is already here (a repeat delivery).
   public mutating func add(_ set: HandSet) -> Bool {

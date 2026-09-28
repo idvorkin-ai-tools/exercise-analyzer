@@ -4,6 +4,7 @@
 //  foreground out of reach of a backgrounded app, so the phone posts a notification; tapping it opens the app
 //  and starts the camera.
 
+import AppIntents
 import Foundation
 import UserNotifications
 
@@ -54,20 +55,36 @@ enum RecordPrompt {
   }
 }
 
-/// Lock-screen / Control Center button (#70): the control's intent (ExerciseAnalyzerControls) opens
-/// `exerciseanalyzer://live`; the app's scene hands the URL here, and the session, observing `live`, logs
-/// `launch_control` and starts the camera, the same as a RecordPrompt tap. A URL, not a flag: the extension
-/// and the app are separate processes with separate defaults, and a URL arrives exactly once, at the press.
+/// Lock-screen / Control Center button (#70): the control (ExerciseAnalyzerControls) names OpenLiveIntent,
+/// and with openAppWhenRun the system opens the app and runs this copy's perform() here, in the app's process
+/// (#153: the extension's own copy must match this one's name and shape). The session, observing `live`,
+/// logs `launch_control` and starts the camera, the same as a RecordPrompt tap. On a cold launch perform()
+/// can run before the session exists, so the press also waits in `pending` until the session takes it.
+@MainActor
 enum ControlLaunch {
-  static let scheme = "exerciseanalyzer"
   static let live = Notification.Name("ExerciseAnalyzer.controlLaunchLive")
+  private static var pending = false
 
-  /// True when the URL was the control's; posts `live` for the session.
-  @discardableResult
-  static func handle(_ url: URL) -> Bool {
-    guard url.scheme == scheme, url.host == "live" else { return false }
+  static func request() {
+    pending = true
     NotificationCenter.default.post(name: live, object: nil)
-    return true
+  }
+
+  /// True once per press: the session calls it on the notification and again at init.
+  static func take() -> Bool {
+    defer { pending = false }
+    return pending
+  }
+}
+
+struct OpenLiveIntent: AppIntent {
+  static var title: LocalizedStringResource = "Open Live"
+  static var openAppWhenRun = true
+
+  @MainActor
+  func perform() async throws -> some IntentResult {
+    ControlLaunch.request()
+    return .result()
   }
 }
 

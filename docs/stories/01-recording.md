@@ -278,7 +278,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 044:
 
 - **Summary:** A lock-screen button opens the app into Live
-- **Status:** implemented in [e9d47f1](https://github.com/idvorkin/exercise-analyzer/commit/e9d47f1); on the phone since 2026-09-13, Igor's check pending
+- **Status:** implemented in [e9d47f1](https://github.com/idvorkin/exercise-analyzer/commit/e9d47f1), [6932014](https://github.com/idvorkin/exercise-analyzer/commit/6932014) (#153, the press opens the app again); on the phone since 2026-09-27, Igor's press pending
 - **Why:** Igor: "There's a ChatGPT button I can put on my lock screen. Give me an exercise button I can put on my lock screen that pops me open." A Live Activity was considered and rejected: the recording phone is never on its lock screen (locking backgrounds the app and iOS stops the camera; story 019 keeps it awake for exactly this reason), so a live lock-screen scoreboard is impossible. A button that opens the app is what the lock screen can do.
 
 #### Use Case:
@@ -298,13 +298,16 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Then:** the app opens on Live with the camera running, same as from the lock screen
 
 - **Notes:** An iOS 18 `ControlWidget` in the `ExerciseAnalyzerControls` extension (bundle id
-  `com.idvorkin.exerciseanalyzer.controls`). Its `AppIntent` opens the app through the URL scheme
-  `exerciseanalyzer://live`; the app's scene hands the URL to the session, which logs `launch_control` and
-  starts the camera, the same route as the `RecordPrompt` notification tap. A URL, not a shared flag: the
-  extension and the app are separate processes (the 2026-09-15 review found the original UserDefaults flag
-  never reached the app). The extension targets iOS 18; the app stays on 17.
+  `com.idvorkin.exerciseanalyzer.controls`). Its `OpenLiveIntent` has `openAppWhenRun` and is declared in both
+  the extension and the app with the same name and shape, so the system opens the app and runs the app's
+  `perform()` in the app's process; the session logs `launch_control` (`warm`: false when the press launched
+  the app cold and waited for the session) and starts the camera, the same route as the `RecordPrompt`
+  notification tap. Two handoffs failed first: a UserDefaults flag in the extension's own container (the
+  app opened, Live never started), then `OpenURLIntent` with `exerciseanalyzer://live`, which takes only
+  universal links, so the press did nothing at all (#153). The extension targets iOS 18; the app stays on 17.
 
-- **Issues:** [#70](https://github.com/idvorkin/exercise-analyzer/issues/70)
+- **Issues:** [#70](https://github.com/idvorkin/exercise-analyzer/issues/70),
+  [#153](https://github.com/idvorkin/exercise-analyzer/issues/153) (the press stopped opening the app)
 
 ---
 

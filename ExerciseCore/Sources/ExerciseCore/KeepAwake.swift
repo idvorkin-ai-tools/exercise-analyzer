@@ -18,6 +18,13 @@ public enum KeepAwake: String, Sendable {
 
   public var on: Bool { self != .background && self != .idle }
 
+  /// Held awake only so the wrist can reach the phone between sets, with nobody looking at it: the screen dims
+  /// after `dimAfter` without a touch (#160; Igor: "dim while held awake"). Recording, a pass and watch mode are
+  /// looked at, so they stay bright.
+  public var dims: Bool { self == .workout || self == .watchContact }
+  public static let dimAfter: TimeInterval = 30
+  public static let dimBrightness: Double = 0.05
+
   public static func decide(
     appActive: Bool, recording: Bool, analyzing: Bool, watchMode: Bool, workoutRunning: Bool,
     lastWatchContact: Date?, now: Date

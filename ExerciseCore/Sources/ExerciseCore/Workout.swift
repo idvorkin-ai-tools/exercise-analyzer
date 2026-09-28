@@ -37,6 +37,32 @@ public struct WorkoutWire: Codable, Equatable, Sendable {
   public var startDate: Date { Date(timeIntervalSince1970: startedAt) }
 }
 
+/// What the workout's Live Activity shows beside its self-running clock (#161): the wrist's heart rate, sets and
+/// reps. The wire brings heart rate every few seconds; the activity follows a new set or rep at once and heart
+/// rate at most every `heartRateEvery`, so the lock screen is current without an update per beat.
+public struct WorkoutGlance: Equatable, Sendable {
+  public var heartRate: Int?
+  public var sets: Int
+  public var reps: Int
+
+  public static let heartRateEvery: TimeInterval = 30
+
+  public init(heartRate: Int?, sets: Int, reps: Int) {
+    self.heartRate = heartRate
+    self.sets = sets
+    self.reps = reps
+  }
+
+  public init(_ wire: WorkoutWire) { self.init(heartRate: wire.heartRate, sets: wire.sets, reps: wire.reps) }
+
+  /// Whether the activity should take `next`, shown `shown` since `shownAt`.
+  public static func shouldShow(_ next: WorkoutGlance, over shown: WorkoutGlance?, shownAt: Date, now: Date) -> Bool {
+    guard let shown else { return true }
+    if next.sets != shown.sets || next.reps != shown.reps { return true }
+    return next.heartRate != shown.heartRate && now.timeIntervalSince(shownAt) >= heartRateEvery
+  }
+}
+
 /// An ended workout as the phone keeps it: the span, the heart rate, and the Health record it became.
 public struct StoredWorkout: Codable, Hashable, Identifiable, Sendable {
   public var id: String

@@ -3,7 +3,7 @@
 # (WATCH_STATE, no phone) and screenshot it. Compare the pictures against the control inventory at the
 # top of docs/stories/05-watch.md. Usage: watch-screens.sh [watch simulator name].
 set -uo pipefail
-WATCH=$("$(dirname "$0")/sim-udid.sh" "${1:-Apple Watch Ultra 3 (49mm)}")  # one device, whatever runtimes share the name
+WATCH=$("$(dirname "$0")/sim-udid.sh" "${1:-Apple Watch Ultra 4 (49mm)}")  # one device, whatever runtimes share the name
 BUNDLE=com.idvorkin.exerciseanalyzer.watchkitapp
 SCREENS=${SCREENS:-$HOME/tmp/agent/sim}
 WATCHAPP=$(find Build/Build/Products/Debug-iphonesimulator -maxdepth 4 -name "ExerciseAnalyzerWatch.app" 2>/dev/null | head -1)
@@ -20,8 +20,9 @@ shoot() {  # state: relaunch with the fixed state, wait for first render, screen
   SIMCTL_CHILD_WATCH_STATE="$1" xcrun simctl launch "$WATCH" "$BUNDLE" >/dev/null || true
   sleep 3
   local shot="$SCREENS/watch-$1.png"
+  rm -f "$shot"  # a previous run's picture must not pass for this one's
   xcrun simctl io "$WATCH" screenshot "$shot" 2>/dev/null || true
   if [ -f "$shot" ]; then echo "ok    $1: $shot"; else echo "FAIL  $1: no screenshot"; fail=1; fi
 }
-for state in disconnected background idle live recording paused done viewfinder workoutStart workout workoutEnd workoutRecording workoutViewfinder answersLost setByHand; do shoot "$state"; done
+for state in disconnected background idle live recording paused done viewfinder workoutStart workout workoutEnd workoutRecording workoutViewfinder answersLost setByHand setByHandExercise; do shoot "$state"; done
 exit $fail

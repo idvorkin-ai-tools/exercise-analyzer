@@ -53,8 +53,9 @@ final class RecentsStore: ObservableObject {
     clipStartedAt: Date? = nil
   ) throws {
     // A pass that was under way when its set was deleted must not bring it back (#111, the 2026-09-19 review):
-    // the launch refresh and a re-run save by id minutes after they started.
-    guard !removedIDs.contains(id) else { throw RemovedSetError(id: id) }
+    // the launch refresh and a re-run save by id minutes after they started. Nor may it put a video back over
+    // a set the lifter has since kept by hand (#157).
+    guard !removedIDs.contains(id), entry(id: id)?.isByHand != true else { throw RemovedSetError(id: id) }
     var snapshot = AnalysisSnapshot(exercise: pipeline.exercise, frames: pipeline.track.frames, reps: pipeline.reps)
     snapshot.models = models
     let fresh = RecentEntry(
@@ -126,6 +127,18 @@ final class RecentsStore: ObservableObject {
     entries = index.entries
     try? persistIndex()
     return true
+  }
+
+  /// The lifter's own exercise and count for a set (#156, #157): the entry becomes a by-hand set in place and its
+  /// folder goes (an in-app clip, the pictures, the analysis); a Photos original stays in Photos, moved to the
+  /// suggestions' Ignored tab so it is not offered as a new set.
+  func keepByHand(id: String, exercise: ExerciseKind, reps: Int) {
+    guard let entry = entry(id: id) else { return }
+    if let identifier = entry.photosIdentifier { PhotosSuggestions.ignore(identifier: identifier) }
+    let kept = entry.keptByHand(exercise: exercise, reps: reps)
+    entries = entries.map { $0.id == id ? kept : $0 }
+    try? FileManager.default.removeItem(at: folder(for: id))
+    try? persistIndex()
   }
 
   func remove(id: String) {

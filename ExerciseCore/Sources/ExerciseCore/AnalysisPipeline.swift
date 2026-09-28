@@ -150,6 +150,7 @@ public enum TrimPolicy {
     case .kettlebellSwing: return 5
     case .pistolSquat, .bulgarianSplitSquat, .splitSquat, .pullUp: return 25
     case .turkishGetUp: return 120
+    case .sitUp, .halfKneelingRotation: return 25  // count-only (#158): never recorded, so never trimmed
     }
   }
 

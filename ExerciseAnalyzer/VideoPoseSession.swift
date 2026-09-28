@@ -275,6 +275,8 @@ final class VideoPoseSession: NSObject, ObservableObject {
     pipeline = AnalysisPipeline(exercise: exercise)
     watch.onEvent = { [weak self] type, fields in self?.log.event(type, fields) }
     WorkoutMirror.shared.onEvent = { [weak self] type, fields in self?.log.event(type, fields) }
+    WorkoutLiveActivity.shared.onEvent = { [weak self] type, fields in self?.log.event(type, fields) }
+    WorkoutLiveActivity.shared.install()  // the workout on the lock screen and in the Dynamic Island (#161)
     CrashReports.shared.onEvent = { [weak self] type, fields in self?.log.event(type, fields) }
     CrashReports.shared.reportSignalLogs { [weak self] type, fields in self?.log.event(type, fields) }
     watch.onCommand = { [weak self] command in self?.handleWatch(command) }
@@ -318,16 +320,19 @@ final class VideoPoseSession: NSObject, ObservableObject {
         self.startCamera(position: self.cameraPosition, viewfinder: viewfinder)
       }
     }
-    // Lock-screen / Control Center button (#70): the control opens exerciseanalyzer://live, the scene posts it
-    // here, once per press, cold or warm. A camera already live is left alone and the press is still logged.
-    NotificationCenter.default.addObserver(forName: ControlLaunch.live, object: nil, queue: .main) { [weak self] _ in
-      Task { @MainActor in
-        guard let self else { return }
-        self.log.event("launch_control", ["action": "live", "already_live": self.source == .camera])
-        guard self.source != .camera else { return }
-        self.startCamera(position: self.cameraPosition)
-      }
+    // Lock-screen / Control Center button (#70, #153): the app's OpenLiveIntent posts here, once per press. A
+    // cold launch can run the intent before this session exists, so init also takes a press left pending
+    // (warm: false). A camera already live is left alone and the press is still logged.
+    let takeControlLaunch: @MainActor (Bool) -> Void = { [weak self] warm in
+      guard let self, ControlLaunch.take() else { return }
+      self.log.event("launch_control", ["action": "live", "already_live": self.source == .camera, "warm": warm])
+      guard self.source != .camera else { return }
+      self.startCamera(position: self.cameraPosition)
     }
+    NotificationCenter.default.addObserver(forName: ControlLaunch.live, object: nil, queue: .main) { _ in
+      Task { @MainActor in takeControlLaunch(true) }
+    }
+    Task { @MainActor in takeControlLaunch(false) }
     player.actionAtItemEnd = .pause
     timeObserver = player.addPeriodicTimeObserver(
       forInterval: CMTime(value: 1, timescale: 30), queue: .main
@@ -1191,18 +1196,36 @@ final class VideoPoseSession: NSObject, ObservableObject {
     log.event(
       "set_deleted",
       ["id": entry.id, "in_photos": entry.isInPhotos, "reps": entry.repCount, "on_screen": entry.id == currentEntryID, "where": place])
+    letGo(of: entry, status: entry.isInPhotos ? "Removed from Workouts" : "Set deleted")
+    recents.remove(id: entry.id)
+  }
+
+  /// The lifter's own exercise and count for a stored set (#156, #157): it stays in Workouts as a by-hand set and
+  /// its in-app video goes (a Photos original stays in Photos). The sheet has said so before Save.
+  func keepByHand(set entry: RecentEntry, exercise: ExerciseKind, reps: Int, from place: String) {
+    log.event(
+      "set_kept_by_hand",
+      ["id": entry.id, "exercise": exercise.rawValue, "reps": reps, "was_exercise": entry.exerciseKind.rawValue,
+       "was_reps": entry.repCount, "was": entry.isByHand ? "by_hand" : entry.isInPhotos ? "photos" : "file",
+       "ignored_photo": entry.isInPhotos, "on_screen": entry.id == currentEntryID, "where": place])
+    letGo(of: entry, status: "Kept as \(reps) \(exercise.definition.name) by hand")
+    recents.keepByHand(id: entry.id, exercise: exercise, reps: reps)
+  }
+
+  /// A stored set is leaving the player (deleted, or kept by hand): when it is the one on screen the player lets go
+  /// of it, so nothing can save it back; when it is still fetching, that pending open is dropped.
+  private func letGo(of entry: RecentEntry, status: String) {
     if entry.id == currentEntryID {
       pause()
       player.replaceCurrentItem(with: nil)
       // The scratch copies of a recording or a trim; the set's own clip goes with its folder.
       if case .recording = currentOrigin, let url = currentFileURL { try? FileManager.default.removeItem(at: url) }
       if let trimmedURL { try? FileManager.default.removeItem(at: trimmedURL) }
-      closeDeletedClip(status: entry.isInPhotos ? "Removed from Workouts" : "Set deleted")
+      closeDeletedClip(status: status)
     } else if clipOperations.current?.entryID == entry.id {
-      // The deleted set is still fetching; retain the visible clip and invalidate that pending open.
+      // The set is still fetching; retain the visible clip and invalidate that pending open.
       _ = beginCurrentOperation()
     }
-    recents.remove(id: entry.id)
   }
 
   /// The clip on screen was deleted: whatever pass is still running for it must not save it. Cleared when the
@@ -1789,6 +1812,11 @@ final class VideoPoseSession: NSObject, ObservableObject {
   private(set) var cameraCancelled = false
   private var cancellables = Set<AnyCancellable>()
   private var keepAwake = KeepAwake.idle
+  private lazy var dimmer: ScreenDimmer = {
+    let dimmer = ScreenDimmer()
+    dimmer.onEvent = { [weak self] in self?.log.event($0, $1) }
+    return dimmer
+  }()
 
   /// The phone must stay in front for the watch to start a set (iOS keeps the camera and the foreground away from
   /// a backgrounded app), so while a workout runs on the wrist, or within ten minutes of the watch's last message,
@@ -1799,6 +1827,7 @@ final class VideoPoseSession: NSObject, ObservableObject {
       appActive: UIApplication.shared.applicationState == .active, recording: source == .camera,
       analyzing: currentJob != nil, watchMode: watchMode, workoutRunning: WorkoutMirror.shared.live != nil,
       lastWatchContact: watch.lastContact, now: Date())
+    dimmer.update(reason)  // every call, not just on a change: the 3 s tick is the dim's clock (#160)
     guard reason != keepAwake else { return }
     keepAwake = reason
     UIApplication.shared.isIdleTimerDisabled = reason.on
@@ -2566,6 +2595,36 @@ final class VideoPoseSession: NSObject, ObservableObject {
       lastSetPassEnded("trim failed")
       activity = .idle
     }
+  }
+
+  /// The clip on screen as a file another app can open, for the share sheet (#162): the trimmed clip when there is
+  /// one, else the original, copied under a readable name into tmp/share (a Photos clip plays from Photos' own
+  /// storage, which other apps cannot read). Nil when there is no clip or the copy fails.
+  func shareableClip() async -> URL? {
+    guard let source = trimmedURL ?? currentFileURL else { return nil }
+    let trimmed = trimmedURL != nil
+    let ext = source.pathExtension.isEmpty ? "mov" : source.pathExtension
+    let folder = FileManager.default.temporaryDirectory.appendingPathComponent("share", isDirectory: true)
+    let dest = folder.appendingPathComponent("\(exercise.definition.name) · \(reps.count) reps.\(ext)")
+    let started = Date()
+    do {
+      try? FileManager.default.removeItem(at: folder)  // one shared clip at a time
+      try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+      try await Task.detached { try FileManager.default.copyItem(at: source, to: dest) }.value
+      let bytes = (try? FileManager.default.attributesOfItem(atPath: dest.path)[.size] as? Int) ?? -1
+      log.event(
+        "share",
+        ["trimmed": trimmed, "reps": reps.count, "bytes": bytes, "copy_ms": Int(Date().timeIntervalSince(started) * 1000)])
+      return dest
+    } catch {
+      log.event("error", ["where": "share", "message": "\(error)"])
+      return nil
+    }
+  }
+
+  /// The share sheet closed: where the clip went, if anywhere.
+  func sharedClip(activity: String?, completed: Bool) {
+    log.event("share_done", ["activity": activity ?? "none", "completed": completed])
   }
 
   func saveToPhotos() {

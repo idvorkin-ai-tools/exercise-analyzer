@@ -494,3 +494,47 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
   `CameraNavigation` in ExerciseCore (host tests); the app keeps the path the camera was opened from.
 
 - **Issues:** the architecture pick on 2026-09-22; [#146](https://github.com/idvorkin/exercise-analyzer/issues/146) Cancel landed on the list instead of where the camera was opened
+
+---
+
+### User Story 062:
+
+- **Summary:** Put my own exercise and count on a set, even when the camera got it wrong, and keep it without its video
+- **Status:** implemented in [8007b50](https://github.com/idvorkin/exercise-analyzer/commit/8007b50); verified on the host (`HandSetTests`) and by build; the sheet on the phone pending
+- **Why:** Igor, 2026-09-27, from the phone on a pull-up set counted 0: "Press and hold on [the] workouts to change what it was" and "I press and hold. Let me pop up a screen to pick the exercise and pick the reps, and leave that in even though I delete the video"
+
+#### Use Case:
+- **As a** lifter looking back at a workout with a set the camera miscounted, or a set I typed as the wrong exercise
+- **I want to** say what the set was and how many reps, from a long press
+- **so that** the workout's sets and reps are right, and the set stays even when I do not keep its video
+
+#### Acceptance Criteria:
+- **Scenario:** Correcting a recorded set
+- **Given:** a pull-up set in Workouts counted 0 by the camera, its video only in the app
+- **When:** I long-press its card (day list) or its row (workout page), tap "Set exercise and reps…", leave Pull-Up picked, step the count to 6 and tap "Save 6 pull-ups"
+- **Then:** the set stays at its time with "6 pull-ups" and a "by hand" tag, no picture and no score; its video is gone from the app, as the line above Save said ("The set's video is deleted from the app; the set stays with this count."), and the workout's sets and reps count 6
+
+- **Scenario:** A set whose video is in Photos
+- **Given:** the set's video is in Photos
+- **When:** I open the same sheet
+- **Then:** the line above Save reads "The set stops pointing at its video; the video stays in Photos.", and after Save the video is still in Photos
+- **And:** the clip no longer shows in the Photos suggestions as a new set (it is listed under Ignored, 052); "Bring back" in the Ignored tab restores it
+
+- **Scenario:** Changing a set typed by hand
+- **Given:** a set typed on the wrist as 8 swings that were split squats
+- **When:** I long-press it, tap "Split Squat" and Save
+- **Then:** it reads "8 split squats · by hand", and no line about a video shows, since there is none
+
+- **Scenario:** Nothing brings the video back
+- **Given:** a re-analysis of that set was running when I saved (the launch refresh or a re-run)
+- **When:** it finishes
+- **Then:** the set keeps my exercise and count; the pass's result is dropped (`remember_skipped`)
+
+- **Notes:** The sheet shows every exercise, count-only ones included (061), as drawn tiles, the count as − N + with
+  60 pt buttons (held, they repeat), starting at the set's count (10 for a set counted 0). Save is
+  `RecentEntry.keptByHand` (ExerciseCore, host tests): same id and time, source `byHand`, no thumbnail, score, backup
+  or analysis version, so a new `AnalysisVersion` skips it; `RecentsStore.keepByHand` drops the set's folder, adds
+  a Photos clip's identifier to the suggestions' ignored list (`PhotosSuggestions.ignore`), and `save` refuses to put a pass's result over it. A set on screen is let go of as a delete does. Log:
+  `set_kept_by_hand` ([DEBUGGING.md](../DEBUGGING.md)).
+
+- **Issues:** [#156](https://github.com/idvorkin/exercise-analyzer/issues/156), [#157](https://github.com/idvorkin/exercise-analyzer/issues/157)

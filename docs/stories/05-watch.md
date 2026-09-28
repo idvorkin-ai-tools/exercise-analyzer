@@ -18,7 +18,8 @@ state and is not in the table.
 | idle | "Phone ready", exercise picker, rest length picker, the rest count while resting, the last-set line (or "Analyzing…" while the pass runs) | Start workout (green), Record (red), Preview (below it) | 017, 041, 045, 046, 047, 048 |
 | workoutStart | a workout before its first set: WORKOUT in green over the session clock (counting up by itself), "♥ 96 BPM", "0 sets · 0 reps"; no figure art, no Start workout | Record (red), Preview, "+ Set by hand" under Preview, the pickers; End workout and Discard below the pickers | 048, 059 |
 | workout | between sets the head is the rest: "REST · 1:30" in orange over the rest count, large, white until the rest length and orange after; then "♥ 128 BPM · 42:13" with the session clock small and green, "6 sets · 47 reps", the last-set line and the pickers as idle; no second rest line | Record (red), Preview, "+ Set by hand" under Preview (a Crown turn below the first screen), the pickers; End workout and Discard below the pickers (the workoutEnd shot) | 048, 050, 059 |
-| setByHand | the count page over the workout page: the exercise ("Kettlebell Swing"), one large number starting at the last set's count (9), − and + either side (44 pt), the sheet's close button | Save (green), Cancel; the Crown steps the count by one, 1…200 | 059 |
+| setByHand | the count page over the workout page: the exercise ("Kettlebell Swing ⌄"), one large number starting at the last set's count (9), − and + either side (44 pt), the sheet's close button | the exercise (opens the list), Save (green), Cancel; the Crown steps the count by one, 1…200 | 059 |
+| setByHandExercise | the count page's exercise list over it: every exercise, a green check on the current one, the sheet's close button | an exercise (sets it and closes the list) | 059 (#154) |
 | workoutEnd | the bottom of the workout page: the exercise picker's tail, then "End writes one workout to Health" under the buttons | End workout (green), Discard (red, asks first) | 048 |
 | workoutRecording | as recording, with a "♥ 141" chip between the count and the time | as recording | 048 |
 | viewfinder (Preview) | the picture filling the face, a PREVIEW chip, beside it a "REST 1:45" chip while a rest is counting (orange past the rest length), both whole inside the face, the in-frame capsule | Record (red) · Camera · Cancel; no Pause, no Done | 047, 050 |
@@ -162,7 +163,7 @@ the first frame (story 001).
 ### User Story 019:
 
 - **Summary:** The phone stays awake while the watch is in charge
-- **Status:** implemented in [73d41d5](https://github.com/idvorkin/exercise-analyzer/commit/73d41d5); on the phone, Igor's check pending; the workout and ten-minute rule (#142) in [cb20f99](https://github.com/idvorkin/exercise-analyzer/commit/cb20f99), verified on the host (`KeepAwakeTests`), on the phone since 2026-09-26, Igor's check pending (a long rest wrist-down)
+- **Status:** implemented in [73d41d5](https://github.com/idvorkin/exercise-analyzer/commit/73d41d5); on the phone, Igor's check pending; the workout and ten-minute rule (#142) in [cb20f99](https://github.com/idvorkin/exercise-analyzer/commit/cb20f99), verified on the host (`KeepAwakeTests`), on the phone since 2026-09-26, Igor's check pending (a long rest wrist-down); the dim (#160) in [a2ea685](https://github.com/idvorkin/exercise-analyzer/commit/a2ea685), verified on the host and the simulator (`SWING_LIVE_WORKOUT`), on the phone since 2026-09-27, the touch restore pending
 - **Why:** Igor (2026-09-26, #142): keep the phone awake while a workout runs on the watch, and outside one for 10 minutes after the last contact. Reachability could not decide it: with the wrist down the watch reads as unreachable most of the time (#76).
 
 #### Use Case:
@@ -186,10 +187,16 @@ the first frame (story 001).
 - **When:** ten minutes pass without a command, status, heartbeat or scene message from the watch
 - **Then:** the phone locks on its own auto-lock again; any message from the watch restarts the ten minutes
 
+- **Scenario:** Held awake, dimmed (#160)
+- **Given:** the phone is held awake for a wrist workout or the ten minutes after the watch's last message, and nothing is recording, analyzing or in watch mode
+- **When:** 30 seconds pass without a touch on the screen
+- **Then:** the screen dims to 5 % and stays on; a touch anywhere (the touch still does what it touches), Record from the wrist, a pass starting, the app leaving the front or the hold ending puts my own brightness back at once
+
 #### Notes:
 - The rule is `KeepAwake.decide` in ExerciseCore (host tests in `KeepAwakeTests`); recording, an offline pass and watch mode keep the phone awake too, and a backgrounded app never does. The phone re-checks it on every watch message, on the workout starting or ending, and on its 3 s tick. `keep_awake` logs `reason` (recording, analyzing, watch_mode, workout, watch_contact, idle, background) and `contact_s`.
+- The dim: `KeepAwake.dims` (workout, watch_contact), `dimAfter` 30 s, `dimBrightness` 0.05; `ScreenDimmer` in the app checks on each decision and the 3 s tick (so it dims 30–33 s after the last touch) and sees touches through a window recognizer that never claims them. Log: `screen_dim` (on, reason, brightness: the lifter's level it restores).
 
-- **Issues:** [#142](https://github.com/idvorkin/exercise-analyzer/issues/142) the phone locked during a rest in a wrist workout
+- **Issues:** [#142](https://github.com/idvorkin/exercise-analyzer/issues/142) the phone locked during a rest in a wrist workout; [#160](https://github.com/idvorkin/exercise-analyzer/issues/160) dim while held awake
 
 ---
 
@@ -556,7 +563,7 @@ the first frame (story 001).
 ### User Story 059:
 
 - **Summary:** Add a set I forgot to record to the workout, with its count typed on the wrist
-- **Status:** implemented in [0c07704](https://github.com/idvorkin/exercise-analyzer/commit/0c07704); verified on the host (`HandSetTests`), by build (the signed phone and watch apps) and on the watch simulator (`just watch-screens`: setByHand); phone + watch pending
+- **Status:** implemented in [0c07704](https://github.com/idvorkin/exercise-analyzer/commit/0c07704), [7a86049](https://github.com/idvorkin/exercise-analyzer/commit/7a86049) (#154, the exercise on the count page); verified on the host (`HandSetTests`), by build (the signed phone and watch apps) and on the watch simulator (`just watch-screens`: setByHand, setByHandExercise); phone + watch pending
 - **Why:** Igor, 2026-09-25, from the phone: "Let's add a watch button. Rep happened if I forgot to record." Decided 2026-09-26: a watch button adds one unrecorded set to the running workout, its count typed on the wrist, no video, no score, marked "by hand" in Workouts.
 
 #### Use Case:
@@ -570,6 +577,12 @@ the first frame (story 001).
 - **When:** I turn the Crown past Preview and tap "+ Set by hand", a full-width button under Preview and above
   the pickers (Record and Preview stay where they are; Igor's pick, 2026-09-26)
 - **Then:** a count page opens with the exercise on top (the exercise picker's choice, or the last set's exercise when the picker is on Auto, Kettlebell Swing with no set yet), one large number in the middle starting at the last set's count (10 when there is none), a − and a + either side of it, and Save (green) and Cancel under it
+
+- **Scenario:** Choosing the exercise on the count page (#154)
+- **Given:** the count page reads "Kettlebell Swing ⌄" over 8, and the set I did was split squats
+- **When:** I tap the exercise and tap "Split Squat" in the list that opens (the current one carries a green check)
+- **Then:** the list closes, the page reads "Split Squat ⌄" over the same 8, the Crown steps the count again, and
+  Save adds 8 split squats; the exercise picker on the workout page keeps its own choice
 
 - **Scenario:** Setting the count
 - **Given:** the count page reads 10
@@ -620,7 +633,85 @@ the first frame (story 001).
   source is `RecentEntry.Source.byHand`, which an index from before it never carries. Log: `watch_set_by_hand` on
   Save, `set_by_hand` (with `duplicate`) on the phone ([DEBUGGING.md](../DEBUGGING.md)).
 
-- **Issues:** [#136](https://github.com/idvorkin/exercise-analyzer/issues/136)
+- **Issues:** [#136](https://github.com/idvorkin/exercise-analyzer/issues/136),
+  [#154](https://github.com/idvorkin/exercise-analyzer/issues/154) (choose the exercise on the count page)
+
+---
+
+### User Story 061:
+
+- **Summary:** Log sit-ups and half-kneeling rotations by hand, though the camera cannot count them
+- **Status:** implemented in [674216e](https://github.com/idvorkin/exercise-analyzer/commit/674216e); verified on the host (`HandSetTests`) and by build; phone + watch pending
+- **Why:** Igor, 2026-09-27, from the phone: "An exercise to teach you sit-ups, even if I don't support videos. Also add half-kneeling rotations."
+
+#### Use Case:
+- **As a** lifter whose workout includes moves the camera does not analyze
+- **I want to** type a set of them on the wrist like any forgotten set
+- **so that** the workout's sets and reps include everything I did
+
+#### Acceptance Criteria:
+- **Scenario:** Typing a set of sit-ups
+- **Given:** a workout is running and I open "+ Set by hand" (059)
+- **When:** I tap the exercise, pick "Sit-Up" (or "Half-Kneeling Rotation") from the list, set 20 and tap Save
+- **Then:** the set counts on the wrist as "20 reps · Sit-Up · by hand", and the phone's workout page and day list
+  show it with its own drawing and colour (mint for sit-ups, indigo for rotations) and "20 sit-ups"
+
+- **Scenario:** The camera never tries to count them
+- **Given:** the exercise menus that choose what the camera analyzes, on the phone and the wrist's picker
+- **When:** I open either
+- **Then:** Sit-Up and Half-Kneeling Rotation are not offered there; they appear only in the count page's list
+
+- **Notes:** `ExerciseKind.sitUp` / `.halfKneelingRotation` with `countOnly`; the analysis pickers list
+  `ExerciseKind.analyzable`, `ExerciseMode` refuses a count-only value (a stored mode falls back to Auto), and
+  the detector never returns one. `CountOnlyAnalyzer` stands in for `makeAnalyzer()` and counts nothing. The two
+  drawings match the glyph family but are not yet approved in Lavish.
+
+- **Issues:** [#158](https://github.com/idvorkin/exercise-analyzer/issues/158)
+
+---
+
+### User Story 064:
+
+- **Summary:** The running wrist workout sits on the phone's lock screen and in the Dynamic Island, one tap back to the app
+- **Status:** implemented in [50388e1](https://github.com/idvorkin/exercise-analyzer/commit/50388e1); verified on the host (`WorkoutTests`) and the simulator (`SWING_LIVE_WORKOUT=30`: `live_activity` start, and chronod rendered the activity from the Controls extension); the phone pending
+- **Why:** Igor, 2026-09-27, from the phone: "Can we leave an icon at the top so I can get back to the workout app if I switch out or want to come back?" Picked the same day: a Live Activity. Story 044's rejection of one stands for the recording phone only; between sets the phone does sit locked or in another app.
+
+#### Use Case:
+- **As a** lifter in a wrist workout who switched to music or messages between sets
+- **I want to** see the workout at the top of the phone and tap it to get back
+- **so that** returning to the app is one tap, not a hunt through the app switcher
+
+#### Acceptance Criteria:
+- **Scenario:** In another app mid-workout
+- **Given:** a workout runs on the wrist, 6 sets and 47 reps in, and I opened Spotify on the phone
+- **When:** I look at the top of the screen
+- **Then:** the Dynamic Island shows the green figure and the workout's clock counting up; pressed, it shows WORKOUT, the clock, ♥ 128 and "6 sets · 47 reps"; a tap opens the app
+
+- **Scenario:** On the lock screen
+- **Given:** the same workout and the phone locked
+- **When:** I wake it
+- **Then:** the lock screen carries WORKOUT with the clock large, ♥ and sets · reps; a new set shows at once, heart rate refreshes at most every 30 s
+
+- **Scenario:** The workout ends
+- **Given:** the activity is up
+- **When:** I end or discard the workout on the wrist
+- **Then:** the activity goes at once
+
+- **Scenario:** A workout that started while the app was away
+- **Given:** I started the workout on the wrist with the phone app in the background
+- **When:** I next open the app
+- **Then:** the activity starts then (iOS lets an app start one only from the front), and stays up when I leave again
+
+- **Notes:** `WorkoutLiveActivity` in the app follows `WorkoutMirror.live`: start (from the front only; `deferred` logged
+  once otherwise), update per `WorkoutGlance.shouldShow` (ExerciseCore, host tests: sets or reps at once, heart rate
+  every 30 s), end on `ending` or nil. The clock is `Text(timerInterval:)` from the start, so it needs no update.
+  `WorkoutActivityAttributes` is declared in the app and in the Controls extension with the same name and shape
+  (ActivityKit matches by name; the extension links neither the app nor ExerciseCore); the view is
+  `WorkoutActivityWidget` in `ControlsBundle`. `NSSupportsLiveActivities` in Info.plist. Launch leaves an
+  activity from a previous run alone until the mirror hears of the workout (its first nil is not an end). Log:
+  `live_activity` (action: start, end with reason ended / discarded / replaced, deferred, disabled, failed).
+
+- **Issues:** [#161](https://github.com/idvorkin/exercise-analyzer/issues/161), [#153](https://github.com/idvorkin/exercise-analyzer/issues/153) (the report it was split from)
 
 ---
 
