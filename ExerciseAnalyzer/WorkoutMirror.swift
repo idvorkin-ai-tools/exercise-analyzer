@@ -117,7 +117,7 @@ final class WorkoutMirror: NSObject, ObservableObject {
   /// The running workout as a span up to now (053, #123): what its page and "‹" open, never kept.
   var liveWorkout: StoredWorkout? { live.map(Self.soFar) }
 
-  static func soFar(_ live: WorkoutWire) -> StoredWorkout {
+  nonisolated static func soFar(_ live: WorkoutWire) -> StoredWorkout {
     StoredWorkout(
       id: liveID, start: live.startDate, end: Date(), heartRateAverage: live.heartRateAverage,
       heartRateMax: live.heartRateMax, sets: live.sets, reps: live.reps)
