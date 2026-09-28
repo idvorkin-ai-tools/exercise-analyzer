@@ -172,7 +172,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 063:
 
 - **Summary:** Share the clip I am looking at
-- **Status:** implemented (commit to be recorded); verified on the simulator (`SWING_VIDEO` + `SWING_SHARE=1`: the sheet up with "Kettlebell Swing · 4 reps · Video · 1.5 MB"); the phone pending
+- **Status:** implemented in [f91a92f](https://github.com/idvorkin/exercise-analyzer/commit/f91a92f); verified on the simulator (`SWING_VIDEO` + `SWING_SHARE=1`: the sheet up with "Kettlebell Swing · 4 reps · Video · 1.5 MB"); the phone pending
 - **Why:** Igor, 2026-09-27, from the phone on a split-squat set: "Add share button to share the video clip". Decided the same day: the clip as it plays, no overlay burned in.
 
 #### Use Case:
