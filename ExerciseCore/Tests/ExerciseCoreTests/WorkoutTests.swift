@@ -73,6 +73,41 @@ final class WorkoutTests: XCTestCase {
     XCTAssertEqual(index.workouts(on: date(14, 13), calendar: calendar), [])
   }
 
+  /// #169: workouts under 30 minutes apart are one session; a longer gap starts a new one.
+  func testWorkoutsUnderHalfAnHourApartAreOneSession() {
+    let index = WorkoutIndex(workouts: [
+      StoredWorkout(id: "b", start: date(16, 7, 48), end: date(16, 7, 50), heartRateAverage: 150, heartRateMax: 170, sets: 1, reps: 8),
+      StoredWorkout(id: "a", start: date(16, 7, 0), end: date(16, 7, 30), heartRateAverage: 120, heartRateMax: 150, sets: 4, reps: 30),
+      StoredWorkout(id: "c", start: date(16, 7, 51), end: date(16, 7, 54), sets: 1, reps: 5),
+      StoredWorkout(id: "evening", start: date(16, 18), end: date(16, 19), sets: 2, reps: 20),
+    ])
+    let sessions = index.sessions()
+    XCTAssertEqual(sessions.map(\.id), ["a", "evening"])
+    let morning = sessions[0]
+    XCTAssertEqual(morning.start, date(16, 7, 0))
+    XCTAssertEqual(morning.end, date(16, 7, 54))
+    XCTAssertEqual(morning.sets, 6)
+    XCTAssertEqual(morning.reps, 43)
+    XCTAssertEqual(morning.heartRateMax, 170)
+    // 30 min at 120 and 2 min at 150, weighted by time; c has no heart rate and does not count.
+    XCTAssertEqual(morning.heartRateAverage, 122)
+    XCTAssertEqual(sessions[1], index.workouts[3])
+    // Exactly 30 minutes apart is two sessions.
+    let apart = WorkoutIndex(workouts: [
+      StoredWorkout(id: "x", start: date(16, 9), end: date(16, 9, 30)), StoredWorkout(id: "y", start: date(16, 10), end: date(16, 10, 5)),
+    ])
+    XCTAssertEqual(apart.sessions().map(\.id), ["x", "y"])
+  }
+
+  /// #169: a page opened on a workout that then merged into a session (the live one saved within 30 minutes of the
+  /// last) finds the session.
+  func testAPageFindsTheSessionItsWorkoutMergedInto() {
+    let session = StoredWorkout(id: "a", start: date(16, 7, 0), end: date(16, 7, 54))
+    XCTAssertEqual(WorkoutIdentity(start: date(16, 7, 48)).resolve(live: nil, saved: [session], now: date(16, 8)), session)
+    XCTAssertEqual(WorkoutIdentity(start: date(16, 7, 0)).resolve(live: nil, saved: [session], now: date(16, 8)), session)
+    XCTAssertNil(WorkoutIdentity(start: date(16, 8, 30)).resolve(live: nil, saved: [session], now: date(16, 9)))
+  }
+
   func testASetBelongsToTheWorkoutThatCoversItsTime() {
     let workout = StoredWorkout(start: date(16, 9, 2), end: date(16, 10))
     XCTAssertTrue(workout.contains(date(16, 9, 18)))

@@ -383,11 +383,11 @@ struct ContentView: View {
   private var workoutOfLoadedSet: StoredWorkout? {
     guard session.source == .file else { return nil }
     if path.count > 1, case .workout(let under) = path[path.count - 2] {
-      return under.resolve(live: workouts.live, saved: workouts.index.workouts, now: Date())
+      return under.resolve(live: workouts.live, saved: workouts.sessions, now: Date())
     }
     guard let start = session.currentEntry?.span.lowerBound else { return nil }
     if let live = workouts.liveWorkout, live.contains(start) { return live }
-    return workouts.index.workouts.last { $0.contains(start) }
+    return workouts.sessions.last { $0.contains(start) }
   }
 
   /// The loaded set's row of its workout's timeline, from the heart rate the session already holds for it (half

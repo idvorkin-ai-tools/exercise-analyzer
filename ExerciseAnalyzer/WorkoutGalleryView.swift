@@ -35,7 +35,7 @@ struct WorkoutGalleryView: View {
   private var knownPhotosIDs: Set<String> { Set(store.entries.compactMap(\.photosIdentifier)) }
 
   /// The days, from the sets and the workouts alike: a workout without a set on camera is still a day.
-  private var days: [WorkoutDay] { WorkoutDay.group(store.entries, workouts: workouts.index.workouts, live: workouts.live) }
+  private var days: [WorkoutDay] { WorkoutDay.group(store.entries, workouts: workouts.sessions, live: workouts.live) }
 
   /// The log, the app's home (story 058): the root of ContentView's navigation, which pushes a workout's page,
   /// a set and the camera over it.
@@ -130,7 +130,7 @@ struct WorkoutGalleryView: View {
           onOpenWorkout(live)
           onEvent?("ui", ["action": "open_live_workout"])
         } else if let hook = ProcessInfo.processInfo.environment["SWING_OPEN_WORKOUT"],
-          let workout = workouts.index.workouts.last
+          let workout = workouts.sessions.last
         {
           // Test hook: open the newest workout's page (053); simulator runs can't tap the line. "set" goes on to
           // open the workout's first set 2 s later, as a tap on its row would, for "‹ Workout".

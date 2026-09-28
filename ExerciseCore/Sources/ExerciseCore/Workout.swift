@@ -142,6 +142,37 @@ public struct WorkoutIndex: Codable, Equatable, Sendable {
     try JSONEncoder().encode(self).write(to: root.appendingPathComponent(Self.fileName), options: .atomic)
   }
 
+  /// Workouts closer than this, one's end to the next's start, are one session (#169).
+  public static let sessionGap: TimeInterval = 30 * 60
+
+  /// The workouts as the phone shows them (#169; Igor: "if I have multiple workouts with a diff of less than 30
+  /// minutes, let's just merge them into one"), in start order: a workout that starts under `gap` after the
+  /// previous one ends joins it. The session keeps the first workout's id (its heart-rate folder, re-read over the
+  /// whole span), spans first start to last end, sums sets and reps, and weights the average heart rate by time.
+  /// Health keeps its separate records.
+  public func sessions(gap: TimeInterval = sessionGap) -> [StoredWorkout] {
+    var merged: [(session: StoredWorkout, parts: [StoredWorkout])] = []
+    for workout in workouts.sorted(by: { $0.start < $1.start }) {
+      if let last = merged.last, workout.start.timeIntervalSince(last.session.end) < gap {
+        merged[merged.count - 1].parts.append(workout)
+        merged[merged.count - 1].session.end = max(last.session.end, workout.end)
+      } else {
+        merged.append((workout, [workout]))
+      }
+    }
+    return merged.map { entry in
+      guard entry.parts.count > 1 else { return entry.session }
+      var session = entry.session
+      session.sets = entry.parts.reduce(0) { $0 + $1.sets }
+      session.reps = entry.parts.reduce(0) { $0 + $1.reps }
+      session.heartRateMax = entry.parts.compactMap(\.heartRateMax).max()
+      let rated = entry.parts.compactMap { part in part.heartRateAverage.map { (bpm: Double($0), seconds: part.duration) } }
+      let seconds = rated.reduce(0) { $0 + $1.seconds }
+      session.heartRateAverage = seconds > 0 ? Int((rated.reduce(0) { $0 + $1.bpm * $1.seconds } / seconds).rounded()) : nil
+      return session
+    }
+  }
+
   /// The workouts that started on the calendar day of `date`, in start order.
   public func workouts(on date: Date, calendar: Calendar = .current) -> [StoredWorkout] {
     let day = calendar.startOfDay(for: date)

@@ -156,8 +156,8 @@ struct ExerciseGlyph: View {
       d.line([(4.5, 5), (4.5, 9)], width: 3)
       d.line([(43.5, 5), (43.5, 9)], width: 3)
 
-    // ponytail: the two count-only glyphs (#158) are drawn to match the family but not yet approved in Lavish;
-    // replace them when Igor picks drawings there.
+    // The two count-only glyphs (#158): mint sit-up rising, indigo half-kneeling turn; approved by Igor in Lavish
+    // on 2026-09-28.
     case .sitUp:
       d.circle(25, 13)
       d.line([(15, 39), (22, 21)])

@@ -12,8 +12,9 @@ public struct WorkoutIdentity: Hashable, Sendable {
   public init(start: Date) { self.start = start }
 
   public func resolve(live: WorkoutWire?, saved: [StoredWorkout], now: Date) -> StoredWorkout? {
-    // Saving publishes the index before clearing the mirror. Prefer the final record during that overlap.
-    if let ended = saved.last(where: { $0.start == start }) { return ended }
+    // Saving publishes the index before clearing the mirror. Prefer the final record during that overlap; a
+    // workout saved within 30 minutes of the one before is part of that session (#169), so it is found inside it.
+    if let ended = saved.last(where: { $0.start <= start && start <= $0.end }) { return ended }
     guard let live, live.startDate == start else { return nil }
     return StoredWorkout(
       id: Self.liveID, start: start, end: max(start, now), heartRateAverage: live.heartRateAverage,
