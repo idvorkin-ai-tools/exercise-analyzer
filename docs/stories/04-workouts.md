@@ -302,6 +302,11 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **When:** I tap the green line
 - **Then:** a page shows the heart rate from 8:43 to 9:00 with each set marked on the same time axis, and under it the sets in order with reps, score, peak heart rate and the rest that followed; tapping a set opens it
 
+- **Scenario:** The chart counts from the workout's start (#165)
+- **Given:** a 48-minute workout's page
+- **When:** I read the chart's time axis
+- **Then:** it reads time into the workout, "0 · 15 min · 30 min · 45 min", not the time of day; zoomed in to under a few minutes it steps by 15 or 30 s and reads "12:00 · 12:30"; the header and the rows keep the time of day ("8:37 AM", "Set 1 · 8:42 AM"). Rules: `ElapsedAxis` (ExerciseCore, `WorkoutTests`) (Igor, 2026-09-27: "In graph view switch to relative time not time of day")
+
 - **Scenario:** How fast the heart came down
 - **Given:** a set whose heart rate peaked at 150 ten seconds after its last rep and read 118 a minute after the set ended, with a rest of 2:15
 - **When:** I read its row

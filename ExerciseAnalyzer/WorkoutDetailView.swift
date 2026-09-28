@@ -277,6 +277,20 @@ private struct WorkoutPageView: View {
     .chartXScale(domain: windowStart == .distantPast ? workout.start...workout.start.addingTimeInterval(wholeSeconds) : windowStart...windowEnd)
     .chartYScale(domain: low...high)
     .chartYAxis(whole.isEmpty ? .hidden : .automatic)
+    // Time into the workout, not time of day (#165): "15 min", or "12:30" zoomed in.
+    .chartXAxis {
+      let from = windowStart == .distantPast ? 0 : windowStart.timeIntervalSince(workout.start)
+      let ticks = ElapsedAxis.ticks(window: from...(from + visibleSeconds))
+      let fine = ElapsedAxis.isFine(ticks)
+      AxisMarks(values: ticks.map { workout.start.addingTimeInterval($0) }) { value in
+        AxisGridLine()
+        AxisValueLabel {
+          if let date = value.as(Date.self) {
+            Text(ElapsedAxis.label(date.timeIntervalSince(workout.start), fine: fine)).monospacedDigit()
+          }
+        }
+      }
+    }
     // A tap on a set's band opens the set, like its row (#101). A band is a few points wide, so the tap takes
     // the nearest set within 24 pt, which is fewer seconds when zoomed in, as the bands are.
     .chartOverlay { proxy in

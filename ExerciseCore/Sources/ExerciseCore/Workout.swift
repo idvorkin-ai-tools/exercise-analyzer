@@ -63,6 +63,36 @@ public struct WorkoutGlance: Equatable, Sendable {
   }
 }
 
+/// The workout chart's time axis in time into the workout, not time of day (#165; Igor: "In graph view switch to
+/// relative time not time of day"): ticks on round elapsed times, about `target` across the window, labelled "15 min"
+/// or, zoomed in to steps under a minute, "12:15".
+public enum ElapsedAxis {
+  static let steps: [TimeInterval] = [15, 30, 60, 120, 300, 600, 900, 1800, 3600]
+
+  /// Seconds since `start` at which to draw a tick in `window` (seconds since start), about `target` of them.
+  public static func ticks(window: ClosedRange<TimeInterval>, target: Int = 4) -> [TimeInterval] {
+    let span = max(window.upperBound - window.lowerBound, 1)
+    let step = steps.first { span / $0 <= Double(target) } ?? steps[steps.count - 1]
+    let first = (window.lowerBound / step).rounded(.up) * step
+    return stride(from: first, through: window.upperBound, by: step).map { $0 }
+  }
+
+  /// "0", "15 min", "1 h 15 min"; with sub-minute steps, "12:15".
+  public static func label(_ seconds: TimeInterval, fine: Bool) -> String {
+    let whole = Int(seconds.rounded())
+    if fine { return String(format: "%d:%02d", whole / 60, whole % 60) }
+    let minutes = whole / 60
+    if minutes == 0 { return "0" }
+    if minutes < 60 { return "\(minutes) min" }
+    return minutes % 60 == 0 ? "\(minutes / 60) h" : "\(minutes / 60) h \(minutes % 60) min"
+  }
+
+  /// Whether `ticks` are closer than a minute, so their labels need seconds.
+  public static func isFine(_ ticks: [TimeInterval]) -> Bool {
+    zip(ticks, ticks.dropFirst()).contains { $1 - $0 < 60 }
+  }
+}
+
 /// An ended workout as the phone keeps it: the span, the heart rate, and the Health record it became.
 public struct StoredWorkout: Codable, Hashable, Identifiable, Sendable {
   public var id: String

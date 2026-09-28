@@ -10,6 +10,23 @@ import XCTest
 final class WorkoutTests: XCTestCase {
   private let calendar = Calendar(identifier: .gregorian)
 
+  /// #165: the chart's axis is time into the workout.
+  func testTheChartAxisCountsFromTheWorkoutsStart() {
+    // A 48-minute workout: ticks every 15 min.
+    XCTAssertEqual(ElapsedAxis.ticks(window: 0...2880), [0, 900, 1800, 2700])
+    XCTAssertEqual(
+      ElapsedAxis.ticks(window: 0...2880).map { ElapsedAxis.label($0, fine: false) }, ["0", "15 min", "30 min", "45 min"])
+    // Zoomed to 90 s starting 12 min in: ticks every 30 s, labelled with seconds.
+    let zoomed = ElapsedAxis.ticks(window: 720...810)
+    XCTAssertEqual(zoomed, [720, 750, 780, 810])
+    XCTAssertTrue(ElapsedAxis.isFine(zoomed))
+    XCTAssertEqual(zoomed.map { ElapsedAxis.label($0, fine: true) }, ["12:00", "12:30", "13:00", "13:30"])
+    // A long workout reads in hours.
+    XCTAssertEqual(ElapsedAxis.label(4500, fine: false), "1 h 15 min")
+    XCTAssertEqual(ElapsedAxis.label(3600, fine: false), "1 h")
+    XCTAssertFalse(ElapsedAxis.isFine(ElapsedAxis.ticks(window: 0...2880)))
+  }
+
   /// #161: the Live Activity takes a new set or rep at once, heart rate only every 30 s, nothing unchanged.
   func testTheGlanceFollowsSetsAtOnceAndHeartRateEveryThirtySeconds() {
     let t0 = Date(timeIntervalSince1970: 1000)
