@@ -24,8 +24,11 @@ carry only what was decided.
 - **Test ladder**: host `just test` (~1 s) → simulator `just test-sim` (5–8 min) → phone `just run-device`. Verify on
   the cheapest rung that can see the change and say which rung you used. The simulator runs the model on the CPU
   (~20 fps); it has no camera, no HDR, no taps: drive it with `SIMCTL_CHILD_SWING_*` hooks and wait on log events
-  ([TESTING.md](docs/TESTING.md)). A new model (a detector, a bigger pose model) is tried on the Mac first with
-  Core ML over the sample clips (`scripts/model-trials/`), never straight in the app.
+  ([TESTING.md](docs/TESTING.md)). Never run `just test-sim` while another `xcodebuild` (a signed device or
+  watch build) is running: the checks' startup waits fail under contention and a check can read the previous
+  clip's result; treat such a run as failed and rerun it once the build is done. A new model (a detector, a
+  bigger pose model) is tried on the Mac first with Core ML over the sample clips (`scripts/model-trials/`),
+  never straight in the app.
 - **Bump `AnalysisVersion.current`** (ExerciseCore/Sources/ExerciseCore/AnalysisVersion.swift) in any commit that
   changes an analyzer, the detector, or the skeleton math: stored sets re-analyze themselves against it (#19).
 - **Analysis notes live in `docs/analysis/`**. Read the exercise's file before touching its analyzer; every rule
@@ -76,15 +79,20 @@ carry only what was decided.
 - **Audio session** stays `.ambient` + `.mixWithOthers`: the app never interrupts music.
 - **Device tooling**: builds need the sandbox off and `-allowProvisioningUpdates -allowProvisioningDeviceRegistration`,
   never `-sdk` (breaks the watch target). "No provider was found" is noise. A locked phone fails launch, not install.
-  Install the watch app separately when the watch target changed ([DEBUGGING.md](docs/DEBUGGING.md)).
-- **Edit files with the Read, Edit and Write tools.** Not with Python or sed scripts wrapped in a shell command:
-  Igor reads the diffs, and a tool edit shows exactly what changed. Shell is for building, testing, git and
-  device commands.
+  Install the watch app separately when the watch target changed ([DEBUGGING.md](docs/DEBUGGING.md)); the watch
+  takes an install only awake on the wrist: tunnel errors 1011/4000, a "usage assertion" failure or a timeout mean
+  it is asleep, not that the build is bad. Say so in the handoff instead of retrying.
+- **Edit files with the Read, Edit and Write tools.** Not with Python or sed scripts wrapped in a shell command,
+  and not with code that reads a file into a string and assembles a patch (a JavaScript loop over Status lines,
+  a `*** Begin Patch` built in `exec_command`): Igor reads the diffs, and a tool edit shows exactly what changed.
+  Shell is for building, testing, git and device commands.
 - **Background agents** that investigate are read-only, in a worktree, notes under `~/tmp/agent/notes/`; confirm scope
   before an agent that writes to the repo. Reap background commands when done.
 - **An outside agent that writes (Codex, Muse) works in a Herdr worktree**: `herdr worktree create --cwd <repo>
   --branch <name> --base main`, the agent started in that worktree's pane (never `cd`'d into it), commits on its
   branch, never pushes; review every commit, then `git merge --ff-only <name>` and remove the worktree
-  ([decision](docs/architecture/2026-09-26-agent-worktrees.md)).
+  ([decision](docs/architecture/2026-09-26-agent-worktrees.md)). A fresh worktree has no `.mlpackage` (gitignored):
+  `just model` for the pose model, and copy the untracked bench detector `ExerciseAnalyzer/yoloe-26s-bench.mlpackage`
+  from the main checkout before building; never commit either.
 - **Gym-first UI**: few large targets, HUD on the video, Recents point at Photos. Propose with a numeric plan or a
   trade-off table, then one "do it".
