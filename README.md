@@ -129,7 +129,7 @@ tooling and the bug monitor loop: [docs/DEBUGGING.md](docs/DEBUGGING.md).
 | `ExerciseCore/` | The analysis package: skeleton math, analyzers, the offline pass, fixtures and tests. No UIKit. |
 | `ExerciseAnalyzer/` | The iPhone app: camera, recording, playback, the HUD, the galleries, the watch bridge. |
 | `ExerciseAnalyzerWatch/` | The watch app and its face complication. |
-| `ExerciseAnalyzerControls/` | The lock-screen control that opens the app on Live. |
+| `ExerciseAnalyzerControls/` | The lock-screen control that opens the app on Live, and the running workout's Live Activity. |
 | `docs/` | Stories, analysis notes, testing and debugging guides, screenshots. |
 
 Working on it with an agent? Start at [AGENTS.md](AGENTS.md).
