@@ -664,7 +664,7 @@ the first frame (story 001).
 - **Notes:** `ExerciseKind.sitUp` / `.halfKneelingRotation` with `countOnly`; the analysis pickers list
   `ExerciseKind.analyzable`, `ExerciseMode` refuses a count-only value (a stored mode falls back to Auto), and
   the detector never returns one. `CountOnlyAnalyzer` stands in for `makeAnalyzer()` and counts nothing. The two
-  drawings match the glyph family but are not yet approved in Lavish.
+  drawings match the glyph family; Igor approved both in Lavish on 2026-09-28 ("Both approved").
 
 - **Issues:** [#158](https://github.com/idvorkin/exercise-analyzer/issues/158)
 
