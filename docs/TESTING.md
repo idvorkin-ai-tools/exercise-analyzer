@@ -158,7 +158,7 @@ The simulator cannot be tapped from a script, so the app has **launch hooks** re
 | `SWING_OPEN_RECENT=1` | reopen the newest Recents entry |
 | `SWING_BUG=text` | file a bug report on launch |
 | `SWING_SHOW_GALLERY=1` | open the rep gallery sheet on launch (gallery screenshots, #61) |
-| `SWING_WORKOUTS_FOLDED=1` | every day starts folded, so the folded headers' "8×8 [swing]" chips (#129) and the workout lines under them are on the first screen |
+| `SWING_WORKOUTS_FOLDED=1` | every day without a workout starts folded (a workout day never folds, #163), so the folded headers' "8×8 [swing]" chips (#129) and the workout days' lines are on the first screen |
 | `SWING_HEART_RATE=1` | give the loaded clip a made-up heart rate (118 → 150 over 30 s, a reading every 5 s) so the HUD's ♥ chip shows; the simulator has no Health data (051) |
 | `SWING_OPEN_WORKOUT=1` | push the newest stored workout's page over the log at launch (053); `=set` goes on to open the workout's first set 2 s later, as a tap on its row would, which puts "‹ Workout" on the playback screen. The simulator has no Health: seed `Documents/workouts.json` with a workout that covers some stored sets and `Documents/workouts/<id>/heartrate.json` (`{"samples":[{"at": <seconds since 1970>, "bpm": 120}, …]}`) in the app's data container; index dates are seconds since 2001 |
 | `SWING_WORKOUT_EVOLVE=1` | simulator-only, with `SWING_LIVE_WORKOUT=2`: the open page receives one in-memory 8-rep set immediately and a second 3 s later, then ends the workout at 25 s through the mirror's save path. `ONLY=live_workout just test-sim` checks `workout_page` goes from 1 to 2 sets / 16 reps, its duration and window grow, Health is re-asked, and the saved page retains both sets. No video or analysis is seeded |

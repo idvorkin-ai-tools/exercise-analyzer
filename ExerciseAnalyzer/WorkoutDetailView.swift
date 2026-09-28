@@ -90,6 +90,8 @@ private struct WorkoutPageView: View {
   var onKeepByHand: ((RecentEntry, ExerciseKind, Int) -> Void)?
   @State private var deleting: RecentEntry?
   @State private var editing: RecentEntry?
+  /// The set list by exercise instead of by time (#164), remembered across workouts.
+  @AppStorage("workoutPageGrouped") private var grouped = false
   private var workout: StoredWorkout { snapshot.workout }
   /// The rows' pictures by set id, read once (see `.task`).
   @State private var thumbnails: [String: UIImage] = [:]
@@ -142,31 +144,30 @@ private struct WorkoutPageView: View {
           Text("♥ peak · drop in the 60 s after the set, or in the rest when it was shorter (−20/30s) · rest before the next")
             .font(.caption).foregroundStyle(.secondary)
         }
+        if timeline.groups.count > 1 {
+          // Time or Grouped (#164; Igor: "let me switch from grouped to time"): the sets in the order they came,
+          // or by exercise with each exercise's reps; the choice stays for the next workout.
+          Picker("Order", selection: $grouped) {
+            Text("Time").tag(false)
+            Text("Grouped").tag(true)
+          }
+          .pickerStyle(.segmented)
+        }
         VStack(spacing: 8) {
-          ForEach(Array(timeline.rows.enumerated()), id: \.element.id) { index, row in
-            if row.byHand {
-              // Typed on the wrist (059): no video to open; a long press changes it (#156) or removes it, asking
-              // first (056).
-              SetTimelineRow(number: index + 1, row: row, thumbnail: nil)
-                .contextMenu {
-                  if let entry = sets.first(where: { $0.id == row.id }) {
-                    if onKeepByHand != nil { Button("Set exercise and reps…") { editing = entry } }
-                    if onDelete != nil { Button("Remove from Workouts…", role: .destructive) { deleting = entry } }
-                  }
-                }
-            } else {
-              Button {
-                if let entry = sets.first(where: { $0.id == row.id }) { onOpen(entry) }
-              } label: {
-                SetTimelineRow(number: index + 1, row: row, thumbnail: thumbnails[row.id])
+          if grouped && timeline.groups.count > 1 {
+            ForEach(timeline.groups) { group in
+              HStack(spacing: 8) {
+                ExerciseGlyph(kind: group.exercise, size: 20)
+                Text("\(group.sets.count) set\(group.sets.count == 1 ? "" : "s") · \(group.reps) \(group.exercise.repWord(group.reps))")
+                  .font(.subheadline.bold()).monospacedDigit()
+                Spacer()
               }
-              .buttonStyle(.plain)
-              .contextMenu {
-                // A count the camera got wrong becomes the lifter's own, the video going (#157).
-                if onKeepByHand != nil, let entry = sets.first(where: { $0.id == row.id }) {
-                  Button("Set exercise and reps…") { editing = entry }
-                }
-              }
+              .padding(.top, 6)
+              ForEach(group.sets, id: \.row.id) { set in setRow(number: set.number, row: set.row) }
+            }
+          } else {
+            ForEach(Array(timeline.rows.enumerated()), id: \.element.id) { index, row in
+              setRow(number: index + 1, row: row)
             }
           }
         }
@@ -205,7 +206,34 @@ private struct WorkoutPageView: View {
         "workout_page",
         ["sets": value.sets, "reps": value.reps, "heart_rate_samples": value.samples,
          "live": workout.id == WorkoutMirror.liveID, "workout_id": workout.id,
-         "duration_s": workout.duration, "window_s": visibleSeconds])
+         "duration_s": workout.duration, "window_s": visibleSeconds, "grouped": grouped])
+    }
+  }
+
+  @ViewBuilder private func setRow(number: Int, row: WorkoutTimeline.SetRow) -> some View {
+    if row.byHand {
+      // Typed on the wrist (059): no video to open; a long press changes it (#156) or removes it, asking
+      // first (056).
+      SetTimelineRow(number: number, row: row, thumbnail: nil)
+        .contextMenu {
+          if let entry = sets.first(where: { $0.id == row.id }) {
+            if onKeepByHand != nil { Button("Set exercise and reps…") { editing = entry } }
+            if onDelete != nil { Button("Remove from Workouts…", role: .destructive) { deleting = entry } }
+          }
+        }
+    } else {
+      Button {
+        if let entry = sets.first(where: { $0.id == row.id }) { onOpen(entry) }
+      } label: {
+        SetTimelineRow(number: number, row: row, thumbnail: thumbnails[row.id])
+      }
+      .buttonStyle(.plain)
+      .contextMenu {
+        // A count the camera got wrong becomes the lifter's own, the video going (#157).
+        if onKeepByHand != nil, let entry = sets.first(where: { $0.id == row.id }) {
+          Button("Set exercise and reps…") { editing = entry }
+        }
+      }
     }
   }
 
@@ -277,6 +305,20 @@ private struct WorkoutPageView: View {
     .chartXScale(domain: windowStart == .distantPast ? workout.start...workout.start.addingTimeInterval(wholeSeconds) : windowStart...windowEnd)
     .chartYScale(domain: low...high)
     .chartYAxis(whole.isEmpty ? .hidden : .automatic)
+    // Time into the workout, not time of day (#165): "15 min", or "12:30" zoomed in.
+    .chartXAxis {
+      let from = windowStart == .distantPast ? 0 : windowStart.timeIntervalSince(workout.start)
+      let ticks = ElapsedAxis.ticks(window: from...(from + visibleSeconds))
+      let fine = ElapsedAxis.isFine(ticks)
+      AxisMarks(values: ticks.map { workout.start.addingTimeInterval($0) }) { value in
+        AxisGridLine()
+        AxisValueLabel {
+          if let date = value.as(Date.self) {
+            Text(ElapsedAxis.label(date.timeIntervalSince(workout.start), fine: fine)).monospacedDigit()
+          }
+        }
+      }
+    }
     // A tap on a set's band opens the set, like its row (#101). A band is a few points wide, so the tap takes
     // the nearest set within 24 pt, which is fewer seconds when zoomed in, as the bands are.
     .chartOverlay { proxy in

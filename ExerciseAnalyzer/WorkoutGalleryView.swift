@@ -69,9 +69,12 @@ struct WorkoutGalleryView: View {
                 .padding(.top, 8)
               }
               ForEach(days) { day in
+                // A workout day does not fold (#163; Igor: "don't let me expand a workout, just make me click on
+                // it"): its workout lines open the page, and only the sets outside every workout sit under them.
+                let folded = !day.hasWorkout && collapsed.contains(day.date)
                 Section {
-                  if !collapsed.contains(day.date) {
-                    ForEach(day.exercises) { exercise in
+                  if !folded {
+                    ForEach(day.hasWorkout ? day.outsideWorkouts : day.exercises) { exercise in
                       ExerciseSetsRow(
                         group: exercise, store: store,
                         onOpen: onOpen,
@@ -90,8 +93,8 @@ struct WorkoutGalleryView: View {
                   }
                 } header: {
                   DayHeader(
-                    day: day, collapsed: collapsed.contains(day.date),
-                    onToggle: {
+                    day: day, collapsed: folded,
+                    onToggle: day.hasWorkout ? nil : {
                       let opening = collapsed.contains(day.date)
                       onEvent?("workouts_day", ["day": Self.dayKey.string(from: day.date), "opened": opening])
                       withAnimation(.easeInOut(duration: 0.2)) {
@@ -262,17 +265,33 @@ struct WorkoutDay: Identifiable {
     if let live { days.insert(calendar.startOfDay(for: live.startDate)) }
     return days.sorted(by: >).map { day in
       let sets = (byDay[day] ?? []).sorted { $0.start < $1.start }
-      var order: [ExerciseKind] = []
-      var groups: [ExerciseKind: [RecentEntry]] = [:]
-      for set in sets {
-        if groups[set.exerciseKind] == nil { order.append(set.exerciseKind) }
-        groups[set.exerciseKind, default: []].append(set)
-      }
       let liveToday = live.flatMap { calendar.startOfDay(for: $0.startDate) == day ? $0 : nil }
       return WorkoutDay(
-        date: day, exercises: order.map { ExerciseSets(kind: $0, sets: groups[$0]!) },
+        date: day, exercises: exercises(of: sets),
         workouts: (workoutsByDay[day] ?? []).sorted { $0.start < $1.start }, live: liveToday)
     }
+  }
+
+  /// The sets by exercise, in the order each was first done.
+  static func exercises(of sets: [RecentEntry]) -> [ExerciseSets] {
+    var order: [ExerciseKind] = []
+    var groups: [ExerciseKind: [RecentEntry]] = [:]
+    for set in sets {
+      if groups[set.exerciseKind] == nil { order.append(set.exerciseKind) }
+      groups[set.exerciseKind, default: []].append(set)
+    }
+    return order.map { ExerciseSets(kind: $0, sets: groups[$0]!) }
+  }
+
+  /// A day the wrist ran a workout on (048): its workout lines are how in, the day does not fold (#163).
+  var hasWorkout: Bool { !workouts.isEmpty || live != nil }
+
+  /// The day's sets that fall in none of its workouts, by exercise (#163): a workout day shows only these under
+  /// its workout lines, the rest are on the workout's page. A set belongs to a workout as it does there (053).
+  var outsideWorkouts: [ExerciseSets] {
+    let spans = workouts + (live.map { [WorkoutMirror.soFar($0)] } ?? [])
+    return Self.exercises(of: exercises.flatMap(\.sets).filter { set in !spans.contains { $0.contains(set.span.lowerBound) } }
+      .sorted { $0.start < $1.start })
   }
 }
 
@@ -351,10 +370,13 @@ struct DayHeader: View {
         onToggle?()
       } label: {
         HStack(alignment: .firstTextBaseline) {
-          Image(systemName: "chevron.right")
-            .font(.caption.bold())
-            .rotationEffect(.degrees(collapsed ? 0 : 90))
-            .foregroundStyle(.secondary)
+          // No arrow where the day does not fold (a workout day, #163).
+          if onToggle != nil {
+            Image(systemName: "chevron.right")
+              .font(.caption.bold())
+              .rotationEffect(.degrees(collapsed ? 0 : 90))
+              .foregroundStyle(.secondary)
+          }
           Text(title).font(.title3.bold())
           if title == "Today" || title == "Yesterday" {
             Text(dateLine).font(.subheadline).foregroundStyle(.secondary)
@@ -379,9 +401,10 @@ struct DayHeader: View {
         .contentShape(Rectangle())
       }
       .buttonStyle(.plain)
-      .accessibilityLabel("\(title), \(collapsed ? spokenExercises : summary), \(collapsed ? "collapsed" : "expanded")")
+      .accessibilityLabel(
+        "\(title), \(collapsed ? spokenExercises : summary)" + (onToggle == nil ? "" : ", \(collapsed ? "collapsed" : "expanded")"))
       // The day's workouts from the wrist (048): the hour, its heart rate, and that it is in Health. Each line
-      // is its own target and opens the workout's page (053); the header above it still folds the day.
+      // is its own target and opens the workout's page (053); a workout day has no fold of its own (#163).
       ForEach(workoutLines, id: \.workout.id) { line in
         Button {
           onOpenWorkout?(line.workout)
