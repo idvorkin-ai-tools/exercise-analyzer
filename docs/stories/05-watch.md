@@ -163,7 +163,7 @@ the first frame (story 001).
 ### User Story 019:
 
 - **Summary:** The phone stays awake while the watch is in charge
-- **Status:** implemented in [73d41d5](https://github.com/idvorkin/exercise-analyzer/commit/73d41d5); on the phone, Igor's check pending; the workout and ten-minute rule (#142) in [cb20f99](https://github.com/idvorkin/exercise-analyzer/commit/cb20f99), verified on the host (`KeepAwakeTests`), on the phone since 2026-09-26, Igor's check pending (a long rest wrist-down)
+- **Status:** implemented in [73d41d5](https://github.com/idvorkin/exercise-analyzer/commit/73d41d5); on the phone, Igor's check pending; the workout and ten-minute rule (#142) in [cb20f99](https://github.com/idvorkin/exercise-analyzer/commit/cb20f99), verified on the host (`KeepAwakeTests`), on the phone since 2026-09-26, Igor's check pending (a long rest wrist-down); the dim (#160) in [a2ea685](https://github.com/idvorkin/exercise-analyzer/commit/a2ea685), verified on the host and the simulator (`SWING_LIVE_WORKOUT`), on the phone since 2026-09-27, the touch restore pending
 - **Why:** Igor (2026-09-26, #142): keep the phone awake while a workout runs on the watch, and outside one for 10 minutes after the last contact. Reachability could not decide it: with the wrist down the watch reads as unreachable most of the time (#76).
 
 #### Use Case:
