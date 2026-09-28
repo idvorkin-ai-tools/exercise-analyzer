@@ -45,7 +45,7 @@ final class WorkoutLiveActivity {
     mirror.$live.dropFirst().receive(on: DispatchQueue.main).sink { [weak self] in self?.follow($0) }
       .store(in: &cancellables)
     NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)
-      .sink { [weak self] _ in self?.follow(mirror.live) }.store(in: &cancellables)
+      .sink { [weak self] _ in if let live = mirror.live { self?.follow(live) } }.store(in: &cancellables)
   }
 
   private func follow(_ live: WorkoutWire?) {

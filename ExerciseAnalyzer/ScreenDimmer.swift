@@ -12,6 +12,9 @@ import UIKit
 final class ScreenDimmer {
   var onEvent: ((String, [String: Any]) -> Void)?
   private var lastTouch = Date()
+  /// Whether the last update's hold dims. The clock restarts on entering one (the app back in front included,
+  /// since a backgrounded app's hold does not dim), so the 30 s counts only time the app is in front.
+  private var dimming = false
   /// The lifter's brightness while dimmed; nil when not dimmed.
   private var restoreTo: CGFloat?
   private weak var watchedWindow: UIWindow?
@@ -19,10 +22,12 @@ final class ScreenDimmer {
   /// Called on every keep-awake decision and on the session's 3 s tick.
   func update(_ reason: KeepAwake, now: Date = Date()) {
     watchTouches()
+    defer { dimming = reason.dims }
     guard reason.dims else {
       restore(reason: reason.rawValue)
       return
     }
+    if !dimming { lastTouch = now }
     guard restoreTo == nil, now.timeIntervalSince(lastTouch) >= KeepAwake.dimAfter, let screen else { return }
     restoreTo = screen.brightness
     screen.brightness = CGFloat(KeepAwake.dimBrightness)
