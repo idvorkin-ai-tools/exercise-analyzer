@@ -166,3 +166,31 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Notes:** The stored analysis (`analysis.json` per set, story 035) already keeps every pose, so a trim replays it rather than re-running the models; that is the "data file for what we processed" the same report asked for. The gap threshold and whether a hand-trim gets a control for it are open.
 
 - **Issues:** [#83](https://github.com/idvorkin/exercise-analyzer/issues/83)
+
+---
+
+### User Story 063:
+
+- **Summary:** Share the clip I am looking at
+- **Status:** implemented (commit to be recorded); verified on the simulator (`SWING_VIDEO` + `SWING_SHARE=1`: the sheet up with "Kettlebell Swing · 4 reps · Video · 1.5 MB"); the phone pending
+- **Why:** Igor, 2026-09-27, from the phone on a split-squat set: "Add share button to share the video clip". Decided the same day: the clip as it plays, no overlay burned in.
+
+#### Use Case:
+- **As a** lifter who just looked at a set
+- **I want to** send its video from the player in one tap
+- **so that** a coach or a friend gets it without me digging it out of Photos
+
+#### Acceptance Criteria:
+- **Scenario:** Sharing a trimmed set
+- **Given:** an 85 s split-squat set trimmed to its 11 reps is on the player
+- **When:** I tap the share button (the box with the arrow up, next to Save to Photos)
+- **Then:** the video pauses and the iOS share sheet opens with the trimmed clip, named "Split Squat · 11 reps", for Messages, AirDrop, Save to Files and the rest
+
+- **Scenario:** A set from Photos, untrimmed
+- **Given:** a set opened from Photos and not trimmed
+- **When:** I tap share
+- **Then:** the sheet offers the original clip, the same way; nothing in Photos changes
+
+- **Notes:** The clip is copied into `tmp/share/` under its readable name first (a Photos clip plays from Photos' storage, which other apps cannot open; one copy at a time, the last one removed at the next share). No re-encode, no skeleton or HUD: the pixels are the clip's. The button is off while a pass or a trim runs. Log: `share` (trimmed, reps, bytes, copy_ms), `share_done` (activity, completed).
+
+- **Issues:** [#162](https://github.com/idvorkin/exercise-analyzer/issues/162)

@@ -2595,6 +2595,36 @@ final class VideoPoseSession: NSObject, ObservableObject {
     }
   }
 
+  /// The clip on screen as a file another app can open, for the share sheet (#162): the trimmed clip when there is
+  /// one, else the original, copied under a readable name into tmp/share (a Photos clip plays from Photos' own
+  /// storage, which other apps cannot read). Nil when there is no clip or the copy fails.
+  func shareableClip() async -> URL? {
+    guard let source = trimmedURL ?? currentFileURL else { return nil }
+    let trimmed = trimmedURL != nil
+    let ext = source.pathExtension.isEmpty ? "mov" : source.pathExtension
+    let folder = FileManager.default.temporaryDirectory.appendingPathComponent("share", isDirectory: true)
+    let dest = folder.appendingPathComponent("\(exercise.definition.name) · \(reps.count) reps.\(ext)")
+    let started = Date()
+    do {
+      try? FileManager.default.removeItem(at: folder)  // one shared clip at a time
+      try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+      try await Task.detached { try FileManager.default.copyItem(at: source, to: dest) }.value
+      let bytes = (try? FileManager.default.attributesOfItem(atPath: dest.path)[.size] as? Int) ?? -1
+      log.event(
+        "share",
+        ["trimmed": trimmed, "reps": reps.count, "bytes": bytes, "copy_ms": Int(Date().timeIntervalSince(started) * 1000)])
+      return dest
+    } catch {
+      log.event("error", ["where": "share", "message": "\(error)"])
+      return nil
+    }
+  }
+
+  /// The share sheet closed: where the clip went, if anywhere.
+  func sharedClip(activity: String?, completed: Bool) {
+    log.event("share_done", ["activity": activity ?? "none", "completed": completed])
+  }
+
   func saveToPhotos() {
     guard let url = trimmedURL ?? currentFileURL else { return }
     let operation = beginCurrentOperation()

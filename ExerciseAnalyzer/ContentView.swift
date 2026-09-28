@@ -39,6 +39,8 @@ struct ContentView: View {
   @State private var lastClockLog = Date.distantPast
   @State private var showBugReport = false
   @State private var showGallery = false
+  /// The clip copied for the share sheet, while the sheet is up (#162).
+  @State private var sharing: SharedClip?
   @State private var showKeyframeViewer = false
   @State private var focusedPhase: String?
   @State private var focusedRep: Int?
@@ -213,6 +215,10 @@ struct ContentView: View {
       ) { position in
         chromeSeek(to: position.time, from: "keyframe_viewer")
       }
+    }
+    .sheet(item: $sharing) { clip in
+      ShareSheet(items: [clip.url]) { session.sharedClip(activity: $0, completed: $1) }
+        .presentationDetents([.medium, .large])
     }
   }
 
@@ -927,6 +933,16 @@ struct ContentView: View {
             Label("Save to Photos", systemImage: "square.and.arrow.down")
           }
         }
+        // The clip as it plays, trimmed or not, to Messages, AirDrop, Files… (#162).
+        if session.duration > 0 {
+          Button {
+            session.pause()
+            Task { sharing = await session.shareableClip().map(SharedClip.init) }
+          } label: {
+            Label("Share clip", systemImage: "square.and.arrow.up")
+          }
+          .disabled(session.activity != .idle)
+        }
         // A stored set can be thrown away from where it is looked at (#111); the dialog says what goes with it.
         if let entry = session.currentEntry {
           Button(role: .destructive) {
@@ -1018,6 +1034,18 @@ struct ContentView: View {
     }
     guard let path = env["SWING_VIDEO"], !path.isEmpty else { return }
     session.load(url: URL(fileURLWithPath: path))
+    // Test hook (#162): once the clip is analyzed, what the share button does, so the sheet is up for a screenshot
+    // and the log has `share`.
+    if env["SWING_SHARE"] == "1" {
+      Task { @MainActor in
+        for _ in 0..<120 {
+          try? await Task.sleep(for: .seconds(1))
+          if session.duration > 0, !session.reps.isEmpty, session.activity == .idle { break }
+        }
+        session.pause()
+        sharing = await session.shareableClip().map(SharedClip.init)
+      }
+    }
   }
 }
 
