@@ -114,6 +114,12 @@ final class WorkoutMirror: NSObject, ObservableObject {
   /// The id the page of 053 gives the running workout, shown as a span up to now.
   static let liveID = WorkoutIdentity.liveID
 
+  /// The ended workouts as the phone shows them: those under 30 minutes apart are one session (#169). Health
+  /// keeps its records; the list, the page and "‹ Workout" read these.
+  // ponytail: the running workout is not merged with one that ended under 30 minutes before it; it joins that
+  // session once it ends. Upgrade: give `liveWorkout` the earlier session's start and hide that session.
+  var sessions: [StoredWorkout] { index.sessions() }
+
   /// The running workout as a span up to now (053, #123): what its page and "‹" open, never kept.
   var liveWorkout: StoredWorkout? { live.map(Self.soFar) }
 
