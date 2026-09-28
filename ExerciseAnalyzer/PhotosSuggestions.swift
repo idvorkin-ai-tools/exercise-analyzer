@@ -32,16 +32,23 @@ final class PhotosSuggestions: ObservableObject {
   private var thumbnails: [String: UIImage] = [:]
   /// Photos identifiers already in Workouts, kept so a refresh after granting access marks them too.
   private var known: Set<String> = []
-  /// Photos identifiers the lifter marked "Not a workout clip" (052). Kept in UserDefaults: a few dozen strings.
-  private var ignored = Set(UserDefaults.standard.stringArray(forKey: "ignoredPhotosClips") ?? [])
+  /// Photos identifiers the lifter marked "Not a workout clip" (052), or whose set was kept by hand (062). Kept in
+  /// UserDefaults: a few dozen strings.
+  private static var ignored: Set<String> {
+    get { Set(UserDefaults.standard.stringArray(forKey: "ignoredPhotosClips") ?? []) }
+    set { UserDefaults.standard.set(newValue.sorted(), forKey: "ignoredPhotosClips") }
+  }
+
+  /// A Photos clip whose set was kept by hand (062) goes to Ignored, so it is not offered as a new set again;
+  /// "Bring back" returns it.
+  static func ignore(identifier: String) { ignored.insert(identifier) }
 
   func clips(in state: PhotosClipState) -> [Clip] { clips.filter { $0.state == state } }
 
   /// "Not a workout clip" and "Bring back": the clip changes tab now and stays there across launches.
   func setIgnored(_ clip: Clip, _ isIgnored: Bool) {
-    if isIgnored { ignored.insert(clip.id) } else { ignored.remove(clip.id) }
-    UserDefaults.standard.set(ignored.sorted(), forKey: "ignoredPhotosClips")
-    onEvent?("photos_ignore", ["ignored": isIgnored, "total_ignored": ignored.count])
+    if isIgnored { Self.ignored.insert(clip.id) } else { Self.ignored.remove(clip.id) }
+    onEvent?("photos_ignore", ["ignored": isIgnored, "total_ignored": Self.ignored.count])
     refresh(known: known)
   }
 
@@ -75,7 +82,7 @@ final class PhotosSuggestions: ObservableObject {
       ids.append(asset.localIdentifier)
     }
     // Each tab keeps its own newest `limit`, so ignored and analyzed clips cannot push new ones off the strip.
-    let tabs = PhotosClipState.tabs(ids: ids, known: known, ignored: ignored, limit: Self.limit)
+    let tabs = PhotosClipState.tabs(ids: ids, known: known, ignored: Self.ignored, limit: Self.limit)
     let found = PhotosClipState.allCases.flatMap { state in
       (tabs[state] ?? []).compactMap { id in assets[id].map { Clip(asset: $0, state: state) } }
     }

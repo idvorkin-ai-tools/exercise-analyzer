@@ -84,6 +84,7 @@ struct WorkoutGalleryView: View {
                           } else {
                             store.keepByHand(id: entry.id, exercise: kind, reps: reps)
                           }
+                          if entry.isInPhotos { suggestions.refresh(known: knownPhotosIDs) }
                         })
                     }
                   }

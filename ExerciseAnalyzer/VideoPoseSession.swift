@@ -1207,7 +1207,7 @@ final class VideoPoseSession: NSObject, ObservableObject {
       "set_kept_by_hand",
       ["id": entry.id, "exercise": exercise.rawValue, "reps": reps, "was_exercise": entry.exerciseKind.rawValue,
        "was_reps": entry.repCount, "was": entry.isByHand ? "by_hand" : entry.isInPhotos ? "photos" : "file",
-       "on_screen": entry.id == currentEntryID, "where": place])
+       "ignored_photo": entry.isInPhotos, "on_screen": entry.id == currentEntryID, "where": place])
     letGo(of: entry, status: "Kept as \(reps) \(exercise.definition.name) by hand")
     recents.keepByHand(id: entry.id, exercise: exercise, reps: reps)
   }

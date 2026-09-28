@@ -518,6 +518,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Given:** the set's video is in Photos
 - **When:** I open the same sheet
 - **Then:** the line above Save reads "The set stops pointing at its video; the video stays in Photos.", and after Save the video is still in Photos
+- **And:** the clip no longer shows in the Photos suggestions as a new set (it is listed under Ignored, 052); "Bring back" in the Ignored tab restores it
 
 - **Scenario:** Changing a set typed by hand
 - **Given:** a set typed on the wrist as 8 swings that were split squats
@@ -532,8 +533,8 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Notes:** The sheet shows every exercise, count-only ones included (061), as drawn tiles, the count as − N + with
   60 pt buttons (held, they repeat), starting at the set's count (10 for a set counted 0). Save is
   `RecentEntry.keptByHand` (ExerciseCore, host tests): same id and time, source `byHand`, no thumbnail, score, backup
-  or analysis version, so a new `AnalysisVersion` skips it; `RecentsStore.keepByHand` drops the set's folder and
-  `save` refuses to put a pass's result over it. A set on screen is let go of as a delete does. Log:
+  or analysis version, so a new `AnalysisVersion` skips it; `RecentsStore.keepByHand` drops the set's folder, adds
+  a Photos clip's identifier to the suggestions' ignored list (`PhotosSuggestions.ignore`), and `save` refuses to put a pass's result over it. A set on screen is let go of as a delete does. Log:
   `set_kept_by_hand` ([DEBUGGING.md](../DEBUGGING.md)).
 
 - **Issues:** [#156](https://github.com/idvorkin/exercise-analyzer/issues/156), [#157](https://github.com/idvorkin/exercise-analyzer/issues/157)

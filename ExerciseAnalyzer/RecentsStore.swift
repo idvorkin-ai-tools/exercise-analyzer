@@ -130,9 +130,11 @@ final class RecentsStore: ObservableObject {
   }
 
   /// The lifter's own exercise and count for a set (#156, #157): the entry becomes a by-hand set in place and its
-  /// folder goes (an in-app clip, the pictures, the analysis); a Photos original stays in Photos.
+  /// folder goes (an in-app clip, the pictures, the analysis); a Photos original stays in Photos, moved to the
+  /// suggestions' Ignored tab so it is not offered as a new set.
   func keepByHand(id: String, exercise: ExerciseKind, reps: Int) {
     guard let entry = entry(id: id) else { return }
+    if let identifier = entry.photosIdentifier { PhotosSuggestions.ignore(identifier: identifier) }
     let kept = entry.keptByHand(exercise: exercise, reps: reps)
     entries = entries.map { $0.id == id ? kept : $0 }
     try? FileManager.default.removeItem(at: folder(for: id))
