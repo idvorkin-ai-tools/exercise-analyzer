@@ -101,6 +101,26 @@ public struct WorkoutTimeline: Equatable {
     restSeconds = rows.compactMap(\.restAfter).reduce(0, +)
   }
 
+  /// The page's Grouped list (#164): one group per exercise in the order each first came, its sets keeping the
+  /// number they have in time order.
+  public struct Group: Equatable, Identifiable {
+    public let exercise: ExerciseKind
+    public let sets: [(number: Int, row: SetRow)]
+    public var id: ExerciseKind { exercise }
+    public var reps: Int { sets.reduce(0) { $0 + $1.row.reps } }
+
+    public static func == (a: Group, b: Group) -> Bool {
+      a.exercise == b.exercise && a.sets.map(\.number) == b.sets.map(\.number) && a.sets.map(\.row) == b.sets.map(\.row)
+    }
+  }
+
+  public var groups: [Group] {
+    let numbered = rows.enumerated().map { (number: $0.offset + 1, row: $0.element) }
+    var order: [ExerciseKind] = []
+    for row in rows where !order.contains(row.exercise) { order.append(row.exercise) }
+    return order.map { kind in Group(exercise: kind, sets: numbered.filter { $0.row.exercise == kind }) }
+  }
+
   /// The set a tap on the chart at `time` means (#101): the one the time falls in, else the nearest within `slop`
   /// seconds (a set's band is a few points wide, a thumb is not), else none. A set typed by hand has nothing to
   /// open, so it never takes the tap from a recorded set beside it (059).

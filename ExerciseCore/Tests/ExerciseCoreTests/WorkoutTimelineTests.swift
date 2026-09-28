@@ -7,10 +7,13 @@ import XCTest
 final class WorkoutTimelineTests: XCTestCase {
   private func date(_ t: Double) -> Date { Date(timeIntervalSince1970: t) }
 
-  private func set(_ id: String, clipStart: Double? = nil, recorded: Double? = nil, duration: Double = 25, reps: Int = 10) -> RecentEntry {
+  private func set(
+    _ id: String, clipStart: Double? = nil, recorded: Double? = nil, duration: Double = 25, reps: Int = 10,
+    exercise: ExerciseKind = .kettlebellSwing
+  ) -> RecentEntry {
     RecentEntry(
       id: id, analyzedAt: date(9_999), recordedAt: recorded.map(date), duration: duration, repCount: reps, bestScore: 80,
-      source: .file(name: "clip.mov"), thumbnail: nil, exercise: .kettlebellSwing, originalName: nil,
+      source: .file(name: "clip.mov"), thumbnail: nil, exercise: exercise, originalName: nil,
       clipStartedAt: clipStart.map(date))
   }
 
@@ -107,6 +110,21 @@ final class WorkoutTimelineTests: XCTestCase {
     XCTAssertEqual(timeline.row(near: date(1150), slop: 40)?.id, "a", "25 s past a, 65 s before b")
     XCTAssertEqual(timeline.row(near: date(1190), slop: 40)?.id, "b")
     XCTAssertNil(timeline.row(near: date(1500), slop: 40), "far from every set")
+  }
+
+  /// #164: Grouped lists the sets by exercise, in the order each exercise first came, each keeping its number.
+  func testGroupedListsTheSetsByExerciseInTheOrderTheyCame() {
+    let timeline = WorkoutTimeline(
+      workout: StoredWorkout(start: date(1000), end: date(2000)),
+      sets: [
+        set("swing1", clipStart: 1100), set("pull1", clipStart: 1200, reps: 5, exercise: .pullUp),
+        set("swing2", clipStart: 1300, reps: 12), set("pull2", clipStart: 1400, reps: 4, exercise: .pullUp),
+      ], heartRate: nil)
+    let groups = timeline.groups
+    XCTAssertEqual(groups.map(\.exercise), [.kettlebellSwing, .pullUp])
+    XCTAssertEqual(groups.map { $0.sets.map(\.row.id) }, [["swing1", "swing2"], ["pull1", "pull2"]])
+    XCTAssertEqual(groups.map { $0.sets.map(\.number) }, [[1, 3], [2, 4]])
+    XCTAssertEqual(groups.map(\.reps), [22, 9])
   }
 
   /// A set from before #92 has no first-frame time: it is placed at `recordedAt`.
