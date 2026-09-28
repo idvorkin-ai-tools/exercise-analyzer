@@ -72,7 +72,8 @@ public enum ElapsedAxis {
   /// Seconds since `start` at which to draw a tick in `window` (seconds since start), about `target` of them.
   public static func ticks(window: ClosedRange<TimeInterval>, target: Int = 4) -> [TimeInterval] {
     let span = max(window.upperBound - window.lowerBound, 1)
-    let step = steps.first { span / $0 <= Double(target) } ?? steps[steps.count - 1]
+    // Past the last step (a workout left running), whole hours, as many as keep about `target` ticks.
+    let step = steps.first { span / $0 <= Double(target) } ?? (span / Double(target) / 3600).rounded(.up) * 3600
     let first = (window.lowerBound / step).rounded(.up) * step
     return stride(from: first, through: window.upperBound, by: step).map { $0 }
   }

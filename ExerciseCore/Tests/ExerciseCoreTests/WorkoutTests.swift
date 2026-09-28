@@ -25,6 +25,10 @@ final class WorkoutTests: XCTestCase {
     XCTAssertEqual(ElapsedAxis.label(4500, fine: false), "1 h 15 min")
     XCTAssertEqual(ElapsedAxis.label(3600, fine: false), "1 h")
     XCTAssertFalse(ElapsedAxis.isFine(ElapsedAxis.ticks(window: 0...2880)))
+    // A workout left running for two days still gets about four ticks, on whole hours.
+    let long = ElapsedAxis.ticks(window: 0...158_400)
+    XCTAssertLessThanOrEqual(long.count, 5)
+    XCTAssertTrue(long.allSatisfy { $0.truncatingRemainder(dividingBy: 3600) == 0 })
   }
 
   /// #161: the Live Activity takes a new set or rep at once, heart rate only every 30 s, nothing unchanged.
