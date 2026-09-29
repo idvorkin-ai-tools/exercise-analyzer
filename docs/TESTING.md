@@ -124,7 +124,7 @@ ski-erg wheel, which is how a rule once showed +15 % that was all wheel (docs/an
 
 ```bash
 cd ExerciseCore && BELL_LAB_DOTS=1 swift test --filter TuningReports/testBellTrackerHeldPerFixture | grep ^DOT > /tmp/dots.txt
-scripts/model-trials/cut-dot-frames.sh /tmp/dots.txt swing-1h-9reps ~/tmp/agent/swing-samples/igor-1h-swing.mp4 25 /tmp/gt
+scripts/model-trials/cut-dot-frames.sh /tmp/dots.txt swing-1h-10reps ~/tmp/agent/swing-samples/igor-1h-swing.mp4 25 /tmp/gt
 scripts/model-trials/grade-dots.sh /tmp/gt          # Muse grades every frame headless, six at a time → labels-muse.csv
 ```
 

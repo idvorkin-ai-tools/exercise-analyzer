@@ -57,7 +57,7 @@ final class RepCountTests: XCTestCase {
   }
 
   func testRepSpanAndStableCropCoverTheSet() throws {
-    let fixture = try Fixture.named("swing-1h-9reps")  // ten reps since #148; the lifter walks in before the first
+    let fixture = try Fixture.named("swing-1h-10reps")  // ten reps since #148; the lifter walks in before the first
     let pipeline = AnalysisPipeline.analyze(frames: try fixture.frames(), exercise: .kettlebellSwing)
     let span = try XCTUnwrap(pipeline.repSpan(padding: 1, duration: 19.8))
     let first = try XCTUnwrap(pipeline.reps.first)

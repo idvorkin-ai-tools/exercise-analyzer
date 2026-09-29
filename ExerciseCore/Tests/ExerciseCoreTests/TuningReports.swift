@@ -593,8 +593,8 @@ extension TuningReports {
       }
     } else {
       for (name, exercise) in [
-        ("swing-4reps", ExerciseKind.kettlebellSwing), ("swing-1h-9reps", ExerciseKind.kettlebellSwing),
-        ("tgu-phone-2min", ExerciseKind.turkishGetUp), ("pistol-6reps", ExerciseKind.pistolSquat),
+        ("swing-4reps", ExerciseKind.kettlebellSwing), ("swing-1h-10reps", ExerciseKind.kettlebellSwing),
+        ("tgu-phone-2min", ExerciseKind.turkishGetUp), ("pistol-5reps", ExerciseKind.pistolSquat),
         ("bulgarian-10reps", ExerciseKind.bulgarianSplitSquat),
       ] as [(String, ExerciseKind)] {
         let fixture = Fixture(name: name, expectedExercise: exercise, expectedReps: 0, humanVerified: false)

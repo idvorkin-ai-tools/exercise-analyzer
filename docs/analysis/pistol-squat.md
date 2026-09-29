@@ -24,7 +24,7 @@ STANDING → DESCENDING → BOTTOM → ASCENDING → STANDING (rep complete).
 
 | Fixture | Reps | Verified |
 |---|---|---|
-| pistol-6reps | 5 | no (read from the video's frames 2026-09-28, not yet Igor's count; the name is the old baseline) |
+| pistol-5reps | 5 | no (read from the video's frames 2026-09-28, not yet Igor's count; was pistol-6reps until 2026-09-29) |
 
 ## Experiments
 

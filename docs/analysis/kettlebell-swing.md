@@ -61,8 +61,8 @@ stored positions; mirrored clips must score the same
 | Fixture | Reps | Verified | Why it exists |
 |---|---|---|---|
 | swing-4reps | 4 | yes | baseline |
-| swing-1h-9reps | 10 | no (9 was, top to top) | one-hand swing: the working arm is the raised one; opens over the bell, first top 2.85 s (#148) |
-| swing-phone-13reps | 14 | no (13 was, top to top) | phone recording; the first swing off the floor tops at 9.75 s (#148) |
+| swing-1h-10reps | 10 | no (9 was, top to top; was swing-1h-9reps until 2026-09-29) | one-hand swing: the working arm is the raised one; opens over the bell, first top 2.85 s (#148) |
+| swing-phone-14reps | 14 | no (13 was, top to top; was swing-phone-13reps until 2026-09-29) | phone recording; the first swing off the floor tops at 9.75 s (#148) |
 | swing-pickup-10reps | 10 | yes | #4: the bend to pick the bell up (first second) and the park at the end once counted; 9 until the first swing counted (#148) |
 | swing-walkin-9reps | 10 | no (the walk-in is Igor's) | #15 (IMG_4337): the walk-in and pick-up (0.5–6.6 s) counted as rep 1; the hike into the 6.64 s top counts since #148 |
 | swing-lowcam-10reps | 10 | no | #16 (IMG_4340): low, close camera; counted 0 before the arm thresholds were relaxed; 11 from #148 to #149 (the bell set down at the end, 29.22 s) |

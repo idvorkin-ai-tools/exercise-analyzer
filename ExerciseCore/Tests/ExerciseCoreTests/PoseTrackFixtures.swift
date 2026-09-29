@@ -28,11 +28,11 @@ struct Fixture {
     // at 2.85 s (arm 86°, wrists above the shoulders; bell at chest height in the video at 2.75–3.0 s) was merged
     // into the next swing, because the hip snap read as CONNECT. Ten tops, 2.85–16.5 s. Igor confirmed 9 under
     // the old convention, not 10.
-    Fixture(name: "swing-1h-9reps", expectedExercise: .kettlebellSwing, expectedReps: 10, humanVerified: false),
+    Fixture(name: "swing-1h-10reps", expectedExercise: .kettlebellSwing, expectedReps: 10, humanVerified: false),
     // 13 top-to-top until #148. Hand on the bell on the floor to 8.5 s, then the hike, and the bell at chest height
-    // at 9.5–9.75 s (arm 78°) in the video; that swing was merged into the next one as in swing-1h-9reps. Igor
+    // at 9.5–9.75 s (arm 78°) in the video; that swing was merged into the next one as in swing-1h-10reps. Igor
     // confirmed 13 under the old convention, not 14.
-    Fixture(name: "swing-phone-13reps", expectedExercise: .kettlebellSwing, expectedReps: 14, humanVerified: false),
+    Fixture(name: "swing-phone-14reps", expectedExercise: .kettlebellSwing, expectedReps: 14, humanVerified: false),
     // Issue #4: the lifter bends over to pick the bell up in the first second, then swings 10 reps from 25 s.
     // 11 counted originally: the setup (8–25 s) and the bell park at the end were both "reps". Igor: neither is.
     // 9 from 2026-09-12 to 09-26: the first swing (the hike off the floor into the top at 25.3 s) was dropped
@@ -81,7 +81,7 @@ struct Fixture {
     // 6 until 2026-09-28 (#171): the sixth was the walk-in (0–2.1 s, no head and no knee in view), counted only
     // because an unmeasured knee started a descent and a missing head confirmed its bottom. The video has five
     // pistols (bottoms near 6.5, 11, 15, 20, 27.5 s), read from its frames. Not yet confirmed by Igor.
-    Fixture(name: "pistol-6reps", expectedExercise: .pistolSquat, expectedReps: 5, humanVerified: false),
+    Fixture(name: "pistol-5reps", expectedExercise: .pistolSquat, expectedReps: 5, humanVerified: false),
     // Head height drops 8 times at a steady ~4.2 s rhythm; the earlier front-knee analyzer counted 10.
     Fixture(name: "bulgarian-10reps", expectedExercise: .bulgarianSplitSquat, expectedReps: 8, humanVerified: false),
     // Igor's gym set (prod bug report 2026-09-12): 8 head drops at a ~4 s rhythm, setup crouches at both ends.
