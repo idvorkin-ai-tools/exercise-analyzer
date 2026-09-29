@@ -97,11 +97,12 @@ compiled once into `~/tmp/agent/skill/posetrack/`.
 Any question about a *different* model (a detector for the bell, a bigger pose model, a new export) is answered on
 the Mac with Core ML before anything touches the app: export the candidate to `.mlpackage` the way the phone
 would run it, run it over the sample clips, and measure against the pose fixtures for the same clips. Scripts live
-in [`scripts/model-trials/`](../scripts/model-trials/) as uv scripts (declared dependencies, run them directly):
+in [`scripts/model-trials/`](../scripts/model-trials/) as uv scripts (inline dependencies, no shebang: run them
+with `uv run`, never `python3`, which skips the dependency resolution):
 
 ```bash
-scripts/model-trials/export_bell_detector.py world      # YOLO-World with the class "kettlebell" → Core ML
-scripts/model-trials/bell_trial.py yolov8s-worldv2.mlpackage \
+uv run scripts/model-trials/export_bell_detector.py world      # YOLO-World with the class "kettlebell" → Core ML
+uv run scripts/model-trials/bell_trial.py yolov8s-worldv2.mlpackage \
   ~/tmp/agent/swing-samples/swing-sample-4reps.mp4:ExerciseCore/Tests/ExerciseCoreTests/Fixtures/swing-4reps.json ...
 ```
 
@@ -143,8 +144,9 @@ A fresh checkout or worktree needs `just model` before any app build: the `.mlpa
 downloads, and a build without them launches with no predictor — one `model_missing` event, then silence until
 every check times out (2026-09-13).
 
-The simulator cannot be tapped from a script, so the app has **launch hooks** read from the environment
-(pass them through `simctl` as `SIMCTL_CHILD_<name>`):
+`just run-sim [clip]` builds, installs and launches the app on the simulator for a look by hand (the clip, if
+given, loads through `SWING_VIDEO`). The simulator cannot be tapped from a script, so the app has **launch hooks**
+read from the environment (pass them through `simctl` as `SIMCTL_CHILD_<name>`):
 
 | Hook | Effect |
 |---|---|
@@ -159,6 +161,10 @@ The simulator cannot be tapped from a script, so the app has **launch hooks** re
 | `SWING_OPEN_RECENT=1` | reopen the newest Recents entry |
 | `SWING_BUG=text` | file a bug report on launch |
 | `SWING_SHOW_GALLERY=1` | open the rep gallery sheet on launch (gallery screenshots, #61) |
+| `SWING_SHOW_SEEK_CONTROLS=1` | raise the frame-step stacks 4 s after launch, as a middle hold would, for a screenshot (030) |
+| `SWING_BELLS=1` | run the bell detector in the offline pass (off by default since 2026-09-12; the `bellDetector` default does the same) |
+| `SWING_LIVE_BELLS=1` | with `SWING_BELLS=1`: bells while recording too (#69; the `liveBells` default does the same) |
+| `SWING_DEBUG_RUN=1` | start an instrumented run once the launch refresh is done: every stored set through the models with the detector on, `debug_run` start/end in the log (`scripts/sim-debug-run.sh` drives it) |
 | `SWING_WORKOUTS_FOLDED=1` | every day without a workout starts folded (a workout day never folds, #163), so the folded headers' "8×8 [swing]" chips (#129) and the workout days' lines are on the first screen |
 | `SWING_HEART_RATE=1` | give the loaded clip a made-up heart rate (118 → 150 over 30 s, a reading every 5 s) so the HUD's ♥ chip shows; the simulator has no Health data (051) |
 | `SWING_OPEN_WORKOUT=1` | push the newest stored workout's page over the log at launch (053); `=set` goes on to open the workout's first set 2 s later, as a tap on its row would, which puts "‹ Workout" on the playback screen. The simulator has no Health: seed `Documents/workouts.json` with a workout that covers some stored sets and `Documents/workouts/<id>/heartrate.json` (`{"samples":[{"at": <seconds since 1970>, "bpm": 120}, …]}`) in the app's data container; index dates are seconds since 2001 |
@@ -187,11 +193,14 @@ Sample clips live outside the repo in `~/tmp/agent/swing-samples/` (`$SAMPLES`);
 
 **Screenshots** for the README come from the same machinery:
 [`scripts/screenshots.sh`](../scripts/screenshots.sh) presets view modes through user defaults (`overlayMode`,
-`meView`, `galleryHeight`), launches each clip, waits for `analyzed`, and captures with `simctl io screenshot`.
+`meView`, `galleryHeight`; the workout page's grouping is `workoutPageGrouped`), launches each clip, waits for
+`analyzed`, and captures with `simctl io screenshot`.
 
 Simulator names are not unique: every Xcode update leaves the previous runtime's "iPhone 17" behind, and
-`simctl` by name can boot one device and launch on another. Every script resolves the name through
-`scripts/sim-udid.sh` (the newest available runtime) before touching the device; pass a UDID to skip it.
+`simctl` by name can boot one device and launch on another. The scripts (`sim-smoke.sh`, `screenshots.sh`,
+`sim-debug-run.sh`, `watch-screens.sh`) resolve the name through `scripts/sim-udid.sh` (the newest available
+runtime) before touching the device; pass a UDID to skip it. The justfile's own `run-sim` and `pull-logs-sim`
+hand the name straight to `simctl`, so give them a UDID (`SIM=<udid> just run-sim`) when two runtimes share it.
 
 ## Rung 2b: the watch simulator
 
@@ -199,7 +208,7 @@ Every watch change runs [`scripts/watch-screens.sh`](../scripts/watch-screens.sh
 after `just build-sim`): it finds the watch app inside the phone build, installs it on the watch simulator,
 and relaunches it once per state with `WATCH_STATE` naming a fixed status (`SIMCTL_CHILD_WATCH_STATE`, the
 same launch-hook pattern as rung 2) — no phone, no pairing, no taps. Each state sleeps 3 s for first render,
-then screenshots to `~/tmp/agent/sim/watch-<state>.png`. The eleven shots are compared by eye against the
+then screenshots to `~/tmp/agent/sim/watch-<state>.png`. The sixteen shots are compared by eye against the
 control inventory at the top of [`05-watch.md`](stories/05-watch.md); a missing button is a failed rung. This
 is the rung that would have caught #74 (the picture page gated on the phone being active): three watch changes
 shipped on green builds and nobody saw a watch screen.

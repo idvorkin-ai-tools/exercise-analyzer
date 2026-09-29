@@ -14,7 +14,7 @@ squats, split squats, Turkish get-ups and pull-ups. `ExerciseCore/` is the platf
 | [docs/stories/README.md](docs/stories/README.md) | the spec: user stories per journey, each with its status and commits |
 | [docs/analysis/performance.md](docs/analysis/performance.md) | how the offline pass is measured (Mac A/B, `sample`, the instrumented run) and what each change cost |
 | [docs/analysis/optimization.md](docs/analysis/optimization.md) | index of every precision and speed hypothesis, with its numbers |
-| [docs/architecture/](docs/architecture/) | the 2026-09-13 architecture reviews (Codex, Fable) and the decision: keep the core, take `VideoPoseSession` apart in small steps (#52); the parked plan is #51 |
+| [docs/architecture/](docs/architecture/) | the 2026-09-13 architecture reviews (Codex, Fable) and the decision: keep the core, take `VideoPoseSession` apart in small steps. Steps 1–4 (StoredSetPlan, index metadata, OfflineJob, ModelSet) shipped under #52, closed; step 5 (CameraRecorder, ClipEditor, BugReporter) is not started and the file is still ~2,900 lines; the parked full plan is #51. Also the 2026-09-26 worktree decision for outside agents |
 
 Lab notebooks (hypotheses, predictions, numbers, rejected ideas) live in `docs/analysis/lab/`; the analysis notes
 carry only what was decided.

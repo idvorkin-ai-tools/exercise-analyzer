@@ -9,9 +9,9 @@ device_app := "Build/Build/Products/Debug-iphoneos/ExerciseAnalyzer.app"
 default:
     @just --list
 
-# Test ladder, cheapest first. Rung 1: analyzers and detector replayed over stored pose tracks on the Mac.
 # The print-only reports (TuningReports, DetectionReport, SwingThresholdSweep, ZoomPreviewReport) assert nothing
-# and were 38 of the run's 49 s; `just reports` runs them.
+# and were 38 of the run's 49 s; `just reports` runs them. (`just --list` shows a recipe's last comment line.)
+# Test ladder, cheapest first. Rung 1: analyzers and detector replayed over stored pose tracks on the Mac.
 test:
     #!/usr/bin/env bash
     # pipefail: a failing suite must fail the recipe instead of hiding behind tail's exit 0 (#51).
@@ -85,8 +85,8 @@ pull-logs:
     @echo "--- bug reports (newest last); each names its log file:"
     @tail -5 ~/tmp/agent/swing-logs/bugs.jsonl 2>/dev/null | jq -c '{reported_at, note, log, clip, exercise, playhead}' || true
 
-# The phone's own crash reports (.ips) via libimobiledevice; needs the phone on USB and paired (`idevicepair pair`).
 # MetricKit reports (Documents/crashes, pulled by pull-logs) do not need this.
+# The phone's own crash reports (.ips) via libimobiledevice; needs the phone on USB and paired (`idevicepair pair`).
 pull-crashes:
     mkdir -p ~/tmp/agent/swing-logs/ips
     cd ~/tmp/agent/swing-logs/ips && idevicecrashreport -k . && ls -t | grep -i exercise | head -5
@@ -95,10 +95,10 @@ pull-crashes:
 symbolicate file:
     scripts/symbolicate.sh {{file}}
 
-# Instruments from the command line: attach to the running app on the phone for `seconds` with an Instruments
-# template (Allocations, Leaks, Time Profiler, Core ML, Activity Monitor) and write the .trace under
-# ~/tmp/agent/traces/. Launch the app first; do the action (reopen the set) inside the window. Open the .trace in
-# Instruments, or `xcrun xctrace export --input <trace> --toc` to list its tables.
+# Templates: Allocations, Leaks, Time Profiler, Core ML, Activity Monitor. Launch the app first; do the action
+# (reopen the set) inside the window. Open the .trace in Instruments, or `xcrun xctrace export --input <trace>
+# --toc` to list its tables.
+# Instruments from the command line: attach to the running app on the phone for `seconds`, .trace under ~/tmp/agent/traces/.
 trace-device template="Allocations" seconds="90":
     mkdir -p ~/tmp/agent/traces
     xcrun xctrace record --template "{{template}}" --device {{device}} --attach ExerciseAnalyzer \
