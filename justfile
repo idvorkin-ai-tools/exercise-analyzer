@@ -16,6 +16,8 @@ default:
 test:
     #!/usr/bin/env bash
     # pipefail: a failing suite must fail the recipe instead of hiding behind tail's exit 0 (#51).
+    # The skipped suites only print. ZoomPreviewReport is a by-hand tool: it runs, and checks the picture it draws,
+    # only given ZOOM_PREVIEW_IMAGE, ZOOM_PREVIEW_CROP and ZOOM_PREVIEW_OUT (docs/TESTING.md, #98).
     set -uo pipefail
     cd ExerciseCore && swift test --skip TuningReports --skip DetectionReport --skip SwingThresholdSweep --skip ZoomPreviewReport 2>&1 \
       | grep -E "Test Suite|passed|failed|error" | tail -20

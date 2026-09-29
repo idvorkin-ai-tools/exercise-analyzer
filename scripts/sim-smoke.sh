@@ -160,6 +160,9 @@ stash() {
     if [ -e "$docs/$p" ]; then mv "$docs/$p" "$stash/$p"; else touch "$stash/$p.absent"; fi
   done
 }
+# A run cut short (Ctrl-C, a failed command) puts the simulator's data back at once, so no stale ".absent"
+# marker waits for a later run to delete data made in between (PR #175 review).
+trap unstash EXIT
 check_live_workout() {
   reset_mode
   # The pretend workout began 2 minutes ago, so the sets the checks before this one just saved, or a workout a

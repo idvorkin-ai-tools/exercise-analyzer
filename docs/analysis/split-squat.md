@@ -88,6 +88,6 @@ Report: `TuningReports.testSplitSquatTrace`.
   With "topped out" it counts 3; lunges from standing still 3; `splitsquat-barbell-phone` still 8, every rep
   ending "standing again" (the new exit never fires on it). A real static set should replace the stick figure
   when Igor records one.
-- **2026-09-19, an archived set**: `tracks/pistol-squat-20260913-96ED6CFB` (stored as 23 "pistols" in 70 s) now
+- **2026-09-19, an archived set**: `tracks/pistol-squat-20260913-96ED6CFB` (now `tracks/split-squat-20260913-96ED6CFB`; stored as 23 "pistols" in 70 s) now
   detects as split squats, 10 reps. Its track agrees: both ankles on the floor at the bottom (y 722 and 759 of
   1280), hips to 0.55, feet 1.0 apart, feet together between reps. Not a fixture: nobody has watched it.
