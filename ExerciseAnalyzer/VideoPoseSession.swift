@@ -43,6 +43,8 @@ final class VideoPoseSession: NSObject, ObservableObject {
 
   let player = AVPlayer()
   let log: SessionLog
+  /// Shake reports' files and old-log pruning (BugReport.swift).
+  private let bugReporter: BugReporter
   let recents = RecentsStore()
   /// Both models and their compute plans behind one readiness gate (#52 step 4); kicks loading on creation.
   let models: ModelSet
@@ -277,8 +279,9 @@ final class VideoPoseSession: NSObject, ObservableObject {
     cameraZoom = savedZoom > 0 ? savedZoom : 1
     log = SessionLog()
     models = ModelSet(log: log)
+    bugReporter = BugReporter(log: log)
     super.init()
-    pruneOldLogs()  // after the new session's log is open (#72)
+    bugReporter.pruneOldLogs()  // after the new session's log is open (#72)
     if case .fixed(let kind) = exerciseMode { exercise = kind }
     pipeline = AnalysisPipeline(exercise: exercise)
     watch.onEvent = { [weak self] type, fields in self?.log.event(type, fields) }
@@ -2736,63 +2739,11 @@ final class VideoPoseSession: NSObject, ObservableObject {
     }
   #endif
 
-  // MARK: - Bug reports
+  // MARK: - Bug reports (the files are BugReporter's)
 
-  /// What the screen showed when the shake landed: a snapshot of the window (HUD, pills, gallery; video layers
-  /// may come out black) and, in playback, the clip's own frame at the playhead. Saved with the report (#24).
-  private var bugScreenshot: UIImage?
-  private var bugFrame: CGImage?
-
+  /// The shake landed: the screen now, and in playback the clip's frame at the playhead.
   func captureBugScreenshot() {
-    let windows = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.flatMap(\.windows)
-    if let window = windows.first(where: \.isKeyWindow) ?? windows.first {
-      bugScreenshot = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
-        window.drawHierarchy(in: window.bounds, afterScreenUpdates: false)
-      }
-    }
-    bugFrame = nil
-    guard source != .camera, let url = currentFileURL else { return }
-    let time = CMTime(seconds: currentTime, preferredTimescale: 600)
-    Task { [weak self] in
-      let generator = AVAssetImageGenerator(asset: AVURLAsset(url: url))
-      generator.appliesPreferredTrackTransform = true
-      generator.maximumSize = CGSize(width: 720, height: 720)
-      generator.requestedTimeToleranceBefore = .zero
-      generator.requestedTimeToleranceAfter = .zero
-      if let (image, _) = try? await generator.image(at: time) { self?.bugFrame = image }
-    }
-  }
-
-  private static let bugFolderFormatter: DateFormatter = {
-    let f = DateFormatter()
-    f.locale = Locale(identifier: "en_US_POSIX")
-    f.timeZone = TimeZone(identifier: "UTC")
-    f.dateFormat = "yyyyMMdd-HHmmss"
-    return f
-  }()
-
-  /// Writes the captured screenshot and frame under Documents/bugs/<stamp>/ and returns their relative paths.
-  private func saveBugImages(stamp: String) -> [String: String] {
-    var saved: [String: String] = [:]
-    let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-    let folder = documents.appendingPathComponent("bugs", isDirectory: true).appendingPathComponent(stamp, isDirectory: true)
-    let files: [(String, Data?, String)] = [
-      ("screen.png", bugScreenshot?.pngData(), "screenshot"),
-      ("frame.jpg", bugFrame.map { UIImage(cgImage: $0).jpegData(compressionQuality: 0.8) } ?? nil, "frame"),
-    ]
-    for (name, data, key) in files {
-      guard let data else { continue }
-      do {
-        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        try data.write(to: folder.appendingPathComponent(name))
-        saved[key] = "bugs/\(stamp)/\(name)"
-      } catch {
-        log.event("error", ["where": "bug_images", "message": "\(error)"])
-      }
-    }
-    bugScreenshot = nil
-    bugFrame = nil
-    return saved
+    bugReporter.capture(clip: source == .camera ? nil : currentFileURL.map { ($0, currentTime) })
   }
 
   /// What a report carries besides the note: enough to find the moment in the log and the clip in Recents.
@@ -2814,85 +2765,7 @@ final class VideoPoseSession: NSObject, ObservableObject {
 
   /// Writes the report into the session log and to Documents/bugs.jsonl (one line per report, newest last).
   func reportBug(note: String) {
-    let now = Date()
-    let images = saveBugImages(stamp: Self.bugFolderFormatter.string(from: now))
-    let context = bugContext().merging(images) { a, _ in a }
-    log.event("bug_report", context.merging(["note": note]) { a, _ in a })
-    var record: [String: Any] = context
-    record["note"] = note
-    record["reported_at"] = ISO8601DateFormatter().string(from: now)
-    record["session_t_ms"] = Int(Date().timeIntervalSince(log.startedAt) * 1000)
-    let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-      .appendingPathComponent("bugs.jsonl")
-    do {
-      let line = try JSONSerialization.data(withJSONObject: record) + Data([0x0A])
-      if let handle = try? FileHandle(forWritingTo: url) {
-        defer { try? handle.close() }
-        handle.seekToEndOfFile()
-        handle.write(line)
-      } else {
-        try line.write(to: url)
-      }
-      statusMessage = "Problem logged. Thanks."
-    } catch {
-      // The report is in the session log either way; bugs.jsonl is what `just file-bugs` reads, so say it is missing.
-      log.event("error", ["where": "bug_report", "message": "\(error)"])
-      statusMessage = "Problem noted in the log; bugs.jsonl could not be written"
-    }
-  }
-
-  /// Deletes session logs older than 30 days, except any named by a report in bugs.jsonl (#72). Runs at launch,
-  /// after the new session's log is open, and logs one `logs_pruned` event even when zero. A file whose age
-  /// cannot be read is never deleted.
-  private func pruneOldLogs() {
-    let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-    let dir = docs.appendingPathComponent("logs", isDirectory: true)
-    let now = Date()
-    // A bugs.jsonl that exists but cannot be read means the reported logs are unknown: prune nothing rather
-    // than delete evidence (the 2026-09-15 review).
-    guard let referenced = Self.referencedLogs(at: docs.appendingPathComponent("bugs.jsonl")) else {
-      log.event("error", ["where": "logs_prune", "message": "bugs.jsonl unreadable; nothing pruned"])
-      return
-    }
-    let files = ((try? FileManager.default.contentsOfDirectory(
-      at: dir, includingPropertiesForKeys: [.contentModificationDateKey, .fileSizeKey])) ?? [])
-      .filter { $0.pathExtension == "jsonl" }
-      .compactMap { url -> (name: String, age: Double, size: Int)? in
-        guard let values = try? url.resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey]),
-          let modified = values.contentModificationDate
-        else { return nil }
-        return (url.lastPathComponent, now.timeIntervalSince(modified), values.fileSize ?? 0)
-      }
-    let victims = Set(LogRetention.prune(
-      files: files.map { (name: $0.name, age: $0.age) }, referenced: referenced))
-    var count = 0, freed = 0
-    for file in files where victims.contains(file.name) {
-      do {
-        try FileManager.default.removeItem(at: dir.appendingPathComponent(file.name))
-        count += 1
-        freed += file.size
-      } catch {
-        log.event("error", ["where": "logs_prune", "file": file.name, "message": "\(error)"])
-      }
-    }
-    let kept = files.filter { $0.age > LogRetention.retentionSeconds && referenced.contains($0.name) }.count
-    log.event("logs_pruned", ["count": count, "bytes": freed, "kept_for_reports": kept])
-  }
-
-  /// Log file names referenced by bugs.jsonl (each report names its log); malformed lines are skipped.
-  /// The session logs bug reports name; nil when bugs.jsonl exists but cannot be read (no file: empty set).
-  private static func referencedLogs(at url: URL) -> Set<String>? {
-    guard FileManager.default.fileExists(atPath: url.path) else { return [] }
-    guard let data = try? Data(contentsOf: url), let text = String(data: data, encoding: .utf8) else { return nil }
-    var names = Set<String>()
-    for line in text.split(separator: "\n") {
-      guard let lineData = line.data(using: .utf8),
-        let record = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any],
-        let name = record["log"] as? String
-      else { continue }
-      names.insert(name)
-    }
-    return names
+    statusMessage = bugReporter.report(note: note, context: bugContext())
   }
 
   private func currentVideoOrientation() -> AVCaptureVideoOrientation {
