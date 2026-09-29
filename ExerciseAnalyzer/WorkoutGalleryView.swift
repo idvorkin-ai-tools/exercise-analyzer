@@ -367,43 +367,14 @@ struct DayHeader: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
-      Button {
-        onToggle?()
-      } label: {
-        HStack(alignment: .firstTextBaseline) {
-          // No arrow where the day does not fold (a workout day, #163).
-          if onToggle != nil {
-            Image(systemName: "chevron.right")
-              .font(.caption.bold())
-              .rotationEffect(.degrees(collapsed ? 0 : 90))
-              .foregroundStyle(.secondary)
-          }
-          Text(title).font(.title3.bold())
-          if title == "Today" || title == "Yesterday" {
-            Text(dateLine).font(.subheadline).foregroundStyle(.secondary)
-          }
-          Spacer()
-          if collapsed {
-            // A folded day says what was done (#129; Igor: "show an icon like 8x8 swings, 3xTGUs"): sets ×
-            // reps per exercise with its drawing, "8×8 [swing] · 5×2 [get-up]", a range when the sets differ.
-            HStack(spacing: 6) {
-              ForEach(day.exercises) { exercise in
-                HStack(spacing: 3) {
-                  Text(exercise.setsByReps).font(.subheadline).monospacedDigit().foregroundStyle(.secondary)
-                  ExerciseGlyph(kind: exercise.kind, size: 18)
-                }
-              }
-            }
-            .lineLimit(1)
-          } else {
-            Text(summary).font(.subheadline).foregroundStyle(.secondary)
-          }
-        }
-        .contentShape(Rectangle())
+      // A day that folds is a button; a workout day's line is a label (#163), not a button that does nothing.
+      if let onToggle {
+        Button(action: onToggle) { dayLine }
+          .buttonStyle(.plain)
+          .accessibilityLabel("\(title), \(collapsed ? spokenExercises : summary), \(collapsed ? "collapsed" : "expanded")")
+      } else {
+        dayLine.accessibilityElement(children: .combine).accessibilityLabel("\(title), \(summary)")
       }
-      .buttonStyle(.plain)
-      .accessibilityLabel(
-        "\(title), \(collapsed ? spokenExercises : summary)" + (onToggle == nil ? "" : ", \(collapsed ? "collapsed" : "expanded")"))
       // The day's workouts from the wrist (048): the hour, its heart rate, and that it is in Health. Each line
       // is its own target and opens the workout's page (053); a workout day has no fold of its own (#163).
       ForEach(workoutLines, id: \.workout.id) { line in
@@ -431,6 +402,39 @@ struct DayHeader: View {
     .foregroundStyle(.primary)
     .padding(.vertical, 8)
     .background(Color(.systemBackground))
+  }
+
+  private var dayLine: some View {
+    HStack(alignment: .firstTextBaseline) {
+      // No arrow where the day does not fold (a workout day, #163).
+      if onToggle != nil {
+        Image(systemName: "chevron.right")
+          .font(.caption.bold())
+          .rotationEffect(.degrees(collapsed ? 0 : 90))
+          .foregroundStyle(.secondary)
+      }
+      Text(title).font(.title3.bold())
+      if title == "Today" || title == "Yesterday" {
+        Text(dateLine).font(.subheadline).foregroundStyle(.secondary)
+      }
+      Spacer()
+      if collapsed {
+        // A folded day says what was done (#129; Igor: "show an icon like 8x8 swings, 3xTGUs"): sets ×
+        // reps per exercise with its drawing, "8×8 [swing] · 5×2 [get-up]", a range when the sets differ.
+        HStack(spacing: 6) {
+          ForEach(day.exercises) { exercise in
+            HStack(spacing: 3) {
+              Text(exercise.setsByReps).font(.subheadline).monospacedDigit().foregroundStyle(.secondary)
+              ExerciseGlyph(kind: exercise.kind, size: 18)
+            }
+          }
+        }
+        .lineLimit(1)
+      } else {
+        Text(summary).font(.subheadline).foregroundStyle(.secondary)
+      }
+    }
+    .contentShape(Rectangle())
   }
 
   private var summary: String {
@@ -690,15 +694,17 @@ struct SetCard: View {
         if !entry.isByHand {
           Text("· " + Self.duration(entry.duration))
           if !entry.isInPhotos {
-            Image(systemName: "iphone").accessibilityLabel("Kept in app")
+            Image(systemName: "iphone")
           }
         }
       }
       .font(.caption2).foregroundStyle(.secondary)
     }
     .accessibilityElement(children: .combine)
+    // The combined label replaces the children's, so the phone glyph's "kept in app" is said here.
     .accessibilityLabel(
-      "\(entry.exerciseKind.definition.name), \(entry.repCount) reps\(entry.isByHand ? " by hand" : ""), \(Self.timeFormatter.string(from: entry.start))")
+      "\(entry.exerciseKind.definition.name), \(entry.repCount) reps\(entry.isByHand ? " by hand" : ""), \(Self.timeFormatter.string(from: entry.start))"
+        + (!entry.isByHand && !entry.isInPhotos ? ", kept in app" : ""))
   }
 
   private static func scoreColor(_ score: Int) -> Color {

@@ -379,7 +379,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Scenario:** A workout day opens, it does not expand (#163)
 - **Given:** a day with a workout line under its header
 - **When:** I look at the day in Workouts
-- **Then:** its title has no fold arrow and a tap on it does nothing; the green workout lines, each ending in a chevron, are the way in and open the workout's page; the sets inside a workout are on that page, not under the day; sets recorded outside every workout that day stay under the workout lines, by exercise as before; a day with no workout folds as it always did (Igor, 2026-09-28: "If I'm on the work page and I have a workout, don't let me expand a workout, just make me click on it")
+- **Then:** its title is a plain label (no fold arrow, not a button: VoiceOver reads the day and its totals, nothing to press); the green workout lines, each ending in a chevron, are the way in and open the workout's page; the sets inside a workout are on that page, not under the day; sets recorded outside every workout that day stay under the workout lines, by exercise as before; a day with no workout folds as it always did (Igor, 2026-09-28: "If I'm on the work page and I have a workout, don't let me expand a workout, just make me click on it")
 
 - **Scenario:** Workouts under half an hour apart are one (#169)
 - **Given:** a workout 7:48–7:50 AM and another 7:51–7:54 AM (ended by mistake and started again)

@@ -202,12 +202,14 @@ private struct WorkoutPageView: View {
         if let entry = sets.first(where: { $0.id == row.id }), let image = thumbnail(entry) { thumbnails[row.id] = image }
       }
     }
-    .onChange(of: PageLog(workout: workout, timeline: timeline, samples: heartRate?.samples.count ?? 0), initial: true) { _, value in
+    .onChange(
+      of: PageLog(workout: workout, timeline: timeline, samples: heartRate?.samples.count ?? 0, grouped: grouped), initial: true
+    ) { _, value in
       onEvent?(
         "workout_page",
         ["sets": value.sets, "reps": value.reps, "heart_rate_samples": value.samples,
          "live": workout.id == WorkoutMirror.liveID, "workout_id": workout.id,
-         "duration_s": workout.duration, "window_s": visibleSeconds, "grouped": grouped])
+         "duration_s": workout.duration, "window_s": visibleSeconds, "grouped": value.grouped])
     }
   }
 
@@ -243,11 +245,13 @@ private struct WorkoutPageView: View {
     let sets: Int
     let reps: Int
     let samples: Int
-    init(workout: StoredWorkout, timeline: WorkoutTimeline, samples: Int) {
+    let grouped: Bool
+    init(workout: StoredWorkout, timeline: WorkoutTimeline, samples: Int, grouped: Bool) {
       self.workout = workout
       sets = timeline.rows.count
       reps = timeline.rows.reduce(0) { $0 + $1.reps }
       self.samples = samples
+      self.grouped = grouped
     }
   }
 

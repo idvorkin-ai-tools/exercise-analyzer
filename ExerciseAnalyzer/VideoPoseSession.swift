@@ -402,8 +402,8 @@ final class VideoPoseSession: NSObject, ObservableObject {
     let predictor = await models.ready()
     log.event(
       "recents_refresh_wait",
-      ["predictor": predictor != nil, "waited_ms": Int(Date().timeIntervalSince(waitStarted) * 1000), "plans": plans])
-    log.event("recents_refresh_wait", ["plans": "done", "models": models.names])
+      ["predictor": predictor != nil, "waited_ms": Int(Date().timeIntervalSince(waitStarted) * 1000), "plans": plans,
+       "models": models.names])
     // A set typed on the wrist has no poses and no clip: nothing to re-read or re-run (059).
     let stale = recents.entries.filter {
       !$0.isByHand && (recents.isStale($0) || !Set(models.names).isSubset(of: storedModels($0)))
@@ -2332,7 +2332,7 @@ final class VideoPoseSession: NSObject, ObservableObject {
     let closing = segmentFinishes
     segmentFinishes = []
     let clipStartedAt = recordingStartedAt
-    let hadPause = pausedTotal != 0
+    let hadPause = pausedTime != 0  // pausedTotal is already zero: stopCamera() reset it above
     activity = .working("Finishing recording", progress: nil)
     log.event(
       "camera_done",
@@ -2809,17 +2809,21 @@ final class VideoPoseSession: NSObject, ObservableObject {
     record["session_t_ms"] = Int(Date().timeIntervalSince(log.startedAt) * 1000)
     let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
       .appendingPathComponent("bugs.jsonl")
-    if let data = try? JSONSerialization.data(withJSONObject: record) {
+    do {
+      let line = try JSONSerialization.data(withJSONObject: record) + Data([0x0A])
       if let handle = try? FileHandle(forWritingTo: url) {
+        defer { try? handle.close() }
         handle.seekToEndOfFile()
-        handle.write(data)
-        handle.write(Data([0x0A]))
-        try? handle.close()
+        handle.write(line)
       } else {
-        try? (data + Data([0x0A])).write(to: url)
+        try line.write(to: url)
       }
+      statusMessage = "Problem logged. Thanks."
+    } catch {
+      // The report is in the session log either way; bugs.jsonl is what `just file-bugs` reads, so say it is missing.
+      log.event("error", ["where": "bug_report", "message": "\(error)"])
+      statusMessage = "Problem noted in the log; bugs.jsonl could not be written"
     }
-    statusMessage = "Problem logged. Thanks."
   }
 
   /// Deletes session logs older than 30 days, except any named by a report in bugs.jsonl (#72). Runs at launch,
