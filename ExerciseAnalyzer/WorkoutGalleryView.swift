@@ -640,9 +640,9 @@ struct SetCard: View {
   let thumbnail: UIImage?
   let tint: Color
 
-  static let size = CGSize(width: 104, height: 74)
-  /// The shape the set's picture is cut to from the clip (#110).
-  static let aspect = size.width / size.height
+  nonisolated static let size = CGSize(width: 104, height: 74)
+  /// The shape the set's picture is cut to from the clip (#110), read off the main actor by CoreBridge.
+  nonisolated static let aspect = size.width / size.height
 
   private static let timeFormatter: DateFormatter = {
     let f = DateFormatter()

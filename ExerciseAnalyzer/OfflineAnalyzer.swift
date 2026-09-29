@@ -140,7 +140,7 @@ enum OfflineAnalyzer {
       while let sampleBuffer = output.copyNextSampleBuffer() {
         if Task.isCancelled {
           reader.cancelReading()
-          if holdOnCancel { Thread.sleep(forTimeInterval: 0.5) }
+          if holdOnCancel { try? await Task.sleep(for: .seconds(0.5)) }
           throw OfflineError.cancelled
         }
         let time = CMSampleBufferGetPresentationTimeStamp(sampleBuffer).seconds

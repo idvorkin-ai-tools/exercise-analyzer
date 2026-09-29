@@ -44,8 +44,9 @@ final class WorkoutController: NSObject, ObservableObject {
   /// Screenshot rung: the state is fixed and HealthKit is never touched.
   private let fixed: Bool
 
-  private static let bpm = HKUnit.count().unitDivided(by: .minute())
-  private static let heartRateType = HKQuantityType(.heartRate)
+  // Read by the builder delegate off the main actor.
+  nonisolated private static let bpm = HKUnit.count().unitDivided(by: .minute())
+  nonisolated private static let heartRateType = HKQuantityType(.heartRate)
 
   init(log: @escaping (String, [String: Any]) -> Void, screenshot: WatchScreenshotState? = nil) {
     self.log = log

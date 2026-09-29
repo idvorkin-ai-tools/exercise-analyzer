@@ -89,7 +89,7 @@ final class ModelSet {
   @discardableResult
   func ready() async -> BasePredictor? {
     if !settled {
-      await withCheckedContinuation { continuations.append($0) }
+      _ = await withCheckedContinuation { continuations.append($0) }  // resumed with the predictor read below
     }
     await waitForPlans()
     return predictor

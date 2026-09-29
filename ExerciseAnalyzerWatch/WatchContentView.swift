@@ -1,5 +1,6 @@
 // Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 
+import Combine
 import ExerciseCore
 import SwiftUI
 import WatchKit

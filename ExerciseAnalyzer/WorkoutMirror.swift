@@ -112,7 +112,7 @@ final class WorkoutMirror: NSObject, ObservableObject {
   }
 
   /// The id the page of 053 gives the running workout, shown as a span up to now.
-  static let liveID = WorkoutIdentity.liveID
+  nonisolated static let liveID = WorkoutIdentity.liveID
 
   /// The ended workouts as the phone shows them: those under 30 minutes apart are one session (#169). Health
   /// keeps its records; the list, the page and "‹ Workout" read these.

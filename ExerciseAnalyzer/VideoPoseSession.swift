@@ -124,7 +124,7 @@ final class VideoPoseSession: NSObject, ObservableObject {
   /// How long the live pose path waits for the overlapped detector past the pose result: pose runs
   /// ~10 ms and the detector 11–15 ms from the same start, so this covers thermal wobble while a
   /// slow detector loses the frame instead of the frame rate.
-  private static let liveBellWait = DispatchTimeInterval.milliseconds(20)
+  nonisolated private static let liveBellWait = DispatchTimeInterval.milliseconds(20)
   private var frameDuration = 1.0 / 30
   private var timeObserver: Any?
   private var endObserver: NSObjectProtocol?
@@ -276,7 +276,7 @@ final class VideoPoseSession: NSObject, ObservableObject {
     watch.onEvent = { [weak self] type, fields in self?.log.event(type, fields) }
     WorkoutMirror.shared.onEvent = { [weak self] type, fields in self?.log.event(type, fields) }
     WorkoutLiveActivity.shared.onEvent = { [weak self] type, fields in self?.log.event(type, fields) }
-    WorkoutLiveActivity.shared.install()  // the workout on the lock screen and in the Dynamic Island (#161)
+    WorkoutLiveActivity.shared.install(mirror: .shared)  // the workout on the lock screen and in the Dynamic Island (#161)
     CrashReports.shared.onEvent = { [weak self] type, fields in self?.log.event(type, fields) }
     CrashReports.shared.reportSignalLogs { [weak self] type, fields in self?.log.event(type, fields) }
     watch.onCommand = { [weak self] command in self?.handleWatch(command) }
@@ -805,8 +805,8 @@ final class VideoPoseSession: NSObject, ObservableObject {
       if case .photos(let identifier) = entry.source {
         // An old set may live only in iCloud: show the download rather than a tap that seems to do nothing (#35).
         activity = .working("Loading from Photos", progress: nil)
-        let fetch = await RecentsStore.fetchPhotosClip(identifier: identifier) { [weak self] fraction in
-          guard let self, self.isCurrent(operation) else { return }
+        let fetch = await RecentsStore.fetchPhotosClip(identifier: identifier) { fraction in
+          guard self.isCurrent(operation) else { return }
           self.activity = .working("Downloading from iCloud", progress: fraction)
         }
         guard isCurrent(operation) else { return }
@@ -1397,7 +1397,7 @@ final class VideoPoseSession: NSObject, ObservableObject {
       fields["matrix"] = ext[kCMFormatDescriptionExtension_YCbCrMatrix as String] ?? "none"
       fields["bit_depth"] = ext[kCMFormatDescriptionExtension_BitsPerComponent as String] ?? "n/a"
     }
-    fields["hdr"] = track.hasMediaCharacteristic(.containsHDRVideo)
+    fields["hdr"] = (try? await track.load(.mediaCharacteristics))?.contains(.containsHDRVideo) ?? false
     if let t = try? await track.load(.preferredTransform) {
       // A negative determinant means the clip carries a mirror (a flipped edit), not just a rotation (#5).
       fields["transform"] = [t.a, t.b, t.c, t.d, t.tx, t.ty].map { Double($0) }
@@ -1643,7 +1643,7 @@ final class VideoPoseSession: NSObject, ObservableObject {
       DispatchQueue.global(qos: .userInitiated).async {
         found = bellDetector.detect(in: pixelBuffer, wrists: wrists)
         group.leave()
-        Task { @MainActor [weak self] in self?.bellBusy = false }
+        Task { @MainActor in self.bellBusy = false }
       }
       predictor.predict(sampleBuffer: sampleBuffer, onResultsListener: catcher, onInferenceTime: self)
       // The lease covers the bell run too: a late detector still holds the models after this frame gives up on it.
@@ -2379,9 +2379,9 @@ final class VideoPoseSession: NSObject, ObservableObject {
       var clipURL = segments[0]
       if segments.count > 1 {
         // Rotated mid-set (#22) or paused (#67): join the segments into one clip before trimming and analysis.
-        let progress: (@Sendable (Double) -> Void)? = { [weak self] progress in
+        let progress: (@Sendable (Double) -> Void)? = { progress in
           Task { @MainActor in
-            guard let self, self.isCurrent(operation) else { return }
+            guard self.isCurrent(operation) else { return }
             self.activity = .working("Joining segments", progress: progress)
           }
         }
