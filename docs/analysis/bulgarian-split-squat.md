@@ -98,3 +98,6 @@ Reports: `TuningReports.testBulgarianPhoneSetUnderThresholds`, `testBulgarianTen
   `minDepthFraction`, 79271425 counts 9 (8 + the put-down, open), and abandoning every short turn made
   599F988A 7, whose first rep came back 0.06 L short (Muse and by eye: 8), hence `turnCountsFraction` 0.15:
   599F988A 8 (was 6). Verified fixtures unchanged (8, 8, 8, 6). AnalysisVersion 2026-09-22.4.
+- **2026-09-28, review (no fixture; [#171](https://github.com/idvorkin/exercise-analyzer/issues/171))**: the score's
+  `minFrontKnee`/`minRearKnee` took an unmeasured knee (0°) as full depth and skipped the rear-knee penalty; 0 is
+  now ignored, as the split squat already did. Counts unchanged (8, 8, 8, 8, 6). AnalysisVersion 2026-09-28.1.

@@ -78,7 +78,10 @@ struct Fixture {
     // ends on the fifth: five swings end in the clip since #148 (the first, out of a 1 s hinge, counts).
     // Not yet confirmed by Igor.
     Fixture(name: "swing-farcam-5tops", expectedExercise: .kettlebellSwing, expectedReps: 5, humanVerified: false),
-    Fixture(name: "pistol-6reps", expectedExercise: .pistolSquat, expectedReps: 6, humanVerified: false),
+    // 6 until 2026-09-28 (#171): the sixth was the walk-in (0–2.1 s, no head and no knee in view), counted only
+    // because an unmeasured knee started a descent and a missing head confirmed its bottom. The video has five
+    // pistols (bottoms near 6.5, 11, 15, 20, 27.5 s), read from its frames. Not yet confirmed by Igor.
+    Fixture(name: "pistol-6reps", expectedExercise: .pistolSquat, expectedReps: 5, humanVerified: false),
     // Head height drops 8 times at a steady ~4.2 s rhythm; the earlier front-knee analyzer counted 10.
     Fixture(name: "bulgarian-10reps", expectedExercise: .bulgarianSplitSquat, expectedReps: 8, humanVerified: false),
     // Igor's gym set (prod bug report 2026-09-12): 8 head drops at a ~4 s rhythm, setup crouches at both ends.

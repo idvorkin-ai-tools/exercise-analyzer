@@ -58,3 +58,7 @@ around the one "split squat" the wrong analyzer found, and the pull-ups were cut
   was dropped. Replaced by the let-go rule above (far under the line, for 3 frames); `letGoUnderBar` from 0.2 to
   1.2 counts 5 on both tracks, because the other wrist stays near the line. Both fixtures 5 (commit b56766b, with
   the analyzer).
+- **2026-09-19, review (commit fbb5459)**: letting go reset the bar line and the hang but kept the torso length, so a
+  second set filmed nearer or further was measured on the first set's scale for its first reps; the torso is now
+  forgotten with the grip. Both fixtures still 5. Landed without its own AnalysisVersion bump; the same day's
+  2026-09-19.2 covered it.

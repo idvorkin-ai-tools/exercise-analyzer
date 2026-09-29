@@ -165,12 +165,12 @@ check_live_workout() {
 # ONLY=<substring> runs just the matching checks (e.g. ONLY=trim).
 run() { if [ -z "${ONLY:-}" ] || [[ "$*" == *"${ONLY}"* ]]; then "$@"; fi; }
 run check swing-sample-4reps kettlebell-swing 4 90
-run check pistols pistol-squat 6 180
+run check pistols pistol-squat 5 180  # 6 until the walk-in stopped counting (#171)
 run check bulgarian bulgarian-split-squat 8 180
 run check_trim igor-1h-swing 10 150  # 9 until the first swing counted (#148)
 run check_cancel pistols 60
-run check_cancel_reopen pistols 6 180
-run check_interrupt pistols 60 pistol-squat 6 180
+run check_cancel_reopen pistols 5 180
+run check_interrupt pistols 60 pistol-squat 5 180
 run check_clip_switch render
 run check_clip_switch mode
 run check_clip_switch photos

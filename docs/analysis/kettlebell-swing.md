@@ -189,3 +189,7 @@ SWING_FROM=12 SWING_TO=17`; a fixture name works too).
   (`~/tmp/agent/image/2026-09-26-parks/`); the lowcam source (66FAD1F2/9F8F947D) and F677269B have no local clip.
   Live, a slow top is counted at the next hinge, about a second after it: in practice the first swing of a set.
   Not yet confirmed by Igor.
+- **2026-09-28, review (no fixture; [#171](https://github.com/idvorkin/exercise-analyzer/issues/171))**: the knee is
+  not part of `measured`, so one frame with an unmeasured knee (0°) in a rep set `maxKneeFlexion` to 175 and the
+  score said "Hinge, don't squat" (−15); `testSwingRepTraces` shows kneeFlex ≤ 72 on every fixture rep, so it had
+  not fired there. 0 is now ignored. Counts unchanged. AnalysisVersion 2026-09-28.1.

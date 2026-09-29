@@ -223,8 +223,9 @@ public final class BulgarianSplitSquatAnalyzer: ExerciseAnalyzer {
     frameHistory.append(frame)
     if frameHistory.count > 120 { frameHistory.removeFirst() }
 
-    metrics.minFrontKnee = min(metrics.minFrontKnee, frontKnee)
-    metrics.minRearKnee = min(metrics.minRearKnee, rearKnee)
+    // 0 is an unmeasured knee, never a deep one.
+    if frontKnee > 0 { metrics.minFrontKnee = min(metrics.minFrontKnee, frontKnee) }
+    if rearKnee > 0 { metrics.minRearKnee = min(metrics.minRearKnee, rearKnee) }
     metrics.maxSpine = max(metrics.maxSpine, spine)
     machine.framesInPhase += 1
 

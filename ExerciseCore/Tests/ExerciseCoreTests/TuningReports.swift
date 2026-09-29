@@ -132,6 +132,43 @@ final class TuningReports: XCTestCase {
     fflush(stdout)
   }
 
+  /// The pistol fixtures (#171): where the head goes unmeasured (no ear, no nose) and in which phase, next to each
+  /// rep's standing / bottom / done times, so a rule about headless frames is read against the frames it touches.
+  func testPistolHeadlessFrames() throws {
+    for fixture in Fixture.all where fixture.expectedExercise == .pistolSquat {
+      let analyzer = PistolSquatAnalyzer()
+      let pipeline = AnalysisPipeline(exercise: .pistolSquat, analyzer: analyzer)
+      var runs: [(start: Double, end: Double, phase: String, knee: Double)] = []
+      for frame in try fixture.frames() {
+        let result = pipeline.process(extracted: frame) { nil }
+        guard let pose = frame.pose, BodySkeleton(pose: pose).earY == nil else { continue }
+        let phase = result.analysis?.phase ?? "-"
+        let knee = BodySkeleton(pose: pose).kneeAngle(.left)
+        if let last = runs.last, last.phase == phase, frame.time - last.end < 0.1 {
+          runs[runs.count - 1].end = frame.time
+        } else {
+          runs.append((frame.time, frame.time, phase, knee))
+        }
+      }
+      print("\(fixture.name): \(pipeline.reps.count) reps")
+      for rep in pipeline.reps {
+        let times = rep.positions.sorted { $0.value.time < $1.value.time }.map { String(format: "%@ %.2f", $0.key, $0.value.time) }
+        print("  rep \(rep.number): " + times.joined(separator: " · ") + String(format: " · done %.2f", rep.endTime))
+      }
+      for run in runs {
+        print(String(format: "  headless %.2f–%.2f s in %@ (left knee %.0f)", run.start, run.end, run.phase, run.knee))
+      }
+      // Signal by signal, every half second: where the head and the knees come into view, and every dip.
+      for frame in try fixture.frames() where Int((frame.time * 30).rounded()) % 15 == 0 {
+        guard let pose = frame.pose else { continue }
+        let s = BodySkeleton(pose: pose)
+        print(String(format: "  %.2f ear %@ knees L %.0f R %.0f spine %.0f", frame.time,
+          s.earY.map { String(format: "%.0f", $0) } ?? "-", s.kneeAngle(.left), s.kneeAngle(.right), s.spineAngle))
+      }
+    }
+    fflush(stdout)
+  }
+
   /// The pull-up fixtures (#108): every transition with the shoulders' distance under the bar, the reps, and the
   /// count under other rises, to see how far the setup on the pegs sits from a rep.
   func testPullUpTrace() throws {

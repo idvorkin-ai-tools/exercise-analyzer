@@ -53,6 +53,8 @@ public struct FrameStatus: Codable, Equatable, Sendable {
     if Double(box.maxY) >= 1 - edgeMargin { edges.append(.bottom) }
     if Double(box.minX) <= edgeMargin { edges.append(.left) }
     if Double(box.maxX) >= 1 - edgeMargin { edges.append(.right) }
+    // A stored track with fewer points than COCO-17 has no ankles to read (every other reader guards the index too).
+    let pose = pose.flatMap { $0.conf.count > CocoKeypoint.rightAnkle.rawValue && $0.xyn.count > CocoKeypoint.rightAnkle.rawValue ? $0 : nil }
     if let pose, !edges.contains(.bottom), Double(box.maxY) >= 0.97 {
       let ankles = [CocoKeypoint.leftAnkle, .rightAnkle].map { pose.conf[$0.rawValue] }
       if ankles.allSatisfy({ $0 < 0.1 }) { edges.append(.bottom) }
