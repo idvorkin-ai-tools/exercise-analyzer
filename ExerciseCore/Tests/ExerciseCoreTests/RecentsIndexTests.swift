@@ -86,6 +86,24 @@ final class RecentsIndexTests: XCTestCase {
     XCTAssertEqual(try Data(contentsOf: root.appendingPathComponent(kept)), try Data(contentsOf: url))
   }
 
+  /// Launch after launch with the same damage keeps one copy, not one per launch (PR #175 review); a new damage
+  /// is kept too.
+  func testTheSameDamageIsKeptOnce() throws {
+    let root = tempRoot()
+    let url = root.appendingPathComponent("index.json")
+    try Data("[{\"id\": \"a\",".utf8).write(to: url)
+    guard case .unreadableFile(let first)? = RecentsIndex.load(root: root).damage,
+      case .unreadableFile(let second)? = RecentsIndex.load(root: root).damage
+    else { return XCTFail("no damage") }
+    XCTAssertEqual(first, second)
+    try Data("[{\"id\": \"b\",".utf8).write(to: url)
+    Thread.sleep(forTimeInterval: 1.1)  // the copy's name carries the second
+    guard case .unreadableFile(let third)? = RecentsIndex.load(root: root).damage else { return XCTFail("no damage") }
+    XCTAssertNotEqual(third, first)
+    let copies = try FileManager.default.contentsOfDirectory(atPath: root.path).filter { $0.hasPrefix("index.json.bad-") }
+    XCTAssertEqual(copies.count, 2)
+  }
+
   func testOldIndexRowsDecodeWithNilFields() throws {
     // An index.json from before step 2 has neither key.
     let root = tempRoot()

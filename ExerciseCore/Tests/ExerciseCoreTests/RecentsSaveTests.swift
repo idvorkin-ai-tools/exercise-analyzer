@@ -115,6 +115,31 @@ final class RecentsSaveTests: XCTestCase {
     XCTAssertEqual(try fm.contentsOfDirectory(atPath: root.path).sorted(), ["index.json", "new"])
   }
 
+  /// Cut off with the set's folder in old/ and a journal this build cannot read (PR #175 review): the folder goes
+  /// back to its row, and the unreadable transaction is set aside.
+  func testAnUnreadableJournalPutsTheMovedFolderBack() throws {
+    let index = try seed()
+    let oldFiles = try contents(root.appendingPathComponent("old"))
+    let interrupted = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? fm.removeItem(at: interrupted) }
+    _ = try? RecentsSave.save(root: root, index: index, id: "old", source: index.entries[0].source) { old in
+      try XCTUnwrap(old)
+    } writeFiles: { _ in
+    } checkpoint: { stage in
+      if stage == .oldMoved {
+        try self.fm.copyItem(at: self.root, to: interrupted)
+        throw Failure.injected
+      }
+    }
+    XCTAssertFalse(fm.fileExists(atPath: interrupted.appendingPathComponent("old").path))
+    try Data("{".utf8).write(to: interrupted.appendingPathComponent(".recents-save/journal.json"))
+    try RecentsSave.recover(root: interrupted)
+    XCTAssertEqual(try contents(interrupted.appendingPathComponent("old")), oldFiles)
+    XCTAssertFalse(fm.fileExists(atPath: interrupted.appendingPathComponent(".recents-save").path))
+    let names = try fm.contentsOfDirectory(atPath: interrupted.path)
+    XCTAssertEqual(names.filter { $0.hasPrefix(".recents-save.bad-") }.count, 1)
+  }
+
   func testRestartAtEveryBoundaryRecoversOldOrCommittedSet() throws {
     let index = try seed()
     let oldFiles = try contents(root.appendingPathComponent("old"))

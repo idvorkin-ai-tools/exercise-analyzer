@@ -87,7 +87,14 @@ public struct RecentsSave {
       journal = try JSONDecoder().decode(Journal.self, from: Data(contentsOf: journalURL))
     } catch {
       // A journal this build cannot read (its shape changed) would otherwise block every save until the folder is
-      // removed by hand: set it aside with its old files, keep what is on disk, and let saving go on.
+      // removed by hand: set it aside with its old files, keep what is on disk, and let saving go on. A save cut
+      // off after moving the set's folder into old/ left its index row without a folder (the PR #175 review):
+      // when exactly one row lacks its folder, old/ is that folder and goes back.
+      let old = transaction.appendingPathComponent("old")
+      let missing = RecentsIndex.load(root: root).entries.filter { !fm.fileExists(atPath: root.appendingPathComponent($0.id).path) }
+      if fm.fileExists(atPath: old.path), missing.count == 1 {
+        try fm.moveItem(at: old, to: root.appendingPathComponent(missing[0].id))
+      }
       try fm.moveItem(at: transaction, to: root.appendingPathComponent(transactionName + ".bad-" + IndexDamage.stamp()))
       return
     }

@@ -159,11 +159,20 @@ public enum IndexDamage: Equatable, Sendable {
   /// other rows are kept.
   case droppedRows(Int, keptAs: String)
 
-  /// Copies the file to `<name>.bad-<time>` and returns that name; "" when the copy failed.
+  /// Copies the file to `<name>.bad-<time>` and returns that name; "" when the copy failed. A file still damaged
+  /// the same way at the next launch is kept once: an identical earlier copy's name comes back instead.
   static func keepAside(_ url: URL) -> String {
+    let fm = FileManager.default
+    let prefix = url.lastPathComponent + ".bad-"
+    if let data = try? Data(contentsOf: url),
+      let same = (try? fm.contentsOfDirectory(at: url.deletingLastPathComponent(), includingPropertiesForKeys: nil))?
+        .first(where: { $0.lastPathComponent.hasPrefix(prefix) && (try? Data(contentsOf: $0)) == data })
+    {
+      return same.lastPathComponent
+    }
     let copy = url.appendingPathExtension("bad-" + stamp())
     do {
-      try FileManager.default.copyItem(at: url, to: copy)
+      try fm.copyItem(at: url, to: copy)
       return copy.lastPathComponent
     } catch {
       return ""
