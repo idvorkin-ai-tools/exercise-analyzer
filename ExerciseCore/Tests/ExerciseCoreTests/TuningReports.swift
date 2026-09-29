@@ -93,26 +93,65 @@ final class TuningReports: XCTestCase {
       (f, frames.map { FrameRecord(time: $0.time, imageSize: $0.imageSize, pose: $0.pose, box: $0.box, analysis: nil, bells: $0.bells) })
     }
     print("  no bench: " + stripped.map { "\($0.0.name.prefix(22)) \(count($0.1, BulgarianSplitSquatThresholds()))/\($0.0.expectedReps)" }.joined(separator: " · "))
-    print("  defaults: " + tracks.map { "\($0.0.name.prefix(22)) \(count($0.1, BulgarianSplitSquatThresholds()))/\($0.0.expectedReps)" }.joined(separator: " · "))    // Knees' side-to-side gap at each rep's bottom, over the standing body height (ear to lower ankle at Standing):
-    // a split stance against a hinge with the feet together (79271425's put-down: 0.01 of the frame).
-    for (f, frames) in tracks {
-      let reps = AnalysisPipeline.analyze(frames: frames, exercise: .bulgarianSplitSquat).reps
-      let gaps = reps.compactMap { rep -> String? in
-        guard let bottom = rep.positions[BulgarianSplitSquatAnalyzer.bottom]?.pose,
-          let top = rep.positions[BulgarianSplitSquatAnalyzer.standing]?.pose
-        else { return nil }
-        let height = Double(max(top.xy[15].y, top.xy[16].y) - min(top.xy[3].y, top.xy[4].y))
-        let gap = Double(abs(bottom.xy[13].x - bottom.xy[14].x))
-        return String(format: "%.1f:%.2f", rep.positions[BulgarianSplitSquatAnalyzer.bottom]!.time, gap / max(height, 0.01))
-      }
-      print("  knee gap / height at bottoms, \(f.name): " + gaps.joined(separator: " "))
-    }
+    print("  defaults: " + tracks.map { "\($0.0.name.prefix(22)) \(count($0.1, BulgarianSplitSquatThresholds()))/\($0.0.expectedReps)" }.joined(separator: " · "))
     for share in [0.15, 0.25, 0.35, 0.5] {
       var t = BulgarianSplitSquatThresholds()
       t.benchTopShare = share
       print(String(format: "  top %.2f: ", share) + tracks.map { "\($0.0.name.prefix(22)) \(count($0.1, t))/\($0.0.expectedReps)" }.joined(separator: " · "))
     }
     fflush(stdout)  // redirected, XCTest exits with the tail of a long report still buffered
+  }
+
+  /// Every Bulgarian fixture's counted bottoms (#172): the knees' side-to-side gap over the standing body height
+  /// (ear to lower ankle at Standing), a split stance against a hinge with the feet together (79271425's
+  /// put-down: 0.01), then the ankles' gap across and up, the spine's lean and the front knee.
+  func testBulgarianBottoms() throws {
+    for f in Fixture.all where f.expectedExercise == .bulgarianSplitSquat {
+      let reps = AnalysisPipeline.analyze(frames: try f.frames(), exercise: .bulgarianSplitSquat).reps
+      let gaps = reps.compactMap { rep -> String? in
+        guard let bottom = rep.positions[BulgarianSplitSquatAnalyzer.bottom]?.pose,
+          let top = rep.positions[BulgarianSplitSquatAnalyzer.standing]?.pose
+        else { return nil }
+        let height = Double(max(top.xy[15].y, top.xy[16].y) - min(top.xy[3].y, top.xy[4].y))
+        let gap = Double(abs(bottom.xy[13].x - bottom.xy[14].x))
+        let ankles = Double(abs(bottom.xy[15].x - bottom.xy[16].x)), up = Double(abs(bottom.xy[15].y - bottom.xy[16].y))
+        let m = rep.positions[BulgarianSplitSquatAnalyzer.bottom]!.metrics
+        // A hinge to the floor: the wrists near the lower ankle, the ear near the hips.
+        let s = BodySkeleton(pose: bottom)
+        let floor = [s.ankleY(.left), s.ankleY(.right)].compactMap { $0 }.max() ?? 0
+        let wrists = [CocoKeypoint.leftWrist, .rightWrist].compactMap { s.point($0).map { Double($0.y) } }.max()
+        let hips = [CocoKeypoint.leftHip, .rightHip].compactMap { s.point($0).map { Double($0.y) } }.max()
+        let h = max(height, 0.01)
+        let wristUp = wrists.map { String(format: "%.2f", (floor - $0) / h) } ?? "-"
+        var earOverHip = "-"
+        if let hips, let ear = s.earY { earOverHip = String(format: "%.2f", (hips - ear) / h) }
+        return String(
+          format: "%.1f:%.2f ankles %.2f/%.2f spine %.0f knee %.0f wrist↑%@ ear↑%@",
+          rep.positions[BulgarianSplitSquatAnalyzer.bottom]!.time, gap / h, ankles / h, up / h, m["spine"] ?? -1,
+          m["frontKnee"] ?? -1, wristUp, earOverHip)
+      }
+      print("\(f.name), \(reps.count) reps, bottoms (knee gap / height, ankles across/up, spine, front knee):\n  "
+        + gaps.joined(separator: "\n  "))
+      // Over each rep's whole dip rather than one bottom frame: the spine's median and 90th percentile, the knee
+      // gap's median over the standing height, and the share of frames with the knees together (under 0.08).
+      let frames = try f.frames()
+      for rep in reps {
+        guard let top = rep.positions[BulgarianSplitSquatAnalyzer.standing]?.pose else { continue }
+        let height = Double(max(top.xy[15].y, top.xy[16].y) - min(top.xy[3].y, top.xy[4].y))
+        let dip = frames.filter { $0.time >= rep.startTime && $0.time <= rep.endTime }.compactMap(\.pose)
+        let spines = dip.map { BodySkeleton(pose: $0).spineAngle }.sorted()
+        let gapsIn = dip.compactMap { p -> Double? in
+          guard p.conf[13] > 0.2, p.conf[14] > 0.2 else { return nil }
+          return Double(abs(p.xy[13].x - p.xy[14].x)) / max(height, 0.01)
+        }.sorted()
+        func pct(_ a: [Double], _ q: Double) -> Double { a.isEmpty ? -1 : a[min(a.count - 1, Int(Double(a.count) * q))] }
+        let together = gapsIn.isEmpty ? -1 : Double(gapsIn.filter { $0 < 0.08 }.count) / Double(gapsIn.count)
+        print(String(
+          format: "  rep %d %.1f–%.1f s: spine med %.0f p90 %.0f · knee gap med %.2f · together %.2f", rep.number,
+          rep.startTime, rep.endTime, pct(spines, 0.5), pct(spines, 0.9), pct(gapsIn, 0.5), together))
+      }
+      fflush(stdout)
+    }
   }
 
   /// #135: 79271425's transitions through its setup and first reps (Muse's strips: setup 0.8–4.5 s, reps bottom

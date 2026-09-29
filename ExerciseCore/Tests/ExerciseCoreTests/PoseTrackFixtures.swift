@@ -100,6 +100,9 @@ struct Fixture {
     // the first rep came back 0.06 L short of the standing height and waited to be merged into the second.
     // Not confirmed by Igor.
     Fixture(name: "bulgarian-599F988A-phone", expectedExercise: .bulgarianSplitSquat, expectedReps: 8, humanVerified: false),
+    // Igor's gym set (2026-09-22, #135, #172), set up near the camera: eight reps, then the dumbbells put down with
+    // the feet together (34.9 s), which counted as a ninth. 8 by Muse's strip and checked by eye; not Igor's count.
+    Fixture(name: "bulgarian-79271425-phone", expectedExercise: .bulgarianSplitSquat, expectedReps: 8, humanVerified: false),
     // Igor's TGU clip (2026-09-12, IMG_4342): two get-ups, one per side, with a rest lying between them.
     Fixture(name: "tgu-phone-2min", expectedExercise: .turkishGetUp, expectedReps: 2, humanVerified: false),
     // Igor's second TGU clip (IMG_4343, issue #14): one get-up per side; a pose glitch at 14 s once counted as a rep.

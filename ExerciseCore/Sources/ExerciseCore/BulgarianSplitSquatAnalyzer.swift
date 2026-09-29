@@ -51,6 +51,12 @@ public struct BulgarianSplitSquatThresholds {
   /// A rep whose head turned back down (as deep as a rep) within this fraction of body height of the standing
   /// height counts; further short, it is abandoned and the turn becomes the standing height (#135).
   public var turnCountsFraction = 0.15
+  /// Knees closer than this fraction of body height side to side are together: a hinge, not a split (#172).
+  public var kneesTogetherFraction = 0.08
+  /// A dip with the knees together in more than this share of its frames is not a rep: bending to put the
+  /// dumbbells down, feet together. 79271425's put-down: 0.77; real reps at most 0.53, from the front camera of
+  /// bulgarian-10reps where the legs overlap (`TuningReports.testBulgarianBottoms`).
+  public var hingeShare = 0.65
 }
 
 public final class BulgarianSplitSquatAnalyzer: ExerciseAnalyzer {
@@ -99,6 +105,9 @@ public final class BulgarianSplitSquatAnalyzer: ExerciseAnalyzer {
   /// The last bench the detector saw, and when.
   private var bench: (box: CGRect, time: Double)?
   private var repStartTime = 0.0
+  /// This dip's frames with both knees seen, and those with the knees together (#172).
+  private var dipKneeFrames = 0
+  private var dipKneesTogether = 0
   private var frameCounter = 0
   /// Phase transitions and the values that triggered them, for tuning reports and the session log.
   public var trace: ((String) -> Void)?
@@ -131,6 +140,8 @@ public final class BulgarianSplitSquatAnalyzer: ExerciseAnalyzer {
     elevatedFlags = []
     bench = nil
     repStartTime = 0
+    dipKneeFrames = 0
+    dipKneesTogether = 0
     metrics = RepMetrics()
   }
 
@@ -228,6 +239,10 @@ public final class BulgarianSplitSquatAnalyzer: ExerciseAnalyzer {
     if rearKnee > 0 { metrics.minRearKnee = min(metrics.minRearKnee, rearKnee) }
     metrics.maxSpine = max(metrics.maxSpine, spine)
     machine.framesInPhase += 1
+    if machine.phase != Self.standing, let leftKnee = skeleton.point(.leftKnee), let rightKnee = skeleton.point(.rightKnee) {
+      dipKneeFrames += 1
+      if Double(abs(leftKnee.x - rightKnee.x)) < legLength * thresholds.kneesTogetherFraction { dipKneesTogether += 1 }
+    }
 
     var completedRep: RepRecord?
     switch machine.phase {
@@ -248,6 +263,8 @@ public final class BulgarianSplitSquatAnalyzer: ExerciseAnalyzer {
       {
         trace?(String(format: "%.2fs descending: ear %.0f > top %.0f + %.0f", time, earY, top, legLength * thresholds.descendFraction))
         repStartTime = time
+        dipKneeFrames = 0
+        dipKneesTogether = 0
         machine.transition(to: Self.descending)
         bottomCandidate = nil
         bottomImage = nil
@@ -339,6 +356,18 @@ public final class BulgarianSplitSquatAnalyzer: ExerciseAnalyzer {
         end = turn
       } else if machine.canTransition, earY < top + legLength * thresholds.returnFraction {
         end = frame
+      }
+      // A hinge with the feet together, not a split squat: the dumbbells put down (#172). Back to standing uncounted.
+      if let end, dipKneeFrames > 0, Double(dipKneesTogether) / Double(dipKneeFrames) > thresholds.hingeShare {
+        trace?(String(format: "%.2fs not a rep: knees together in %.2f of the dip", time, Double(dipKneesTogether) / Double(dipKneeFrames)))
+        machine.transition(to: Self.standing)
+        standingEarY = end.earY
+        standingFrame = end
+        standingImage = nil
+        bottomCandidate = nil
+        bottomImage = nil
+        metrics = RepMetrics()
+        return ExerciseFrameResult(phase: machine.phase, repCount: machine.repCount, metrics: m, completedRep: nil)
       }
       if let end {
         trace?(String(format: "%.2fs rep %d done: ear %.0f at %.2fs, top %.0f", time, machine.repCount + 1, end.earY, end.time, top))

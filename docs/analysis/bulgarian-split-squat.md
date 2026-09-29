@@ -35,9 +35,11 @@ less from a diagonal camera), so it scores quality but does not gate the phases.
 | bulgarian-4CF19A9A-phone | 8 | yes | Igor's gym set (2026-09-22, #132), diagonal camera: a setup crouch and a head wobble counted as reps 1 and 2; bench boxes added by `posetrack --poses-from` |
 | bulgarian-599F988A-phone | 8 | no | Igor's evening set (#135), side camera: Muse counted 8 over one strip per head drop, the first checked by eye; counted 6 |
 | bulgarian-7424BEDD-phone | 6 | yes | Igor's gym set (2026-09-22, #134), camera front-left, bench nearer the camera than him: counted 0 without the bench |
+| bulgarian-79271425-phone | 8 | no | Igor's set (2026-09-22, #135, #172), set up near the camera: 8 by Muse's strip and checked by eye; the dumbbells put down with the feet together counted as a ninth |
 | tracks/bulgarian-split-squat-20260909-98B26725 | archived | | must still analyze (`ArchivedTracks`) |
 
-Reports: `TuningReports.testBulgarianPhoneSetUnderThresholds`, `testBulgarianTenRepSetTrace`,
+Reports: `TuningReports.testBulgarianBottoms` (every counted bottom, and each dip's spine and knee gap),
+`testBulgarianPhoneSetUnderThresholds`, `testBulgarianTenRepSetTrace`,
 `testBulgarianPhoneSignals` (knee angles, spine, ear and ankle heights per quarter second, plus a naive dip count).
 
 ## Experiments
@@ -122,3 +124,13 @@ Reports: `TuningReports.testBulgarianPhoneSetUnderThresholds`, `testBulgarianTen
   standing frame, invisible since both legs draw alike. The split squats gain nothing, so the latch draws the
   Bulgarian only. The remaining jumps are knee spikes, which a latch cannot fix. Drawing only: counts unchanged,
   no AnalysisVersion bump.
+- **2026-09-29, bulgarian-79271425-phone, the put-down ([#172](https://github.com/idvorkin/exercise-analyzer/issues/172))**:
+  the fixture went in expecting 8 and failed at 9. One bottom frame does not part the put-down from a rep
+  (`testBulgarianBottoms`). The knee gap is 0.01 of body height there, but 0.04 at a real front-camera bottom.
+  The spine is 54° against up to 50°, and ear over hip 0.28 against 0.30 or more. The wrists hang near the floor
+  on several cameras anyway. Over the whole dip it parts clearly: the knees sit within 0.08 of body height
+  side to side in 77 % of the put-down's frames, and in at most 53 % of any real rep's (bulgarian-10reps, whose
+  front camera overlaps the legs). A dip with the knees together in over 65 % of its frames now goes back to
+  standing uncounted (`kneesTogetherFraction`, `hingeShare`). All six fixtures count as expected (8, 8, 8, 6, 8,
+  8) and the archived 98B26725 stays 8. One put-down is the only example, so the margin rests on it.
+  AnalysisVersion 2026-09-29.2.
