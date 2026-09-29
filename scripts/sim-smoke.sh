@@ -140,8 +140,31 @@ check_clip_switch() {  # stage: force A's render/replay/Photos/trim result to ar
   else echo "FAIL  clip_switch $1: $f"; fail=1; fi
   xcrun simctl terminate "$SIM" "$BUNDLE" 2>/dev/null || true
 }
+# The simulator's own sets and workouts, moved aside and back (check_live_workout). A stash an interrupted run
+# left behind is put back first, so the lifter's simulator data is never lost to it.
+STASHED="recents/index.json workouts.json workouts"
+unstash() {
+  local docs stash p; docs=$(dirname "$LOGS"); stash="$docs/.smoke-stash"
+  [ -d "$stash" ] || return 0
+  for p in $STASHED; do
+    if [ -e "$stash/$p" ]; then rm -rf "${docs:?}/$p"; mv "$stash/$p" "$docs/$p"; fi
+  done
+  rm -rf "$stash"
+}
+stash() {
+  local docs stash p; docs=$(dirname "$LOGS"); stash="$docs/.smoke-stash"
+  unstash
+  mkdir -p "$stash/recents"
+  for p in $STASHED; do
+    if [ -e "$docs/$p" ]; then mv "$docs/$p" "$stash/$p"; fi
+  done
+}
 check_live_workout() {
   reset_mode
+  # The pretend workout began 2 minutes ago, so the sets the checks before this one just saved, or a workout a
+  # previous run saved (sessions merge under 30 minutes apart, #169), would land in it (#171): run it on an empty
+  # list and put the simulator's own back after.
+  stash
   SIMCTL_CHILD_SWING_LIVE_WORKOUT=2 SIMCTL_CHILD_SWING_WORKOUT_EVOLVE=1 \
     xcrun simctl launch "$SIM" "$BUNDLE" >/dev/null
   wait_for workout_saved 60 || echo "      (timed out waiting for live workout to end)"
@@ -161,6 +184,7 @@ check_live_workout() {
     echo "ok    live_workout: 1 → 2 sets / 16 reps, clock and window advanced, Health re-asked, saved page retained both sets"
   else echo "FAIL  live_workout: $f"; fail=1; fi
   xcrun simctl terminate "$SIM" "$BUNDLE" 2>/dev/null || true
+  unstash  # the check's own workout goes; the simulator's sets and workouts come back
 }
 # ONLY=<substring> runs just the matching checks (e.g. ONLY=trim).
 run() { if [ -z "${ONLY:-}" ] || [[ "$*" == *"${ONLY}"* ]]; then "$@"; fi; }

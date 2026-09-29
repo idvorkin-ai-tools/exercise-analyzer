@@ -140,7 +140,10 @@ enum OfflineAnalyzer {
       while let sampleBuffer = output.copyNextSampleBuffer() {
         if Task.isCancelled {
           reader.cancelReading()
-          if holdOnCancel { try? await Task.sleep(for: .seconds(0.5)) }
+          // Not Task.sleep: this task is cancelled, and a cancelled Task.sleep returns at once (no hold at all).
+          if holdOnCancel {
+            await withCheckedContinuation { done in DispatchQueue.global().asyncAfter(deadline: .now() + 0.5) { done.resume() } }
+          }
           throw OfflineError.cancelled
         }
         let time = CMSampleBufferGetPresentationTimeStamp(sampleBuffer).seconds
