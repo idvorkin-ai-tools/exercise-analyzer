@@ -60,6 +60,32 @@ final class RecentsIndexTests: XCTestCase {
     XCTAssertTrue(RecentsIndex.load(root: tempRoot()).entries.isEmpty)
   }
 
+  /// One row this build cannot read (an exercise it does not know, a downgrade past #158) must not empty the
+  /// list: the other rows load, and the file as found is kept beside the index before any save writes over it.
+  func testABadRowIsDroppedAndTheFileKeptAside() throws {
+    let root = tempRoot()
+    try RecentsIndex(entries: [entry("a"), entry("b")]).save(root: root)
+    let url = root.appendingPathComponent("index.json")
+    var rows = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [[String: Any]])
+    rows[1]["exercise"] = "handstand"
+    try JSONSerialization.data(withJSONObject: rows).write(to: url)
+    let loaded = RecentsIndex.load(root: root)
+    XCTAssertEqual(loaded.entries.map(\.id), ["a"])
+    guard case .droppedRows(1, let kept)? = loaded.damage else { return XCTFail("damage: \(String(describing: loaded.damage))") }
+    XCTAssertTrue(kept.hasPrefix("index.json.bad-"))
+    XCTAssertEqual(try Data(contentsOf: root.appendingPathComponent(kept)), try Data(contentsOf: url))
+  }
+
+  func testAnUnreadableIndexStartsEmptyAndIsKeptAside() throws {
+    let root = tempRoot()
+    let url = root.appendingPathComponent("index.json")
+    try Data("[{\"id\": \"a\",".utf8).write(to: url)
+    let loaded = RecentsIndex.load(root: root)
+    XCTAssertTrue(loaded.entries.isEmpty)
+    guard case .unreadableFile(let kept)? = loaded.damage else { return XCTFail("damage: \(String(describing: loaded.damage))") }
+    XCTAssertEqual(try Data(contentsOf: root.appendingPathComponent(kept)), try Data(contentsOf: url))
+  }
+
   func testOldIndexRowsDecodeWithNilFields() throws {
     // An index.json from before step 2 has neither key.
     let root = tempRoot()

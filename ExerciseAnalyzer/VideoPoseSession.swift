@@ -277,6 +277,12 @@ final class VideoPoseSession: NSObject, ObservableObject {
     pipeline = AnalysisPipeline(exercise: exercise)
     watch.onEvent = { [weak self] type, fields in self?.log.event(type, fields) }
     WorkoutMirror.shared.onEvent = { [weak self] type, fields in self?.log.event(type, fields) }
+    // An index file with rows this build could not read (a downgrade, a hand edit): the rows that decoded are in
+    // use and the file as found sits beside it as .bad-<time>.
+    if let damage = recents.indexDamage { log.event("error", ["where": "recents_index", "message": "\(damage)"]) }
+    if let damage = WorkoutMirror.shared.indexDamage {
+      log.event("error", ["where": "workouts_index", "message": "\(damage)"])
+    }
     WorkoutLiveActivity.shared.onEvent = { [weak self] type, fields in self?.log.event(type, fields) }
     WorkoutLiveActivity.shared.install(mirror: .shared)  // the workout on the lock screen and in the Dynamic Island (#161)
     CrashReports.shared.onEvent = { [weak self] type, fields in self?.log.event(type, fields) }

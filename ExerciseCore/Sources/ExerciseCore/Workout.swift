@@ -128,13 +128,27 @@ public struct StoredWorkout: Codable, Hashable, Identifiable, Sendable {
 public struct WorkoutIndex: Codable, Equatable, Sendable {
   public static let fileName = "workouts.json"
   public var workouts: [StoredWorkout]
+  /// What was wrong with the file `load` read, if anything (not stored).
+  public var damage: IndexDamage? = nil
+
+  enum CodingKeys: String, CodingKey { case workouts }
 
   public init(workouts: [StoredWorkout] = []) { self.workouts = workouts }
 
+  /// Empty when the file is missing. A row this build cannot decode is dropped, not the list, and the file as
+  /// found is kept beside it; `damage` says what happened (RecentsIndex.load does the same for sets).
   public static func load(root: URL) -> WorkoutIndex {
     let url = root.appendingPathComponent(fileName)
-    guard let data = try? Data(contentsOf: url), let index = try? JSONDecoder().decode(WorkoutIndex.self, from: data)
-    else { return WorkoutIndex() }
+    guard let data = try? Data(contentsOf: url) else { return WorkoutIndex() }
+    struct LossyFile: Decodable { var workouts: [Lossy<StoredWorkout>] }
+    guard let file = try? JSONDecoder().decode(LossyFile.self, from: data) else {
+      var index = WorkoutIndex()
+      index.damage = .unreadableFile(keptAs: IndexDamage.keepAside(url))
+      return index
+    }
+    var index = WorkoutIndex(workouts: file.workouts.compactMap(\.value))
+    let dropped = file.workouts.count - index.workouts.count
+    if dropped > 0 { index.damage = .droppedRows(dropped, keptAs: IndexDamage.keepAside(url)) }
     return index
   }
 

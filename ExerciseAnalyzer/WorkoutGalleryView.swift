@@ -316,7 +316,9 @@ struct ExerciseSets: Identifiable {
 }
 
 extension RecentEntry {
-  var start: Date { recordedAt ?? analyzedAt }
+  /// Where the set sits in time, the same instant the workout page and `outsideWorkouts` place it at (the clip's
+  /// first frame when known), so a set is never on one day here and in another workout there.
+  var start: Date { span.lowerBound }
 }
 
 extension ExerciseKind {

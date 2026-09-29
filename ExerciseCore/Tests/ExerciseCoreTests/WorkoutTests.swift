@@ -68,6 +68,47 @@ final class WorkoutTests: XCTestCase {
     XCTAssertEqual(WorkoutIndex.load(root: root), index)
   }
 
+  /// A row this build cannot read is dropped, not the whole list, and the file as found is kept beside it.
+  func testABadWorkoutRowIsDroppedNotTheList() throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: root) }
+    try WorkoutIndex(workouts: [
+      StoredWorkout(id: "a", start: date(16, 9), end: date(16, 10)), StoredWorkout(id: "b", start: date(16, 17), end: date(16, 18)),
+    ]).save(root: root)
+    let url = root.appendingPathComponent(WorkoutIndex.fileName)
+    var file = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
+    var rows = try XCTUnwrap(file["workouts"] as? [[String: Any]])
+    rows[1]["start"] = "yesterday"
+    file["workouts"] = rows
+    try JSONSerialization.data(withJSONObject: file).write(to: url)
+    let loaded = WorkoutIndex.load(root: root)
+    XCTAssertEqual(loaded.workouts.map(\.id), ["a"])
+    guard case .droppedRows(1, let kept)? = loaded.damage else { return XCTFail("damage: \(String(describing: loaded.damage))") }
+    XCTAssertTrue(FileManager.default.fileExists(atPath: root.appendingPathComponent(kept).path))
+    // A save after the load writes what decoded; the copy still has both rows.
+    try loaded.save(root: root)
+    XCTAssertEqual(WorkoutIndex.load(root: root).workouts.map(\.id), ["a"])
+    XCTAssertNil(WorkoutIndex.load(root: root).damage)
+  }
+
+  /// #169: a workout wholly inside another (two watch sessions overlapping) and one sharing a start are one
+  /// session, which ends at the latest end and counts every set.
+  func testOverlappingWorkoutsAreOneSession() {
+    let index = WorkoutIndex(workouts: [
+      StoredWorkout(id: "outer", start: date(16, 9), end: date(16, 10), sets: 4, reps: 32),
+      StoredWorkout(id: "inner", start: date(16, 9, 20), end: date(16, 9, 30), sets: 1, reps: 8),
+      StoredWorkout(id: "twin", start: date(16, 9), end: date(16, 9, 5), sets: 1, reps: 5),
+    ])
+    let sessions = index.sessions()
+    XCTAssertEqual(sessions.count, 1)
+    XCTAssertEqual(sessions[0].start, date(16, 9))
+    XCTAssertEqual(sessions[0].end, date(16, 10))
+    XCTAssertEqual(sessions[0].sets, 6)
+    XCTAssertEqual(sessions[0].reps, 45)
+    XCTAssertNil(sessions[0].heartRateAverage)
+  }
+
   /// #169: workouts under 30 minutes apart are one session; a longer gap starts a new one.
   func testWorkoutsUnderHalfAnHourApartAreOneSession() {
     let index = WorkoutIndex(workouts: [

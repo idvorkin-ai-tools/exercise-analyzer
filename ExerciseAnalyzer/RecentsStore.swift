@@ -13,6 +13,8 @@ import UIKit
 @MainActor
 final class RecentsStore: ObservableObject {
   @Published private(set) var entries: [RecentEntry] = []
+  /// What was wrong with index.json at launch, if anything; the session logs it.
+  let indexDamage: IndexDamage?
 
   private let root: URL
 
@@ -27,6 +29,7 @@ final class RecentsStore: ObservableObject {
     try? FileManager.default.createDirectory(at: self.root, withIntermediateDirectories: true)
     try? RecentsSave.recover(root: self.root)
     var index = RecentsIndex.load(root: self.root)
+    indexDamage = index.damage
     if index.backfill(root: self.root) { try? index.save(root: self.root) }
     entries = index.entries
   }

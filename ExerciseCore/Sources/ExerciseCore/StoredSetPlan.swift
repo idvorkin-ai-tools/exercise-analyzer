@@ -8,7 +8,7 @@
 import Foundation
 
 /// Why a stored set is (re-)analyzed. Raw values are the log reasons; one enum so they cannot drift.
-public enum StoredSetReason: String, Equatable {
+public enum StoredSetReason: String, Equatable, Sendable {
   /// Fresh poses just came off the clip (finishAnalysis with no re-run exercise).
   case load
   /// Stored reps predate this build's analyzer (story 015).
@@ -22,7 +22,7 @@ public enum StoredSetReason: String, Equatable {
   case rerunTimeline = "rerun_timeline"
 }
 
-public enum StoredSetDecision: Equatable {
+public enum StoredSetDecision: Equatable, Sendable {
   /// Play the stored analysis as is.
   case keep
   /// Re-analyze the stored poses (no inference) as the exercise, logging the reason.

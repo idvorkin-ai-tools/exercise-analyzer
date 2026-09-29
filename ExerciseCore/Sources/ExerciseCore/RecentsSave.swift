@@ -82,7 +82,15 @@ public struct RecentsSave {
       try fm.removeItem(at: transaction) // No journal means no destination mutation was started.
       return
     }
-    let journal = try JSONDecoder().decode(Journal.self, from: Data(contentsOf: journalURL))
+    let journal: Journal
+    do {
+      journal = try JSONDecoder().decode(Journal.self, from: Data(contentsOf: journalURL))
+    } catch {
+      // A journal this build cannot read (its shape changed) would otherwise block every save until the folder is
+      // removed by hand: set it aside with its old files, keep what is on disk, and let saving go on.
+      try fm.moveItem(at: transaction, to: root.appendingPathComponent(transactionName + ".bad-" + IndexDamage.stamp()))
+      return
+    }
     let destination = root.appendingPathComponent(journal.id)
     let old = transaction.appendingPathComponent("old")
     let committed = fm.fileExists(atPath: transaction.appendingPathComponent("committed").path)

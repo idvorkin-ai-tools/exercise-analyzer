@@ -35,7 +35,7 @@ final class TrackTimelineTests: XCTestCase {
   }
 }
 
-/// refreshStaleEntries (:218–234): stale or models-changed entries only; models-changed re-runs from the clip,
+/// refreshStaleEntries: stale or models-changed entries only; models-changed re-runs from the clip,
 /// otherwise the stored poses are replayed, re-detecting in Auto at >= 70.
 final class RefreshPlanTests: XCTestCase {
   func testModelsChangedRerunsFromClipAsStoredExercise() {
@@ -89,7 +89,7 @@ final class RefreshPlanTests: XCTestCase {
   }
 }
 
-/// open(recent:) (:569–600): models-changed re-runs from the video; stale replays ("analyzer_version"); in Auto
+/// open(recent:): models-changed re-runs from the video; stale replays ("analyzer_version"); in Auto
 /// a confident re-read replays ("recents_redetect"); otherwise the stored set plays as is.
 final class OpenPlanTests: XCTestCase {
   func testModelsChangedRerunsFromClip() {
@@ -150,7 +150,7 @@ final class OpenPlanTests: XCTestCase {
   }
 }
 
-/// rerunFromClip (:359): the pass from the video is always analyzed as the stored exercise — no detection,
+/// rerunFromClip: the pass from the video is always analyzed as the stored exercise — no detection,
 /// whatever the mode. The decision carries that exercise.
 final class RerunPlanTests: XCTestCase {
   func testRerunCarriesStoredExerciseInFixedMode() {
@@ -169,7 +169,7 @@ final class RerunPlanTests: XCTestCase {
   }
 }
 
-/// analyzeExtracted (:815–829): fixed mode analyzes the stored exercise when there is one (#42); Auto takes the
+/// analyzeExtracted: fixed mode analyzes the stored exercise when there is one (#42); Auto takes the
 /// detector's answer — today with no threshold, unified to 70 (nothing stored to protect on a fresh load).
 final class AnalyzeExtractedPlanTests: XCTestCase {
   func testFixedModeKeepsStoredExercise() {

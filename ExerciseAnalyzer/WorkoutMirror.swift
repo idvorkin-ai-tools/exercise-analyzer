@@ -26,9 +26,14 @@ final class WorkoutMirror: NSObject, ObservableObject {
   private var lastDataLogged = Date.distantPast
   private var authorizationRequested = false
 
+  /// What was wrong with workouts.json at launch, if anything; the session logs it.
+  let indexDamage: IndexDamage?
+
   init(root: URL? = nil) {
     self.root = root ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-    index = WorkoutIndex.load(root: self.root)
+    let loaded = WorkoutIndex.load(root: self.root)
+    index = loaded
+    indexDamage = loaded.damage
     super.init()
     guard HKHealthStore.isHealthDataAvailable() else { return }
     store.workoutSessionMirroringStartHandler = { [weak self] session in
