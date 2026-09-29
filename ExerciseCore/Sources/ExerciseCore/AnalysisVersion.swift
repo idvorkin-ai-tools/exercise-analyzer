@@ -31,5 +31,7 @@ public enum AnalysisVersion {
   // within 2.5 s: the hike does, standing up after setting the bell down at the end of a set does not (#149).
   // 2026-09-28.1: unmeasured joints (0°) drive nothing: a pistol's hidden working knee no longer starts a descent
   // and a headless frame no longer confirms its bottom; a 0° knee is not a deep knee in any score (#171).
-  public static let current = "2026-09-28.1"
+  // 2026-09-29.1: a pistol's hidden working knee no longer enters the smoothed knee, so it cannot fake the rise
+  // out of the bottom (#171).
+  public static let current = "2026-09-29.1"
 }

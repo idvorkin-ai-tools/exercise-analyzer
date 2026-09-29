@@ -65,4 +65,22 @@ final class PistolSquatAnalyzerTests: XCTestCase {
     for _ in 0..<6 { phase = feed(pose(knee: 85, earY: 440, hideHead: true)) }
     XCTAssertEqual(phase, PistolSquatAnalyzer.descending)
   }
+
+  /// Held at the bottom, one frame with the working knee hidden must not make the next steady frame read as rising.
+  func testAHiddenKneeAtTheBottomStartsNoAscent() {
+    let analyzer = PistolSquatAnalyzer()
+    var t = 0.0
+    func feed(_ p: Pose) -> String {
+      t += 1.0 / 30
+      return analyzer.process(pose: p, time: t, image: { nil }).phase
+    }
+    for _ in 0..<10 { _ = feed(pose(knee: 170, earY: 200)) }
+    for step in 0..<8 { _ = feed(pose(knee: 130 - Double(step) * 5, earY: 260 + Double(step) * 25)) }
+    var phase = ""
+    for earY in [440.0, 430, 420, 410, 400, 400, 400] { phase = feed(pose(knee: 95, earY: earY)) }
+    XCTAssertEqual(phase, PistolSquatAnalyzer.bottom)
+    _ = feed(pose(knee: 95, earY: 400, hideLeftKnee: true))
+    for _ in 0..<3 { phase = feed(pose(knee: 95, earY: 400)) }
+    XCTAssertEqual(phase, PistolSquatAnalyzer.bottom)
+  }
 }

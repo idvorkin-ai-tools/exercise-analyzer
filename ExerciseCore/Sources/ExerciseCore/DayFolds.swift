@@ -26,9 +26,8 @@ public struct DayFolds: Equatable, Sendable {
     choices[day] ?? olderThanAWeek
   }
 
-  /// Records a fold or an open made by hand. A choice equal to the default is forgotten, so the list stays as small
-  /// as the days the lifter really changed.
-  public mutating func set(_ day: String, folded: Bool, olderThanAWeek: Bool) {
-    choices[day] = folded == olderThanAWeek ? nil : folded
+  /// Records a fold or an open made by hand; it outlasts the day's age changing its default.
+  public mutating func set(_ day: String, folded: Bool) {
+    choices[day] = folded
   }
 }

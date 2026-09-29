@@ -147,7 +147,8 @@ unstash() {
   local docs stash p; docs=$(dirname "$LOGS"); stash="$docs/.smoke-stash"
   [ -d "$stash" ] || return 0
   for p in $STASHED; do
-    if [ -e "$stash/$p" ]; then rm -rf "${docs:?}/$p"; mv "$stash/$p" "$docs/$p"; fi
+    if [ -e "$stash/$p" ]; then rm -rf "${docs:?}/$p"; mv "$stash/$p" "$docs/$p"
+    elif [ -e "$stash/$p.absent" ]; then rm -rf "${docs:?}/$p"; fi
   done
   rm -rf "$stash"
 }
@@ -156,7 +157,7 @@ stash() {
   unstash
   mkdir -p "$stash/recents"
   for p in $STASHED; do
-    if [ -e "$docs/$p" ]; then mv "$docs/$p" "$stash/$p"; fi
+    if [ -e "$docs/$p" ]; then mv "$docs/$p" "$stash/$p"; else touch "$stash/$p.absent"; fi
   done
 }
 check_live_workout() {

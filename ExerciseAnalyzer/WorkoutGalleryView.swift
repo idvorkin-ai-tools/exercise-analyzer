@@ -113,7 +113,7 @@ struct WorkoutGalleryView: View {
                       let opening = folded
                       onEvent?("workouts_day", ["day": key, "opened": opening])
                       var folds = DayFolds(stored: foldsStored)
-                      folds.set(key, folded: !opening, olderThanAWeek: Self.isOld(day.date))
+                      folds.set(key, folded: !opening)
                       withAnimation(.easeInOut(duration: 0.2)) {
                         foldAllForScreenshot = false
                         foldsStored = folds.stored

@@ -101,9 +101,10 @@ public final class PistolSquatAnalyzer: ExerciseAnalyzer {
       return ExerciseFrameResult(phase: machine.phase, repCount: machine.repCount, metrics: m, completedRep: nil)
     }
 
-    let smoothed = smooth(workingKnee)
-    kneeHistory.append(smoothed)
-    if kneeHistory.count > 10 { kneeHistory.removeFirst(kneeHistory.count - 10) }
+    if workingKnee > 0 {
+      kneeHistory.append(smooth(workingKnee))
+      if kneeHistory.count > 10 { kneeHistory.removeFirst(kneeHistory.count - 10) }
+    }
 
     let frame = SingleLegFrame(pose: pose, time: time, earY: earY, metrics: m)
     frameHistory.append(frame)
