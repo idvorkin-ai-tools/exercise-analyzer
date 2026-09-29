@@ -27,7 +27,10 @@ exercise it was; Auto mode analyzes with the winner, and reopening a stored set 
    and under 20 % of frames over 35° (walk-ins and diagonal cameras make legs read a little uneven).
 6. **Pistol squat**: p95 asymmetry over 80° with the feet level in over half the frames.
 7. **Bulgarian split squat**: one foot held above the other in over half the frames with p95 over 20°.
-8. Otherwise ambiguous (swing with low confidence).
+8. **Pistol squat, weaker**: p95 over 35° with over 20 % of frames asymmetric and the feet level in over half
+   (confidence 55 plus the asymmetric share).
+9. **Kettlebell swing, weaker**: p95 under 24.5° (confidence 70 plus the symmetric share).
+10. Otherwise ambiguous (confidence at most 60): a pistol when over 15 % of frames are asymmetric, else a swing.
 
 Every fixture must detect as its own exercise with confidence ≥ 75 (`DetectionTests`), swing detection must survive
 mirroring, and `DetectionReport.testDetectionMargins` prints how close each fixture sits to the boundaries.

@@ -2,10 +2,9 @@
 
 //  Both models and their compute plans behind one readiness gate (#52 step 4): the pose predictor arrives via
 //  a continuation over BasePredictor.create, the bell detector loads with it when switched on, and ready()
-//  also drains the compute-plan summaries, so inference never overlaps plan compilation (#43). Replaces the
-//  three `while predictor == nil` polls and the pendingLoadURL side channel: a caller that needs the models
-//  awaits ready() instead. ready() resolves with nil (never hangs) when the package is missing or creation
-//  failed, so model-less paths keep today's behavior.
+//  also drains the compute-plan summaries, so inference never overlaps plan compilation (#43). A caller that
+//  needs the models awaits ready(), which resolves with nil (never hangs) when the package is missing or
+//  creation failed, so model-less paths keep working.
 
 import ExerciseCore
 import Foundation
@@ -42,9 +41,6 @@ final class ModelSet {
 
   /// Compute-plan summaries still compiling (for the launch log line).
   var outstandingPlans: Int { planTasks.count }
-
-  /// Mirrors status into the session's published modelStatus.
-  var onStatus: ((String) -> Void)?
 
   private let log: SessionLog
   private var planTasks: [Task<Void, Never>] = []
@@ -146,7 +142,6 @@ final class ModelSet {
 
   private func setStatus(_ status: String) {
     self.status = status
-    onStatus?(status)
   }
 
   /// Where Core ML schedules the model's ops (CPU / GPU / Neural Engine), the same assignment Xcode's performance

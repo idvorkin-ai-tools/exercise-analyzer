@@ -1195,6 +1195,6 @@ enum OverlayMode: String, CaseIterable {
 
   var symbol: String { self == .both ? "eye" : "eye.slash" }
 
-  /// Names what the button will switch to.
+  /// Names the mode; the eye button shows `next.label`, what a tap will switch to.
   var label: String { self == .both ? "Show video and skeleton" : "Show video only" }
 }

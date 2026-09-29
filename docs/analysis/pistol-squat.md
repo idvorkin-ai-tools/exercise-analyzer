@@ -7,7 +7,8 @@ Code: `ExerciseCore/Sources/ExerciseCore/PistolSquatAnalyzer.swift` (ported from
 
 STANDING → DESCENDING → BOTTOM → ASCENDING → STANDING (rep complete).
 
-- **Working leg**: the more bent knee (knee asymmetry), re-evaluated per rep so a set can alternate legs.
+- **Working leg**: the more bent knee (knee asymmetry), chosen once in the first descent and kept for the whole
+  set (`SingleLegTracker`); a set that alternates legs is not supported.
 - **Bottom**: the lowest head position (`earY`), confirmed once the head has risen again for a few frames.
 - **Descending / ascending checkpoints**: the frames nearest 50 % of the head travel on the way down and up.
 

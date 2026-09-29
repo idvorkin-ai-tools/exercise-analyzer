@@ -68,16 +68,6 @@ final class WorkoutTests: XCTestCase {
     XCTAssertEqual(WorkoutIndex.load(root: root), index)
   }
 
-  func testADayFindsItsWorkoutsInStartOrder() {
-    let index = WorkoutIndex(workouts: [
-      StoredWorkout(id: "later", start: date(16, 17), end: date(16, 18)),
-      StoredWorkout(id: "morning", start: date(16, 9, 2), end: date(16, 10)),
-      StoredWorkout(id: "yesterday", start: date(15, 9), end: date(15, 10)),
-    ])
-    XCTAssertEqual(index.workouts(on: date(16, 13), calendar: calendar).map(\.id), ["morning", "later"])
-    XCTAssertEqual(index.workouts(on: date(14, 13), calendar: calendar), [])
-  }
-
   /// #169: workouts under 30 minutes apart are one session; a longer gap starts a new one.
   func testWorkoutsUnderHalfAnHourApartAreOneSession() {
     let index = WorkoutIndex(workouts: [

@@ -5,19 +5,19 @@ Code: `ExerciseCore/Sources/ExerciseCore/BulgarianSplitSquatAnalyzer.swift`.
 ## Phases
 
 STANDING → DESCENDING → BOTTOM → ASCENDING → STANDING (rep complete), driven by **head height relative to the
-standing height, scaled by leg length**. The front knee often bends only modestly in a split squat (and reads even
+standing height, scaled by the standing body height (front ankle to ear)**. The front knee often bends only modestly in a split squat (and reads even
 less from a diagonal camera), so it scores quality but does not gate the phases.
 
 - **Front leg**: the foot that sits lower on screen (the rear foot is up on the bench). Elevation is voted over
-  recent frames (`elevationVoteFraction` 0.12 of leg length, `elevatedRecentlyFraction` 0.3).
+  recent frames (`elevationVoteFraction` 0.12 of body height, `elevatedRecentlyFraction` 0.3).
 - **The bench**: the offline pass runs a bench detector (YOLOE-26s, prompt "bench", `BellDetector.bench`) about
   once a second; an ankle inside the box's width, from 0.03 above its top edge down to `benchTopShare` (0.25) of its
   height, also counts as the rear foot up, and with one ankle there the other is the front leg. The last box
   stands for `benchMaxAge` (3 s). Live recording has no bench; the offline pass decides the stored count.
-- **Descend** when the head drops more than `descendFraction` (0.08) of leg length below standing height; **rise**
+- **Descend** when the head drops more than `descendFraction` (0.08) of body height below standing height; **rise**
   after it comes back up `riseFraction` (0.02) from the bottom; **standing** again within `returnFraction` (0.05) of
   the standing height. Frames with spine over `maxValidSpineAngle` (60°) are rejected.
-- **Not a rep**: a dip that bottoms out less than `minDepthFraction` (0.2 L) below the standing height (a head
+- **Not a rep**: a dip that bottoms out less than `minDepthFraction` (0.2 of body height) below the standing height (a head
   wobble); any dip before the rear foot has been up `minSetUpSeconds` (2.5 s) (the foot going up to the bench
   mid-crouch). The standing height is forgotten only after `forgetTopAfter` (4 s) with no elevated reading: from
   a diagonal camera the front leg hides the rear ankle while standing tall.
@@ -43,7 +43,7 @@ Reports: `TuningReports.testBulgarianPhoneSetUnderThresholds`, `testBulgarianTen
 ## Experiments
 
 - **2026-09-12, bulgarian-phone**: `testBulgarianPhoneSignals` showed the front knee dipping only to 110–130° from
-  the diagonal camera while the head dropped by a steady fraction of leg length 8 times; phases moved from the
+  the diagonal camera while the head dropped by a steady fraction of body height 8 times; phases moved from the
   front knee to head height (commit 681f98d and the AGENTS.md rule).
 - Both counts are analyzer baselines. Next: Igor confirms 8 on one of them and it becomes `humanVerified`.
 - **2026-09-13, tracks/bulgarian-split-squat-20260909-98B26725 ([#55](https://github.com/idvorkin/exercise-analyzer/issues/55))**:

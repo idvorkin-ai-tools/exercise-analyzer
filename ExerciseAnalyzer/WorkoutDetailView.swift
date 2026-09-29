@@ -1,8 +1,9 @@
 // Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 
 //  The whole workout on one page (story 053, #95): heart rate across the session with each set as a band on the
-//  same time axis, then the sets in order with reps, score, peak heart rate, the rest that followed and how far
-//  the heart rate fell in its first minute. Reached from the green workout line in Workouts.
+//  same time axis (in time into the workout, #165), then the sets in order or grouped by exercise (#164) with
+//  reps, score, peak heart rate, the rest that followed and how far the heart rate fell in its first minute.
+//  Reached from the green workout line in Workouts.
 
 import Charts
 import ExerciseCore

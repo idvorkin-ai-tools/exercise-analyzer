@@ -3,10 +3,11 @@
 //  Runs the kettlebell detector (#18) on a frame and returns every bell it saw, with the mean colour inside each
 //  box. Shared by the app's offline pass and the Mac tool, so a fixture's bells are exactly what the phone sees.
 //
-//  The model is an Ultralytics end-to-end export (YOLOE nano, prompt "kettlebell", NMS inside): one output of
-//  [1, max_det, 6 + extras] rows (x1, y1, x2, y2 in the letterboxed 640 × 640 input, confidence, class, then mask
-//  coefficients for the segmentation head, which are ignored) plus a mask prototype tensor, also ignored. Rows
-//  are mapped back to the image with the same letterbox math the pose model uses.
+//  The model is an Ultralytics YOLOE export (nano for the bell, small for the bench) without an NMS stage: either
+//  the end-to-end head's [1, max_det, 6 + extras] rows (x1, y1, x2, y2 in the letterboxed 640 × 640 input,
+//  confidence, class, then mask coefficients, ignored) or the dense one-to-many head's [1, channels, anchors]
+//  (`parseDense`), plus a mask prototype tensor, ignored. Near-duplicates are suppressed here
+//  (`suppressOverlaps`) and rows are mapped back to the image with the same letterbox math the pose model uses.
 
 // Not on watchOS: the watchOS 27 SDK makes `canImport(Vision)` true there, but VNCoreMLModel and
 // VNCoreMLRequest do not exist on the watch, and the watch app never runs the detector (Xcode 27, 2026-09-15).

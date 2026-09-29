@@ -10,7 +10,7 @@ BOTTOM, the first qualifying frame for CONNECT and RELEASE.
 
 | Phase | Meaning | Condition (degrees, `SwingThresholds`) |
 |---|---|---|
-| TOP | lockout: arms at peak height, standing tall | spine < 25 (`topSpineMax`), hip > 160 (`topHipMin`), arm > 40 (`topArmMin`), or > 32 within 0.4 s of the release (`ballisticTopArmMin`, `ballisticReleaseMax`), or, within that same 0.4 s, > 20 with the wrists no more than 0.4 torso lengths below the shoulders (`wristTopArmMin`, `wristTopRiseMin`, #139); confirmed by the wrist-height peak; a top over 1 s after the deepest BOTTOM frame (`upswingMaxDuration`) counts only when a hinge follows within 2.5 s (`slowTopConfirmGap`, #149) |
+| TOP | lockout: arms at peak height, standing tall | spine < 25 (`topSpineMax`), hip > 160 (`topHipMin`), arm > 40 (`topArmMin`), or > 32 within 0.4 s of the release (`ballisticTopArmMin`, `ballisticReleaseMax`), or, within that same 0.4 s, > 20 with the wrists no more than 0.4 torso lengths below the shoulders (`wristTopArmMin`, `wristTopRiseMin`, #139); confirmed by the smoothed wrist height peaking at least 80 px under the shoulder line or higher, or, failing a peak, by `minFramesInPhase` + 2 frames spent in RELEASE (fast swings miss the exact peak); a top over 1 s after the deepest BOTTOM frame (`upswingMaxDuration`) counts only when a hinge follows within 2.5 s (`slowTopConfirmGap`, #149) |
 | CONNECT | arms vertical against the body before the hinge | arm < 25 (`connectArmMax`), spine < 25 (`connectSpineMax`) |
 | BOTTOM | deepest hinge, arms behind the body | arm < 75 + 15 (`bottomArmMax`, anything short of horizontal), spine > 35 (`bottomSpineMin`), hip < 140 (`bottomHipMax`) |
 | RELEASE | arms leaving the body after the hip snap | arm < 25 (`releaseArmMax`), spine < 25 (`releaseSpineMax`) |
@@ -52,7 +52,8 @@ BOTTOM, the first qualifying frame for CONNECT and RELEASE.
 
 ## Quality
 
-Scored per rep from the stored positions (lockout angles, hinge depth); mirrored clips must score the same
+Scored per rep from running maxima over the rep's frames (spine lean, arm height, knee flexion), not from the
+stored positions; mirrored clips must score the same
 (`RepCountTests.testSwingCountsMatchWhenMirrored`).
 
 ## Fixtures

@@ -10,8 +10,8 @@ import SwiftUI
 import UserNotifications
 import WatchKit
 
-/// Counts the rest since the last set ended. Driven by `PhoneLink`: set on a live recording true→false
-/// transition, cleared when recording goes true or on Record.
+/// Counts the rest since the last set ended. Driven by `PhoneLink`: set when the phone's `rolling` goes
+/// true→false (a set ended; a Preview neither starts nor ends a rest, 047), cleared when it goes true or on Record.
 @MainActor
 final class RestTimer: ObservableObject {
   /// When the last set ended; nil while recording or before the first set.

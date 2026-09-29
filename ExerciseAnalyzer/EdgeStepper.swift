@@ -51,8 +51,6 @@ final class KeyRepeatEngine {
   private var lastTime = 0.0
   private var interval = StepKey.rep.repeatSeconds
 
-  var isRunning: Bool { timer != nil }
-
   /// Arrival: fires at once (repeat 0, never at_end) and starts the key's cadence.
   func start(interval: TimeInterval) {
     self.interval = interval

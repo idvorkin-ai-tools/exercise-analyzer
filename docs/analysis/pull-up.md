@@ -12,7 +12,9 @@ fixed line and the body's travel is the whole signal. A rep is hang to hang and 
   well seen (confidence ≥ `barWristConfidence` 0.7), smoothed, and held through the top. At the top the head and
   the arms hide the wrists: their confidence falls to 0.5 and the model guesses them down at the elbows, 0.2–0.36
   torso lengths under the real bar. Per-frame wrists would shorten every rep.
-- **Torso length** (shoulder midpoint to hip midpoint) is learned in the hang and frozen during a rep.
+- **Torso length** (shoulder midpoint to hip midpoint) is learned in the hang and frozen during a rep; letting go
+  forgets it, so the next grip learns its own scale as it does its own bar line (the lifter may come back nearer
+  or further from the camera).
 - **Taking the bar**: both wrists at least `gripAboveShoulders` (0.25) over the shoulders. **Letting go**: every
   wrist seen sits more than `letGoUnderBar` (0.7) under the bar line for 3 frames, or no wrist is seen for 30.
   Hands by the sides read 1.0 under it.

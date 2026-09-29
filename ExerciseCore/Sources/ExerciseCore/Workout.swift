@@ -172,10 +172,4 @@ public struct WorkoutIndex: Codable, Equatable, Sendable {
       return session
     }
   }
-
-  /// The workouts that started on the calendar day of `date`, in start order.
-  public func workouts(on date: Date, calendar: Calendar = .current) -> [StoredWorkout] {
-    let day = calendar.startOfDay(for: date)
-    return workouts.filter { calendar.startOfDay(for: $0.start) == day }.sorted { $0.start < $1.start }
-  }
 }

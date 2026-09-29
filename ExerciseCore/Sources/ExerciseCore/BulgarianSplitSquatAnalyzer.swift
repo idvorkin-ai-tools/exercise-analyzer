@@ -2,7 +2,7 @@
 
 //  Bulgarian split squat: rear foot elevated on a bench, front leg does the work.
 //  Phases: STANDING → DESCENDING → BOTTOM → ASCENDING → STANDING (rep complete), driven by head height relative to
-//  the standing height (scaled by leg length): the front knee often bends only modestly in a split squat, so it
+//  the standing height (scaled by the standing body height, front ankle to ear): the front knee often bends only modestly in a split squat, so it
 //  scores quality but does not gate the phases. The front leg is the one whose foot sits lower on screen (the
 //  rear foot is up on the bench).
 
@@ -196,8 +196,8 @@ public final class BulgarianSplitSquatAnalyzer: ExerciseAnalyzer {
       "depth": SingleLegTracker.depthPercent(knee: frontKnee),
     ]
 
-    // Phases run on head height (ear Y, larger = lower on screen) scaled by the front leg's length, which is
-    // robust for split squats where the front knee may bend only modestly.
+    // Phases run on head height (ear Y, larger = lower on screen) scaled by the standing body height (front ankle
+    // to ear), which is robust for split squats where the front knee may bend only modestly.
     guard spine <= thresholds.maxValidSpineAngle, let earY = skeleton.earY, let ankleY = skeleton.ankleY(front)
     else {
       return ExerciseFrameResult(phase: machine.phase, repCount: machine.repCount, metrics: m, completedRep: nil)

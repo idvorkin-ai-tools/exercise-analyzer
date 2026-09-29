@@ -31,7 +31,8 @@ final class WatchBridge: NSObject, ObservableObject {
   private var unreachableLogged = false
   private var contextFailedLogged = false
   private let minInterval = 0.3
-  /// The watch app is in front (it says so on scene changes); previews are only worth sending then.
+  /// The watch app is in front: it says so on scene changes, on the link's up-edge, in its heartbeat's `front`,
+  /// and by any command it sends; previews are only worth sending then.
   @Published private(set) var watchActive = false
   /// The last heartbeat from the wrist (#122): the next one logs its gap and how many beats never arrived.
   private var lastHeartbeatAt = Date.distantPast
@@ -52,8 +53,9 @@ final class WatchBridge: NSObject, ObservableObject {
     lastSent = status
     lastSentAt = now
     guard let data = try? JSONEncoder().encode(status) else { return }
-    // Application context always (at most once a second): it is delivered when the watch wakes, so a raised
-    // wrist shows the right state within a second even after a long unreachable spell.
+    // Application context always (at most once a second, unless forced by the 3 s tick or a command): it is
+    // delivered when the watch wakes, so a raised wrist shows the right state within a second even after a long
+    // unreachable spell.
     if force || now.timeIntervalSince(lastContextAt) >= 1 {
       lastContextAt = now
       // Logged once per failing spell (#137): the one-way outage could not say whether this channel died too.
@@ -119,9 +121,11 @@ final class WatchBridge: NSObject, ObservableObject {
       }
       return
     }
-    // Every other command is a tap on the wrist (or the wake ping), which proves the watch app is in front even
-    // when its scene message was lost: on 2026-09-14 the watch said "active" 56 ms before the phone saw it as
-    // reachable, the flag stayed false and not one preview went out for the whole session (#76, #38).
+    // Every other command is a tap on the wrist or its wake ping, taken as the watch app being in front even when
+    // its scene message was lost: on 2026-09-14 the watch said "active" 56 ms before the phone saw it as
+    // reachable, the flag stayed false and not one preview went out for the whole session (#76, #38). Since a
+    // workout keeps the watch app alive wrist-down (048), a ping no longer proves "in front"; the heartbeat's
+    // `front` is the honest signal.
     Task { @MainActor in
       if !self.watchActive {
         self.watchActive = true

@@ -1,12 +1,15 @@
 // Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 
-//  VideoPoseSession orchestrates the app: two frame sources (file playback, live camera), one shared pose
-//  predictor, an AnalysisPipeline per analysis, the recorder, the offline pass, trimming, saving, rep navigation,
-//  and the session log.
+//  VideoPoseSession orchestrates the app: two frame sources (file playback, live camera), the models behind
+//  ModelSet, an AnalysisPipeline per analysis, the recorder, the offline pass and the stored-set refresh, trimming,
+//  saving and sharing, rep navigation, the watch companion, the wrist workout's mirror and heart rate, keep-awake
+//  and the dimmer, bug reports, the instrumented run, and the session log. The 2026-09-13 decision (#52) takes it
+//  apart in small steps; what has moved out so far is listed in docs/architecture/2026-09-13-decision.md.
 //
 //  Live camera: every frame is recorded and analyzed live (frames drop if inference falls behind). Done trims the
-//  recording to the rep span and runs the offline pass on the clip. Imported files get the offline pass on load.
-//  Playback then replays the stored pose track from the player clock; no frames are pulled from the player.
+//  recording to the rep span (unless the count is implausible, #141) and runs the offline pass on the clip.
+//  Imported files get the offline pass on load. Playback then replays the stored pose track from the player
+//  clock; no frames are pulled from the player.
 
 import AVFoundation
 import ExerciseCore
@@ -46,7 +49,6 @@ final class VideoPoseSession: NSObject, ObservableObject {
 
   @Published private(set) var source: Source = .none
   @Published private(set) var activity: Activity = .idle
-  @Published private(set) var modelStatus = "Loading model…"
   @Published private(set) var statusMessage: String?
   @Published private(set) var latestFrame: FrameRecord?
   @Published private(set) var reps: [RepRecord] = []
@@ -352,8 +354,6 @@ final class VideoPoseSession: NSObject, ObservableObject {
         self.isPlaying = false
       }
     }
-    models.onStatus = { [weak self] in self?.modelStatus = $0 }
-    modelStatus = models.status
     RecordPrompt.prepare(log: log)
     UIDevice.current.beginGeneratingDeviceOrientationNotifications()
     NotificationCenter.default.addObserver(forName: UIDevice.orientationDidChangeNotification, object: nil, queue: .main) {
@@ -712,7 +712,7 @@ final class VideoPoseSession: NSObject, ObservableObject {
     untrimmed = nil
     canUndoTrim = false
     guard models.predictor != nil else {
-      // Model still loading: retry when ready, latest tap wins (replaces pendingLoadURL).
+      // Model still loading: retry when ready, latest tap wins.
       statusMessage = "Waiting for model…"
       loadRetry?.cancel()
       loadRetry = Task { [weak self, url, recordedAt] in
@@ -1014,8 +1014,6 @@ final class VideoPoseSession: NSObject, ObservableObject {
     var line: String
     /// Of the set under way, 0–1 (the pass's own progress).
     var progress = 0.0
-    /// Of the whole run: sets done plus the current set's fraction, over the total.
-    var overall: Double { total > 0 ? (Double(index - 1) + progress) / Double(total) : 0 }
   }
   @Published private(set) var instrumentedRun: InstrumentedRun?
   private var instrumentedRunCancelled = false
@@ -1541,15 +1539,6 @@ final class VideoPoseSession: NSObject, ObservableObject {
     if let target { seek(to: target, from: offset > 0 ? "next_checkpoint" : "previous_checkpoint") }
   }
 
-  func resetAnalysis() {
-    pipeline = AnalysisPipeline(exercise: exercise)
-    reps = []
-    lastQuality = nil
-    latestFrame = nil
-    statusMessage = nil
-    log.event("reset")
-  }
-
   private func startDisplayLink() {
     guard displayLink == nil else { return }
     let link = CADisplayLink(target: self, selector: #selector(displayLinkFired))
@@ -1774,9 +1763,10 @@ final class VideoPoseSession: NSObject, ObservableObject {
   private func sendPreviewIfDue(pixelBuffer: CVPixelBuffer) {
     // Previews stream only while the watch app is in front and reachable (#76): gating on reachability alone
     // sent ~1 fps into suspended watches (18 of 19 logged previews fired while watch_active=false). Safe from
-    // #38 (a scene-active message missed at launch starved the preview for the whole set): the watch resends
-    // .watchActive on every foreground and pings for a forced status on wake (PhoneLink.sceneActive), so a
-    // missed message only delays previews until the next wrist raise instead of starving them.
+    // #38 (a scene-active message missed at launch starved the preview for the whole set): the watch sends
+    // .watchActive on a scene change while reachable and again on the link's up-edge, and its heartbeat carries
+    // `front` (PhoneLink.sceneActive, WatchBridge.handle), so a missed message only delays previews until the
+    // next beat or wrist raise instead of starving them.
     if watch.watchActive, watch.reachable, Date().timeIntervalSince(lastPreviewSent) >= 1 {
       lastPreviewSent = Date()
       // Long side 320 (about 15–25 KB a frame at quality 0.45): the watch shows the picture full-screen
@@ -2418,7 +2408,6 @@ final class VideoPoseSession: NSObject, ObservableObject {
     }
   }
 
-  /// Trim the current file to the detected rep span (file mode button).
   /// Seconds kept before the first rep and after the last: enough to see the setup and the finish.
   static let trimPadding = 5.0
 

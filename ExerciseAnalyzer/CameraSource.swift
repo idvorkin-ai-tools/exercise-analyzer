@@ -82,7 +82,7 @@ final class CameraSource: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
       device.unlockForConfiguration()
       zoom = display
     } catch {
-      // leave the zoom as it was; the session logs the request
+      // leave the zoom as it was: `zoom` keeps the old value, which the session's camera_level event then shows
     }
   }
 

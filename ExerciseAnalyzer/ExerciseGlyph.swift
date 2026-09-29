@@ -4,21 +4,7 @@
 import ExerciseCore
 import SwiftUI
 
-/// Igor's short words for the collapsed summary (ExerciseDefinition has no home for these, so they live here).
 extension ExerciseKind {
-  var shortWord: String {
-    switch self {
-    case .kettlebellSwing: return "swing"
-    case .pistolSquat: return "pistols"
-    case .turkishGetUp: return "TGU"
-    case .bulgarianSplitSquat: return "Bulgarian"
-    case .pullUp: return "pull-ups"
-    case .splitSquat: return "split squat"
-    case .sitUp: return "sit-ups"
-    case .halfKneelingRotation: return "rotations"
-    }
-  }
-
   /// What one rep of the exercise is called, for a count: "10 swings", "1 get-up" (053; Igor: "if I did swings,
   /// I want to see a swings rep").
   func repWord(_ count: Int) -> String {
@@ -190,41 +176,41 @@ struct ExerciseGlyph: View {
 #Preview("swing") {
   HStack(spacing: 6) {
     ExerciseGlyph(kind: .kettlebellSwing)
-    Text(ExerciseKind.kettlebellSwing.shortWord).font(.headline)
+    Text(ExerciseKind.kettlebellSwing.repWord(2)).font(.headline)
   }.padding()
 }
 
 #Preview("pistols") {
   HStack(spacing: 6) {
     ExerciseGlyph(kind: .pistolSquat)
-    Text(ExerciseKind.pistolSquat.shortWord).font(.headline)
+    Text(ExerciseKind.pistolSquat.repWord(2)).font(.headline)
   }.padding()
 }
 
 #Preview("TGU") {
   HStack(spacing: 6) {
     ExerciseGlyph(kind: .turkishGetUp)
-    Text(ExerciseKind.turkishGetUp.shortWord).font(.headline)
+    Text(ExerciseKind.turkishGetUp.repWord(2)).font(.headline)
   }.padding()
 }
 
 #Preview("Bulgarian") {
   HStack(spacing: 6) {
     ExerciseGlyph(kind: .bulgarianSplitSquat)
-    Text(ExerciseKind.bulgarianSplitSquat.shortWord).font(.headline)
+    Text(ExerciseKind.bulgarianSplitSquat.repWord(2)).font(.headline)
   }.padding()
 }
 
 #Preview("split squat") {
   HStack(spacing: 6) {
     ExerciseGlyph(kind: .splitSquat)
-    Text(ExerciseKind.splitSquat.shortWord).font(.headline)
+    Text(ExerciseKind.splitSquat.repWord(2)).font(.headline)
   }.padding()
 }
 
 #Preview("pull-ups") {
   HStack(spacing: 6) {
     ExerciseGlyph(kind: .pullUp)
-    Text(ExerciseKind.pullUp.shortWord).font(.headline)
+    Text(ExerciseKind.pullUp.repWord(2)).font(.headline)
   }.padding()
 }

@@ -1,8 +1,9 @@
 // Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 
 //  Workout gallery (issue #8): every analyzed set, grouped by day, then by exercise. A day reads as a workout
-//  card: which exercises, how many sets and reps of each, with a strip of set thumbnails per exercise. Tap a set
-//  to reopen it; long-press to remove it from the list (never touches Photos).
+//  card: which exercises, how many sets and reps of each, with a strip of set thumbnails per exercise, and the
+//  wrist's workouts as green lines that open the workout's page (053). Tap a set to reopen it; long-press for
+//  Open, "Set exercise and reps…" (062) or "Delete set and video…" (056).
 
 import ExerciseCore
 import SwiftUI
