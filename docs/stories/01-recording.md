@@ -39,7 +39,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 060:
 
 - **Summary:** Count the Bulgarian split squats that are reps, not the setup, a wobble or a bad camera angle
-- **Status:** implemented in [681f98d](https://github.com/idvorkin/exercise-analyzer/commit/681f98d), [77c6731](https://github.com/idvorkin/exercise-analyzer/commit/77c6731) (#132), [7f809a5](https://github.com/idvorkin/exercise-analyzer/commit/7f809a5) (#134), [7e114b3](https://github.com/idvorkin/exercise-analyzer/commit/7e114b3) (#135); verified on the host (the five Bulgarian fixtures; 4CF19A9A and 7424BEDD by Igor's count); on the phone since 2026-09-22, Igor's count of 79271425 and 599F988A pending; the put-down after the last rep (#135) not implemented
+- **Status:** implemented in [681f98d](https://github.com/idvorkin/exercise-analyzer/commit/681f98d), [77c6731](https://github.com/idvorkin/exercise-analyzer/commit/77c6731) (#132), [7f809a5](https://github.com/idvorkin/exercise-analyzer/commit/7f809a5) (#134), [7e114b3](https://github.com/idvorkin/exercise-analyzer/commit/7e114b3) (#135); verified on the host (the five Bulgarian fixtures; 4CF19A9A and 7424BEDD by Igor's count); on the phone since 2026-09-22, Igor's count of 79271425 and 599F988A pending; the put-down after the last rep (#172) in [45c56aa](https://github.com/idvorkin/exercise-analyzer/commit/45c56aa), verified on the host (bulgarian-79271425-phone), pending the phone; the drawn legs latch (#131) in [f8d4839](https://github.com/idvorkin/exercise-analyzer/commit/f8d4839), verified on the host (`LegLatchTests`, `testLegLatch`) and the simulator (8 reps), the look pending the phone
 - **Why:** Igor, 2026-09-22, on a set counted 10: "Rep 1 was just me setting up. I think rep 2 was garbage too."
 
 #### Use Case:
@@ -76,10 +76,11 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
   quite stand tall (79271425, 599F988A: [#135](https://github.com/idvorkin/exercise-analyzer/issues/135))
 
 - **Scenario:** Putting the dumbbells down after the last rep
-- **Given:** I finish a set and bend to put the dumbbells on the floor with my rear foot still on the bench
+- **Given:** I finish a set, bring my feet together and bend to put the dumbbells on the floor
 - **When:** the set is analyzed as a Bulgarian split squat
-- **Then:** the put-down is not a rep, however deep my head drops for it (not implemented,
-  [#135](https://github.com/idvorkin/exercise-analyzer/issues/135): 79271425 counts nine for eight today)
+- **Then:** the put-down is not a rep, however deep my head drops for it: a dip with my knees together for most
+  of it is a hinge, not a split squat (79271425: eight, not nine,
+  [#172](https://github.com/idvorkin/exercise-analyzer/issues/172))
 
 - **Scenario:** The skeleton's legs stay on my feet
 - **Given:** the pose model trades my legs' names for under a second at the bottom of a rep

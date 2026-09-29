@@ -559,7 +559,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 065:
 
 - **Summary:** Delete a workout from Workouts
-- **Status:** implemented, commit pending ([#138](https://github.com/idvorkin/exercise-analyzer/issues/138); [#151](https://github.com/idvorkin/exercise-analyzer/issues/151) was its duplicate); verified on the host (`WorkoutTests`) and the simulator (`delete_workout`, Health skipped there); the long-press, the dialog and the Health delete pending the phone
+- **Status:** implemented in [e3277b5](https://github.com/idvorkin/exercise-analyzer/commit/e3277b5) ([#138](https://github.com/idvorkin/exercise-analyzer/issues/138); [#151](https://github.com/idvorkin/exercise-analyzer/issues/151) was its duplicate); verified on the host (`WorkoutTests`) and the simulator (`delete_workout`, Health skipped there); the long-press, the dialog and the Health delete pending the phone
 - **Why:** Igor, from the phone, 2026-09-26: "Let me delete a workout"; on the Health record, 2026-09-29: "Delete it from Health too"
 
 #### Use Case:
