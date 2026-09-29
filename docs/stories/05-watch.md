@@ -428,6 +428,11 @@ the first frame (story 001).
 - **When:** the notification settings or permission answer arrives at or after 90 s
 - **Then:** no late tap is scheduled and the rest count keeps counting until Record
 
+- **Scenario:** The wrist comes up long after the rest ended
+- **Given:** a 90 s rest outside a workout, the wrist down so the watch app is suspended
+- **When:** I raise the wrist three minutes after Done
+- **Then:** the notification tapped at 90 s, and the raise brings no second, late double tap (the 2026-09-28 review, #171)
+
 - **Notes:** Watch only, no phone change; the rest length is a watch setting (60, 90, 120, 180 s). With the wrist
   down the app is suspended, so the tap at 90 s is a scheduled local notification on the watch (one permission
   prompt, on the watch, the first time; the notification is scheduled once the answer is known, so the first

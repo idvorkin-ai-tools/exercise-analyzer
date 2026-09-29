@@ -99,10 +99,12 @@ final class WatchBridge: NSObject, ObservableObject {
         let missed = self.lastHeartbeatSeq == 0 ? 0 : max(seq - self.lastHeartbeatSeq - 1, 0)
         self.lastHeartbeatAt = now
         self.lastHeartbeatSeq = seq
-        // A beat from an app in front is as good as a tap for the preview gate (#76, #38).
-        if fields["front"] as? Bool == true, !self.watchActive {
-          self.watchActive = true
-          self.onEvent?("watch_scene", ["active": true, "from": command.rawValue])
+        // A beat from an app in front is as good as a tap for the preview gate (#76, #38); a beat from one that is
+        // not closes it. A workout keeps the watch app beating wrist-down (048), and a "not in front" scene message
+        // is never sent when the link dropped first, so without this the phone streamed previews to a lowered wrist.
+        if let front = fields["front"] as? Bool, front != self.watchActive {
+          self.watchActive = front
+          self.onEvent?("watch_scene", ["active": front, "from": command.rawValue])
         }
         var logged = fields
         logged["gap_ms"] = gap
@@ -123,9 +125,9 @@ final class WatchBridge: NSObject, ObservableObject {
     }
     // Every other command is a tap on the wrist or its wake ping, taken as the watch app being in front even when
     // its scene message was lost: on 2026-09-14 the watch said "active" 56 ms before the phone saw it as
-    // reachable, the flag stayed false and not one preview went out for the whole session (#76, #38). Since a
-    // workout keeps the watch app alive wrist-down (048), a ping no longer proves "in front"; the heartbeat's
-    // `front` is the honest signal.
+    // reachable, the flag stayed false and not one preview went out for the whole session (#76, #38). The watch
+    // pings only from an app in front (PhoneLink.ping), and its heartbeat's `front` closes the gate again when the
+    // wrist goes down inside a workout (048).
     Task { @MainActor in
       if !self.watchActive {
         self.watchActive = true

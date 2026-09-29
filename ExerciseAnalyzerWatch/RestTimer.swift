@@ -100,7 +100,11 @@ final class RestTimer: ObservableObject {
     tapTask = Task { [weak self] in
       guard let remaining = self?.state.remaining(for: id, at: Date()) else { return }
       try? await Task.sleep(for: .seconds(remaining))
-      guard let self, !Task.isCancelled, self.state.id == id else { return }
+      // A suspended app (wrist down outside a workout) wakes past the deadline: the notification already tapped
+      // at the rest length, so a late sleep must not tap a second time on the next raise.
+      guard let self, !Task.isCancelled, self.state.id == id,
+        let deadline = self.state.deadline, Date().timeIntervalSince(deadline) < 2
+      else { return }
       WKInterfaceDevice.current().play(.notification)
       try? await Task.sleep(for: .milliseconds(300))
       guard !Task.isCancelled, self.state.id == id else { return }
