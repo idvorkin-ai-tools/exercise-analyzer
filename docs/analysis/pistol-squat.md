@@ -41,3 +41,9 @@ STANDING → DESCENDING → BOTTOM → ASCENDING → STANDING (rep complete).
   was the walk-in, made a rep by exactly these two bugs. The five dips: bottoms near 6.5, 11.0, 15.0, 20.0,
   27.5 s (ear 456–479 px, knee 77–96°); the clip ends standing. The Haiku frame helper said 7 at a steady 3.5 s,
   with a squat at 3.0 s; the frames contradict it. AnalysisVersion 2026-09-28.1.
+- **2026-09-29, hidden knee at the bottom ([#171](https://github.com/idvorkin/exercise-analyzer/issues/171))**: a 0°
+  working knee still entered `smooth()` (clamped to 30°) and the knee history, so one hidden-knee frame at a 95°
+  bottom pulled the smoothed knee to ~75° and the next real 95° frame read as rising above 90°: an ascent on a
+  plateau. A 0° knee now leaves the smoothed knee and its history alone
+  (`PistolSquatAnalyzerTests.testAHiddenKneeAtTheBottomStartsNoAscent`). pistol-6reps stays 5 (commit 2de049f).
+  AnalysisVersion 2026-09-29.1.
