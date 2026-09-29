@@ -89,7 +89,7 @@ public struct RecentsSave {
       // A journal this build cannot read (its shape changed) would otherwise block every save until the folder is
       // removed by hand: set it aside with its old files, keep what is on disk, and let saving go on. A save cut
       // off after moving the set's folder into old/ left its index row without a folder (the PR #175 review):
-      // when exactly one row lacks its folder, old/ is that folder and goes back.
+      // when exactly one row lacks its folder (by-hand sets never have one), old/ is that folder and goes back.
       let old = transaction.appendingPathComponent("old")
       let missing = RecentsIndex.load(root: root).entries.filter { !$0.isByHand && !fm.fileExists(atPath: root.appendingPathComponent($0.id).path) }
       if fm.fileExists(atPath: old.path), missing.count == 1 {
