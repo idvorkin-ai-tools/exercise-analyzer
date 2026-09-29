@@ -33,5 +33,6 @@ public enum AnalysisVersion {
   // and a headless frame no longer confirms its bottom; a 0° knee is not a deep knee in any score (#171).
   // 2026-09-29.1: a pistol's hidden working knee no longer enters the smoothed knee, so it cannot fake the rise
   // out of the bottom (#171).
+  // 2026-09-29.2: a Bulgarian dip with the knees together in more than 65% of its frames is not a rep (#172).
   public static let current = "2026-09-29.2"
 }
