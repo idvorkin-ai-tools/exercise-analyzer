@@ -46,11 +46,18 @@ final class ScreenDimmer {
     onEvent?("screen_dim", ["on": true, "reason": reason.rawValue, "brightness": Double(restoreTo ?? 0)])
   }
 
-  /// A previous run's level left in the defaults (killed while dimmed): put it back at the first update with a screen.
+  /// A previous run's level left in the defaults (killed while dimmed): put it back at the first update with a
+  /// screen, but only while the screen is still at the dim level this app left. A brightness the lifter chose in
+  /// Control Center since then is theirs (the PR #175 review).
   private func restoreAfterRelaunch() {
     guard restoreTo == nil, let left = UserDefaults.standard.object(forKey: Self.leftDimmedKey) as? Double, let screen
     else { return }
     UserDefaults.standard.removeObject(forKey: Self.leftDimmedKey)
+    let now = Double(screen.brightness)
+    guard abs(now - KeepAwake.dimBrightness) < 0.02 else {
+      onEvent?("screen_dim", ["on": false, "reason": "relaunch_kept", "brightness": now])
+      return
+    }
     screen.brightness = CGFloat(left)
     onEvent?("screen_dim", ["on": false, "reason": "relaunch", "brightness": left])
   }
