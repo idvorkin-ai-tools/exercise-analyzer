@@ -186,4 +186,17 @@ public struct WorkoutIndex: Codable, Equatable, Sendable {
       return session
     }
   }
+
+  /// The ended workouts a line of `sessions()` stands for: every workout inside its span (065).
+  public func parts(of session: StoredWorkout) -> [StoredWorkout] {
+    workouts.filter { $0.start >= session.start && $0.end <= session.end }
+  }
+
+  /// Deletes a line (065): every workout inside it, since a merged line cannot be half deleted. Returns them.
+  @discardableResult public mutating func removeSession(_ session: StoredWorkout) -> [StoredWorkout] {
+    let gone = parts(of: session)
+    let ids = Set(gone.map(\.id))
+    workouts.removeAll { ids.contains($0.id) }
+    return gone
+  }
 }

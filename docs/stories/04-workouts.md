@@ -559,8 +559,8 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 065:
 
 - **Summary:** Delete a workout from Workouts
-- **Status:** not implemented ([#138](https://github.com/idvorkin/exercise-analyzer/issues/138); [#151](https://github.com/idvorkin/exercise-analyzer/issues/151) was its duplicate); the design below is a proposal, waiting for Igor's pick on what happens to the Health record
-- **Why:** Igor, from the phone, 2026-09-26: "Let me delete a workout"
+- **Status:** implemented, commit pending ([#138](https://github.com/idvorkin/exercise-analyzer/issues/138); [#151](https://github.com/idvorkin/exercise-analyzer/issues/151) was its duplicate); verified on the host (`WorkoutTests`) and the simulator (`delete_workout`, Health skipped there); the long-press, the dialog and the Health delete pending the phone
+- **Why:** Igor, from the phone, 2026-09-26: "Let me delete a workout"; on the Health record, 2026-09-29: "Delete it from Health too"
 
 #### Use Case:
 - **As a** lifter whose wrist started a workout by mistake, or ended one twice
@@ -571,14 +571,25 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Scenario:** Deleting a workout that has no sets
 - **Given:** a green workout line on a day, with no set recorded inside it
 - **When:** I long-press the line and choose "Delete workout…", and confirm
-- **Then:** the line is gone from the day and from the phone's list; the phone says whether the Health record goes with it (the pick of #138)
+- **Then:** the line is gone from the day and from the phone's list, and the wrist's record is gone from Health
+- **And:** when Health refuses (permission declined), the line still goes and the phone says Health kept its record
+
+- **Scenario:** Deleting a line that merged several workouts
+- **Given:** workouts under 30 minutes apart, shown as one line (#169)
+- **When:** I delete that line
+- **Then:** every workout inside it goes, from the list and from Health
+
+- **Scenario:** The running workout
+- **Given:** the line of a workout still running on the wrist
+- **When:** I long-press it
+- **Then:** there is no "Delete workout…"; the watch owns it until it ends
 
 - **Scenario:** Deleting a workout that has sets
 - **Given:** a workout with sets inside it
 - **When:** I long-press its line and choose "Delete workout…"
 - **Then:** the sets stay, under the day as sets outside any workout (053, #163); only the workout row and its heart-rate file go
 
-- **Notes:** The phone keeps a row per ended workout in `Documents/workouts.json` and its heart rate under `Documents/workouts/<id>/` (053). Workouts under 30 minutes apart show as one (053, #169), so deleting a session would have to delete every workout inside it. The Health record is the wrist's (048); deleting it from the phone needs HealthKit's delete permission, which the app does not ask for today.
+- **Notes:** The phone keeps a row per ended workout in `Documents/workouts.json` and its heart rate under `Documents/workouts/<id>/` (053); both go. The phone never learned the Health record's id, so it finds the records this app or its watch app wrote that start within a minute of each deleted row, after asking Health to read workouts (a prompt the first time). Health lets an app delete only what it wrote; whether it treats the watch app's records as the phone app's is the phone check. The heart-rate samples the wrist wrote stay in Health. `workout_deleted` logs what went.
 
 - **Issues:** [#138](https://github.com/idvorkin/exercise-analyzer/issues/138), [#151](https://github.com/idvorkin/exercise-analyzer/issues/151)
 

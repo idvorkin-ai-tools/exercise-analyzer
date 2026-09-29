@@ -27,6 +27,10 @@ struct WorkoutGalleryView: View {
   /// Once per launch (#123): the log lands on the running workout's page; "‹" from it is the day list, and the
   /// list re-appearing after that must not push the page again.
   @State private var landedOnLive = false
+  /// The workout line whose "Delete workout…" is being confirmed (065).
+  @State private var deletingWorkout: StoredWorkout?
+  /// What Health or the list refused while deleting, said once.
+  @State private var workoutDeletionFailure: String?
 
   private static let dayKey: DateFormatter = {
     let f = DateFormatter()
@@ -48,6 +52,20 @@ struct WorkoutGalleryView: View {
     guard !day.hasWorkout else { return false }
     return foldAllForScreenshot
       || DayFolds(stored: foldsStored).isFolded(Self.dayKey.string(from: day.date), olderThanAWeek: Self.isOld(day.date))
+  }
+
+  /// The dialog's line (065): what goes, and that the sets stay.
+  private func deletionMessage(_ workout: StoredWorkout) -> String {
+    let sets = store.entries.filter { workout.contains($0.start) }.count
+    let stay = sets == 0 ? "" : " Its \(sets) set\(sets == 1 ? "" : "s") stay in Workouts."
+    return "The workout goes from this list and from Health.\(stay)"
+  }
+
+  private func deleteWorkout(_ workout: StoredWorkout) {
+    Task {
+      let deletion = await workouts.delete(workout)
+      workoutDeletionFailure = deletion.failure
+    }
   }
 
   /// The days, from the sets and the workouts alike: a workout without a set on camera is still a day.
@@ -119,7 +137,8 @@ struct WorkoutGalleryView: View {
                         foldsStored = folds.stored
                       }
                     },
-                    onOpenWorkout: onOpenWorkout)
+                    onOpenWorkout: onOpenWorkout,
+                    onDeleteWorkout: { deletingWorkout = $0 })
                 }
               }
             }
@@ -130,6 +149,23 @@ struct WorkoutGalleryView: View {
       }
       .navigationTitle("Workouts")
       .navigationBarTitleDisplayMode(.inline)
+      .confirmationDialog(
+        "Delete this workout?",
+        isPresented: Binding(get: { deletingWorkout != nil }, set: { if !$0 { deletingWorkout = nil } }),
+        titleVisibility: .visible, presenting: deletingWorkout
+      ) { workout in
+        Button("Delete workout", role: .destructive) { deleteWorkout(workout) }
+        Button("Keep it", role: .cancel) {}
+      } message: { workout in
+        Text(deletionMessage(workout))
+      }
+      .alert(
+        "Workout deleted", isPresented: Binding(get: { workoutDeletionFailure != nil }, set: { if !$0 { workoutDeletionFailure = nil } })
+      ) {
+        Button("OK", role: .cancel) {}
+      } message: {
+        Text(workoutDeletionFailure ?? "")
+      }
       .onAppear {
         suggestions.onEvent = onEvent
         suggestions.refresh(known: knownPhotosIDs)
@@ -151,6 +187,11 @@ struct WorkoutGalleryView: View {
           {
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) { onOpen(entry) }
           }
+        }
+        // Test hook (065): delete the newest ended workout as a confirmed long-press would; the simulator can't
+        // long-press.
+        if ProcessInfo.processInfo.environment["SWING_DELETE_WORKOUT"] == "confirm", let newest = workouts.sessions.last {
+          deleteWorkout(newest)
         }
         // Test hook: ask for Photos access on open so a simulator run can answer the system dialog.
         if ProcessInfo.processInfo.environment["SWING_PHOTOS_ACCESS"] == "1", suggestions.status == .notDetermined {
@@ -354,6 +395,8 @@ struct DayHeader: View {
   var onToggle: (() -> Void)? = nil
   /// A tap on a green workout line (053); nil where the header is only a label.
   var onOpenWorkout: ((StoredWorkout) -> Void)? = nil
+  /// A long-press's "Delete workout…" on an ended line (065); nil where the header is only a label.
+  var onDeleteWorkout: ((StoredWorkout) -> Void)? = nil
 
   private static let dayFormatter: DateFormatter = {
     let f = DateFormatter()
@@ -409,6 +452,12 @@ struct DayHeader: View {
         }
         .buttonStyle(.plain)
         .accessibilityHint("Opens the whole workout")
+        // An ended workout can be deleted (065); the running one belongs to the watch.
+        .contextMenu {
+          if let onDeleteWorkout, line.workout.id != WorkoutMirror.liveID {
+            Button("Delete workout…", role: .destructive) { onDeleteWorkout(line.workout) }
+          }
+        }
       }
     }
     .foregroundStyle(.primary)

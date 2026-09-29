@@ -135,6 +135,20 @@ final class WorkoutTests: XCTestCase {
     XCTAssertEqual(apart.sessions().map(\.id), ["x", "y"])
   }
 
+  /// 065: deleting a merged line deletes every workout inside it and nothing outside it.
+  func testDeletingASessionRemovesEveryWorkoutInIt() {
+    var index = WorkoutIndex(workouts: [
+      StoredWorkout(id: "a", start: date(16, 7, 0), end: date(16, 7, 30)),
+      StoredWorkout(id: "b", start: date(16, 7, 48), end: date(16, 7, 50)),
+      StoredWorkout(id: "evening", start: date(16, 18), end: date(16, 19)),
+    ])
+    let morning = index.sessions()[0]
+    XCTAssertEqual(index.parts(of: morning).map(\.id), ["a", "b"])
+    XCTAssertEqual(index.removeSession(morning).map(\.id), ["a", "b"])
+    XCTAssertEqual(index.workouts.map(\.id), ["evening"])
+    XCTAssertEqual(index.sessions().map(\.id), ["evening"])
+  }
+
   /// #169: a page opened on a workout that then merged into a session (the live one saved within 30 minutes of the
   /// last) finds the session.
   func testAPageFindsTheSessionItsWorkoutMergedInto() {
