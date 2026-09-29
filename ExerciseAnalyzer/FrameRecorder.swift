@@ -351,3 +351,14 @@ enum VideoFile {
     return identifier
   }
 }
+
+/// The session's current recorder, read by the capture queue on every frame and swapped by the main actor.
+final class RecorderSlot: @unchecked Sendable {
+  private let lock = NSLock()
+  private var recorder: FrameRecorder?
+
+  var value: FrameRecorder? {
+    get { lock.withLock { recorder } }
+    set { lock.withLock { recorder = newValue } }
+  }
+}

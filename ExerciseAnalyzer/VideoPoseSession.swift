@@ -132,7 +132,13 @@ final class VideoPoseSession: NSObject, ObservableObject {
   private var endObserver: NSObjectProtocol?
 
   private var camera: CameraSource?
-  private var recorder: FrameRecorder?
+  /// The capture queue writes every frame to the recorder while the main actor swaps it (rotation, pause, stop),
+  /// so it lives in a locked slot the capture callback holds, not in a main-actor property it reads (#171).
+  private let recorderSlot = RecorderSlot()
+  private var recorder: FrameRecorder? {
+    get { recorderSlot.value }
+    set { recorderSlot.value = newValue }
+  }
   /// Orientation the capture is rotated to; a rotation mid-recording restarts the capture into a new segment.
   private var cameraOrientation: AVCaptureVideoOrientation = .portrait
   /// Segments closed by a pause or a rotation, each still finishing its file; Done awaits them in order.
@@ -2068,8 +2074,8 @@ final class VideoPoseSession: NSObject, ObservableObject {
       let orientation = orientation ?? currentVideoOrientation()
       cameraOrientation = orientation
       let camera = try CameraSource(position: position, orientation: orientation)
-      camera.onFrame = { [weak self] sampleBuffer in
-        self?.recorder?.append(sampleBuffer)
+      camera.onFrame = { [weak self, recorderSlot] sampleBuffer in
+        recorderSlot.value?.append(sampleBuffer)
         let pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer).seconds
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         Task { @MainActor in self?.cameraFrame(pixelBuffer: pixelBuffer, pts: pts) }
