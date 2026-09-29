@@ -17,6 +17,11 @@ struct Fixture {
   let expectedReps: Int
   let humanVerified: Bool
 
+  /// The fixture by name: tests that want one clip name it, so a reorder of `all` cannot change what they check.
+  static func named(_ name: String) throws -> Fixture {
+    try XCTUnwrap(all.first { $0.name == name }, "no fixture named \(name)")
+  }
+
   static let all: [Fixture] = [
     Fixture(name: "swing-4reps", expectedExercise: .kettlebellSwing, expectedReps: 4, humanVerified: true),
     // 9 top-to-top until #148. The clip opens with the lifter over the bell on the floor (0–2 s); the hike's top

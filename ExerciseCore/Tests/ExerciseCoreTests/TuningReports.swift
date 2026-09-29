@@ -47,7 +47,7 @@ final class TuningReports: XCTestCase {
   }
 
   func testBulgarianTenRepSetTrace() throws {
-    let frames = try Fixture(name: "bulgarian-10reps", expectedExercise: .bulgarianSplitSquat, expectedReps: 10, humanVerified: false).frames()
+    let frames = try Fixture.named("bulgarian-10reps").frames()
     report("bulgarian-10reps defaults", analyze(frames, BulgarianSplitSquatThresholds()))
   }
 
@@ -60,7 +60,8 @@ final class TuningReports: XCTestCase {
         forResource: "bulgarian-split-squat-20260909-98B26725", withExtension: "json", subdirectory: "Fixtures/tracks"))
     var tracks = try Fixture.all.filter { $0.expectedExercise == .bulgarianSplitSquat }.map { ($0.name, try $0.frames()) }
     tracks.append(("98B26725 (archived, 8)", try Fixture.frames(at: url)))
-    report("bulgarian-4CF19A9A-phone defaults", analyze(tracks[2].1, BulgarianSplitSquatThresholds()))
+    let verified = try XCTUnwrap(tracks.first { $0.0 == "bulgarian-4CF19A9A-phone" })
+    report("bulgarian-4CF19A9A-phone defaults", analyze(verified.1, BulgarianSplitSquatThresholds()))
     for depth in [0.0, 0.15, 0.2, 0.3] {
       for setUp in [0.0, 1.0, 1.5, 2.5] {
         var t = BulgarianSplitSquatThresholds()
@@ -239,7 +240,7 @@ extension TuningReports {
   /// A fixture name (`SWING_TRACK=swing-walkin-9reps`) works too.
   func testSwingSignals() throws {
     let env = ProcessInfo.processInfo.environment
-    guard let name = env["SWING_TRACK"] else { return }
+    guard let name = env["SWING_TRACK"] else { throw XCTSkip("set SWING_TRACK=<fixture or archived track> to print a swing's signals") }
     let url = try XCTUnwrap(
       Bundle.module.url(forResource: name, withExtension: "json", subdirectory: "Fixtures/tracks")
         ?? Bundle.module.url(forResource: name, withExtension: "json", subdirectory: "Fixtures"), "missing track \(name)")

@@ -18,7 +18,7 @@ final class DetectionTests: XCTestCase {
   }
 
   func testSwingDetectionSurvivesMirroring() throws {
-    let frames = try Fixture.all[0].frames().mirrored()
+    let frames = try Fixture.named("swing-4reps").frames().mirrored()
     XCTAssertEqual(ExerciseDetector.detect(frames: frames).exercise, .kettlebellSwing)
   }
 }
@@ -57,11 +57,14 @@ final class RepCountTests: XCTestCase {
   }
 
   func testRepSpanAndStableCropCoverTheSet() throws {
-    let fixture = Fixture.all[1]  // 9-rep clip: walks into frame before the first rep
+    let fixture = try Fixture.named("swing-1h-9reps")  // ten reps since #148; the lifter walks in before the first
     let pipeline = AnalysisPipeline.analyze(frames: try fixture.frames(), exercise: .kettlebellSwing)
     let span = try XCTUnwrap(pipeline.repSpan(padding: 1, duration: 19.8))
-    XCTAssertLessThan(span.start, pipeline.reps[0].startTime)
-    XCTAssertGreaterThan(span.end, pipeline.reps[8].endTime)
+    let first = try XCTUnwrap(pipeline.reps.first)
+    let last = try XCTUnwrap(pipeline.reps.last)
+    XCTAssertEqual(pipeline.reps.count, fixture.expectedReps)
+    XCTAssertLessThan(span.start, first.startTime)
+    XCTAssertGreaterThan(span.end, last.endTime)
     let crop = try XCTUnwrap(pipeline.stableCrop)
     XCTAssertLessThan(crop.width, 0.6, "walk-in frames must not widen the crop to the whole picture")
   }

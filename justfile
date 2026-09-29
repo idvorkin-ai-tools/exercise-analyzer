@@ -10,11 +10,18 @@ default:
     @just --list
 
 # Test ladder, cheapest first. Rung 1: analyzers and detector replayed over stored pose tracks on the Mac.
+# The print-only reports (TuningReports, DetectionReport, SwingThresholdSweep, ZoomPreviewReport) assert nothing
+# and were 38 of the run's 49 s; `just reports` runs them.
 test:
     #!/usr/bin/env bash
     # pipefail: a failing suite must fail the recipe instead of hiding behind tail's exit 0 (#51).
     set -uo pipefail
-    cd ExerciseCore && swift test 2>&1 | grep -E "Test Suite|passed|failed|error" | tail -20
+    cd ExerciseCore && swift test --skip TuningReports --skip DetectionReport --skip SwingThresholdSweep --skip ZoomPreviewReport 2>&1 \
+      | grep -E "Test Suite|passed|failed|error" | tail -20
+
+# The tuning reports: every trace, sweep and signal table, printed (docs/TESTING.md "Tuning reports").
+reports filter="TuningReports|DetectionReport|SwingThresholdSweep":
+    cd ExerciseCore && swift test --filter "{{filter}}" 2>&1 | grep -vE "^\[|^Build|^Compiling|^Linking|^Test Case|^Executed|^Test Suite"
 
 # Rung 2: simulator smoke run of every sample clip; checks detection and rep counts from the session log.
 test-sim: build-sim

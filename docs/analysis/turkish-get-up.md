@@ -53,7 +53,7 @@ Quality: arm drift, a rushed descent (down < 0.6 × up), and which arm held the 
 
 Reports: `TuningReports.testTurkishGetUpTrace` (transitions, stages and quality), `testTurkishGetUpSignals` (the
 half-second signal table below). Tests: `GetUpStageTests` pins every stage of the four reps to the landmark windows
-below (±0.5 s) and every rep to all nine positions in order.
+below (±0.5 s) and every rep to all eleven positions in order.
 
 ## Experiments
 

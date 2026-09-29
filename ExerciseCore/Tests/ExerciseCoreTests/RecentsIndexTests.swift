@@ -26,7 +26,7 @@ final class RecentsIndexTests: XCTestCase {
 
   private func entry(_ id: String, version: String? = AnalysisVersion.current, models: [String]? = ["yolo26n-pose"]) -> RecentEntry {
     RecentEntry(
-      id: id, analyzedAt: Date(), recordedAt: nil, duration: 60, repCount: 4, bestScore: 80,
+      id: id, analyzedAt: Date(timeIntervalSince1970: 1_000_000), recordedAt: nil, duration: 60, repCount: 4, bestScore: 80,
       source: .file(name: "clip.mov"), thumbnail: nil, exercise: .kettlebellSwing, originalName: "clip.mov",
       analysisVersion: version, models: models)
   }

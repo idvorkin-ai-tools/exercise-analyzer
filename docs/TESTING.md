@@ -18,7 +18,7 @@ camera, a display, or a wrist goes higher.
 | Change | Where it must be verified | How |
 |---|---|---|
 | Analyzer thresholds, phase logic, rep rules | Host | fixture count pinned in [`PoseTrackFixtures.swift`](../ExerciseCore/Tests/ExerciseCoreTests/PoseTrackFixtures.swift); trace via `TuningReports` |
-| Exercise detector | Host | `DetectionTests`: every fixture must detect as its own exercise with confidence ≥ 60 |
+| Exercise detector | Host | `DetectionTests`: every fixture must detect as its own exercise with confidence ≥ 75 |
 | Skeleton geometry (angles, sides, uprightness) | Host | `SkeletonTests` with synthetic poses |
 | Crop / me-view, rep span for trimming | Host | `RepCountTests.testRepSpanAndStableCropCoverTheSet` |
 | Where the zoomed lifter sits in the picture (#98) | Host, then the simulator for the HUD around it | `ZoomTransformTests`; to see it, `ZoomPreviewReport` draws the zoomed picture at both gallery heights from a still, with the HUD's bands, in under a second: `cd ExerciseCore && ZOOM_PREVIEW_IMAGE=<set>/rep-1-top.jpg ZOOM_PREVIEW_CROP=0.43,0.21,0.50,0.60 ZOOM_PREVIEW_FRAME=1080x1920 ZOOM_PREVIEW_OUT=/tmp/zoom.png swift test --filter ZoomPreviewReport` (a stored set's rep stills are cut to its crop, so `ZOOM_PREVIEW_FRAME` places one in an empty frame; leave it out for a full-frame still) |
@@ -72,7 +72,8 @@ the phone analyzed.
 - `FrameStatusTests`: in frame / clipped edges / coverage and the watch message round trip.
 
 **Tuning reports** ([`TuningReports.swift`](../ExerciseCore/Tests/ExerciseCoreTests/TuningReports.swift)) are not
-assertions. `swift test --filter TuningReports` prints, per fixture, every phase transition an analyzer took (its
+assertions, and `just test` skips them (they were 38 of the run's 49 s); `just reports` runs them all, or
+`swift test --filter TuningReports/<name>` one. They print, per fixture, every phase transition an analyzer took (its
 `trace` hook), each rep's checkpoint times and quality, raw per-second signals, and the count under alternative
 thresholds. This is how an analyzer gets tuned against a bad set, and how a "why did it count that" question gets
 answered with numbers instead of theories.

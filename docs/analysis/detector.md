@@ -29,7 +29,7 @@ exercise it was; Auto mode analyzes with the winner, and reopening a stored set 
 7. **Bulgarian split squat**: one foot held above the other in over half the frames with p95 over 20°.
 8. Otherwise ambiguous (swing with low confidence).
 
-Every fixture must detect as its own exercise with confidence ≥ 60 (`DetectionTests`), swing detection must survive
+Every fixture must detect as its own exercise with confidence ≥ 75 (`DetectionTests`), swing detection must survive
 mirroring, and `DetectionReport.testDetectionMargins` prints how close each fixture sits to the boundaries.
 
 ## Experiments

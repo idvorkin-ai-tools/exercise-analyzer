@@ -94,7 +94,8 @@ final class ZoomTransformTests: XCTestCase {
   }
 
   func testZoomedBarsAreEvenAboutTheLifter() {
-    // Gallery up: the video ends 95 pt right of the middle, so the picture is cut 95 pt left of it too.
+    // Gallery up: the video ends 95 pt right of the middle, so the picture is cut 95 pt left of it too, leaving a
+    // bar of 201 − 95 = 106 pt on each side of the 402 pt container.
     let z = zoom(CGSize(width: 402, height: 375))
     XCTAssertEqual(z.bars, 106, accuracy: 2)
   }

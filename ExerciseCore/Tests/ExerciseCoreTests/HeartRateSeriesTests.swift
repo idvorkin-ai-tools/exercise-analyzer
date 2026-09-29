@@ -42,6 +42,7 @@ final class HeartRateSeriesTests: XCTestCase {
     XCTAssertEqual(series.medianInterval, 5)
     let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: folder) }
     try series.save(to: folder)
     XCTAssertEqual(HeartRateSeries.load(from: folder), series)
   }

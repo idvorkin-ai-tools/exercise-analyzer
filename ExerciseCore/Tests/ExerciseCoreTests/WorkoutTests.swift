@@ -8,7 +8,12 @@ import XCTest
 @testable import ExerciseCore
 
 final class WorkoutTests: XCTestCase {
-  private let calendar = Calendar(identifier: .gregorian)
+  /// A fixed zone: the dates below are the same instants on every machine.
+  private let calendar: Calendar = {
+    var c = Calendar(identifier: .gregorian)
+    c.timeZone = TimeZone(identifier: "UTC")!
+    return c
+  }()
 
   /// #165: the chart's axis is time into the workout.
   func testTheChartAxisCountsFromTheWorkoutsStart() {
