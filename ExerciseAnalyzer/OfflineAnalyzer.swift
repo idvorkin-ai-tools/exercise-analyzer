@@ -158,13 +158,15 @@ enum OfflineAnalyzer {
           // that stays). It sees the previous frame's wrists — one frame of lag at 30+ fps is far under the
           // 0.2 reach (H26); the first frame has none.
           var bells: [BellSighting] = []
+          // Not marked Sendable by Core Video; the detector thread only reads it, and this frame waits for it.
           let pixelBuffer = bellDetector == nil ? nil : CMSampleBufferGetImageBuffer(sampleBuffer)
           let group = DispatchGroup()
           if let bellDetector, let pixelBuffer {
+            nonisolated(unsafe) let framePixels = pixelBuffer
             group.enter()
             let wrists = lastWrists
             DispatchQueue.global(qos: .userInitiated).async {
-              bells = bellDetector.detect(in: pixelBuffer, wrists: wrists)
+              bells = bellDetector.detect(in: framePixels, wrists: wrists)
               group.leave()
             }
           }

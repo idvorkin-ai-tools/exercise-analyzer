@@ -42,7 +42,9 @@
     }
   }
 
-  public final class BellDetector {
+  /// Unchecked Sendable: `detect` writes `lastInferenceMs`, so its callers run one `detect` at a time on whatever
+  /// thread (live: the `bellBusy` flag; the offline pass: each frame waits for its run).
+  public final class BellDetector: @unchecked Sendable {
     public let model: VNCoreMLModel
     public let compiledModelURL: URL
     public let inputSize: (width: Int, height: Int)

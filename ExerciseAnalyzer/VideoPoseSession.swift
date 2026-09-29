@@ -1585,6 +1585,9 @@ final class VideoPoseSession: NSObject, ObservableObject {
     guard liveInferenceEnabled, let predictor = models.predictor, !inferenceBusy,
       let sampleBuffer = Self.makeSampleBuffer(pixelBuffer, time: time)
     else { return }
+    // Core Video and Core Media buffers are not marked Sendable; this frame's are handed to the inference queues and
+    // only read there.
+    nonisolated(unsafe) let frameSample = sampleBuffer, framePixels = pixelBuffer
     // The models are one job's at a time (#147): while a cancelled pass finishes its last frame, live frames
     // skip, as they do while the previous live frame is in flight. Released once predict and the bell run end.
     let lease = models.lease
@@ -1626,7 +1629,7 @@ final class VideoPoseSession: NSObject, ObservableObject {
         guard let self else { return }
         // `predict` runs Vision synchronously and calls the listeners before returning, so the busy flag can be
         // cleared here whether or not a result was delivered.
-        predictor.predict(sampleBuffer: sampleBuffer, onResultsListener: self, onInferenceTime: self)
+        predictor.predict(sampleBuffer: frameSample, onResultsListener: self, onInferenceTime: self)
         Task { @MainActor in self.inferenceBusy = false }
       }
       return
@@ -1642,11 +1645,11 @@ final class VideoPoseSession: NSObject, ObservableObject {
       var found: [BellSighting] = []
       group.enter()
       DispatchQueue.global(qos: .userInitiated).async {
-        found = bellDetector.detect(in: pixelBuffer, wrists: wrists)
+        found = bellDetector.detect(in: framePixels, wrists: wrists)
         group.leave()
         Task { @MainActor in self.bellBusy = false }
       }
-      predictor.predict(sampleBuffer: sampleBuffer, onResultsListener: catcher, onInferenceTime: self)
+      predictor.predict(sampleBuffer: frameSample, onResultsListener: catcher, onInferenceTime: self)
       // The lease covers the bell run too: a late detector still holds the models after this frame gives up on it.
       group.notify(queue: .global(qos: .userInitiated)) { lease.release() }
       // The detector started with pose, so by now it is usually done; a late one loses this frame

@@ -151,12 +151,8 @@ final class WorkoutMirror: NSObject, ObservableObject {
       deletion.failure = "The list could not be saved: \(error.localizedDescription)"
     }
     // The simulator has no watch records, and its permission sheet would wait for a tap no run can give.
-    #if targetEnvironment(simulator)
-    let askHealth = false
-    #else
-    let askHealth = HKHealthStore.isHealthDataAvailable()
-    #endif
-    if askHealth, !parts.isEmpty {
+    #if !targetEnvironment(simulator)
+    if HKHealthStore.isHealthDataAvailable(), !parts.isEmpty {
       do {
         // Finding the record needs reading workouts, which the mirror never asked for; Health prompts only for
         // what was not asked yet.
@@ -175,6 +171,7 @@ final class WorkoutMirror: NSObject, ObservableObject {
         deletion.failure = "Health kept its record: \(error.localizedDescription)"
       }
     }
+    #endif
     onEvent?(
       "workout_deleted",
       ["id": session.id, "rows": deletion.rows, "health": deletion.healthRecords, "message": deletion.failure ?? ""])

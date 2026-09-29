@@ -9,7 +9,7 @@ import Foundation
 
 /// A kettlebell the detector saw in one frame: its box normalized to the image, the confidence, and the mean
 /// colour of the pixels inside it (sRGB, 0–1) when the caller sampled it.
-public struct BellSighting: Codable, Equatable {
+public struct BellSighting: Codable, Equatable, Sendable {
   public let box: CGRect
   public let conf: Float
   public let color: [Float]?
