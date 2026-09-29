@@ -45,7 +45,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Scenario:** Which days start folded
 - **Given:** I open Workouts
 - **When:** I read the day list
-- **Then:** today and the last seven days start open, older days start folded; a fold I change stays as I left it while Workouts is up and is forgotten at the next launch (remembering it is #121, not implemented); a day with a workout from the wrist does not fold at all, its workout lines open the workout (053, #163)
+- **Then:** today and the last seven days start open, older days start folded; a day I fold or open by hand stays as I left it, through closing Workouts and relaunching the app, and keeps that choice as it ages past a week (Igor, 2026-09-20: "Have workouts remember what's collapsed", [#121](https://github.com/idvorkin/exercise-analyzer/issues/121)); a day with a workout from the wrist does not fold at all, its workout lines open the workout (053, #163)
 
 - **Scenario:** A folded day says what was done
 - **Given:** a day of eight swing sets of eight and five get-up sets of two, folded shut

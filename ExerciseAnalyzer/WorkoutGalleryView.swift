@@ -20,9 +20,10 @@ struct WorkoutGalleryView: View {
   /// Pushes a workout's page (053), from a tap on its line, or on landing mid-workout (#123).
   let onOpenWorkout: (StoredWorkout) -> Void
   @StateObject private var suggestions = PhotosSuggestions()
-  /// Days folded shut, by start-of-day time; days older than a week start folded, today and this week start open.
-  @State private var collapsed: Set<Date> = []
-  @State private var collapseSeeded = false
+  /// The days folded or opened by hand, kept across launches (#121); the rest follow the age rule in `DayFolds`.
+  @AppStorage("workoutDayFolds") private var foldsStored = "{}"
+  /// Test hook: every day folded, for a screenshot of the folded headers (#129; the simulator cannot scroll).
+  @State private var foldAllForScreenshot = ProcessInfo.processInfo.environment["SWING_WORKOUTS_FOLDED"] == "1"
   /// Once per launch (#123): the log lands on the running workout's page; "‹" from it is the day list, and the
   /// list re-appearing after that must not push the page again.
   @State private var landedOnLive = false
@@ -34,6 +35,20 @@ struct WorkoutGalleryView: View {
   }()
 
   private var knownPhotosIDs: Set<String> { Set(store.entries.compactMap(\.photosIdentifier)) }
+
+  /// Older than a week: the days that start folded.
+  private static func isOld(_ day: Date) -> Bool {
+    let weekAgo = Calendar.current.date(byAdding: .day, value: -7, to: Calendar.current.startOfDay(for: Date())) ?? .distantPast
+    return day < weekAgo
+  }
+
+  private func isFolded(_ day: WorkoutDay) -> Bool {
+    // A workout day does not fold (#163; Igor: "don't let me expand a workout, just make me click on it"): its
+    // workout lines open the page, and only the sets outside every workout sit under them.
+    guard !day.hasWorkout else { return false }
+    return foldAllForScreenshot
+      || DayFolds(stored: foldsStored).isFolded(Self.dayKey.string(from: day.date), olderThanAWeek: Self.isOld(day.date))
+  }
 
   /// The days, from the sets and the workouts alike: a workout without a set on camera is still a day.
   private var days: [WorkoutDay] { WorkoutDay.group(store.entries, workouts: workouts.sessions, live: workouts.live) }
@@ -70,9 +85,7 @@ struct WorkoutGalleryView: View {
                 .padding(.top, 8)
               }
               ForEach(days) { day in
-                // A workout day does not fold (#163; Igor: "don't let me expand a workout, just make me click on
-                // it"): its workout lines open the page, and only the sets outside every workout sit under them.
-                let folded = !day.hasWorkout && collapsed.contains(day.date)
+                let folded = isFolded(day)
                 Section {
                   if !folded {
                     ForEach(day.hasWorkout ? day.outsideWorkouts : day.exercises) { exercise in
@@ -96,10 +109,14 @@ struct WorkoutGalleryView: View {
                   DayHeader(
                     day: day, collapsed: folded,
                     onToggle: day.hasWorkout ? nil : {
-                      let opening = collapsed.contains(day.date)
-                      onEvent?("workouts_day", ["day": Self.dayKey.string(from: day.date), "opened": opening])
+                      let key = Self.dayKey.string(from: day.date)
+                      let opening = folded
+                      onEvent?("workouts_day", ["day": key, "opened": opening])
+                      var folds = DayFolds(stored: foldsStored)
+                      folds.set(key, folded: !opening, olderThanAWeek: Self.isOld(day.date))
                       withAnimation(.easeInOut(duration: 0.2)) {
-                        if opening { collapsed.remove(day.date) } else { collapsed.insert(day.date) }
+                        foldAllForScreenshot = false
+                        foldsStored = folds.stored
                       }
                     },
                     onOpenWorkout: onOpenWorkout)
@@ -114,13 +131,6 @@ struct WorkoutGalleryView: View {
       .navigationTitle("Workouts")
       .navigationBarTitleDisplayMode(.inline)
       .onAppear {
-        if !collapseSeeded {
-          collapseSeeded = true
-          let weekAgo = Calendar.current.date(byAdding: .day, value: -7, to: Calendar.current.startOfDay(for: Date())) ?? .distantPast
-          collapsed = Set(days.map(\.date).filter { $0 < weekAgo })
-          // Test hook: every day folded, for a screenshot of the folded headers (#129; the simulator cannot scroll).
-          if ProcessInfo.processInfo.environment["SWING_WORKOUTS_FOLDED"] == "1" { collapsed = Set(days.map(\.date)) }
-        }
         suggestions.onEvent = onEvent
         suggestions.refresh(known: knownPhotosIDs)
         guard !landedOnLive else { return }
