@@ -2,7 +2,7 @@
 # Quick dirty check (issue #26): copies only bugs.jsonl from the phone and counts reports not yet filed as issues.
 # Exit 1 when there are new reports (so a loop or a prompt can tell at a glance), 0 when clean.
 set -euo pipefail
-DEVICE=${1:-00008150-000A31D10CF2401C}
+DEVICE=${1:-${DEVICE:-$(cat "$(dirname "$0")/phone-udid")}}
 REPO=${REPO:-idvorkin/exercise-analyzer}
 OUT=$HOME/tmp/agent/swing-logs/bugs.jsonl
 mkdir -p "$(dirname "$OUT")"

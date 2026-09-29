@@ -5,7 +5,7 @@
 # Usage: scripts/bugs-monitor.sh [device udid] [poll seconds, default 60]
 set -uo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
-DEVICE=${1:-00008150-000A31D10CF2401C}
+DEVICE=${1:-${DEVICE:-$(cat "$HERE/phone-udid")}}
 EVERY=${2:-60}
 seen=" "
 while true; do

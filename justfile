@@ -1,7 +1,8 @@
 # Exercise Analyzer build helpers.
 
 sim := env("SIM", "iPhone 17")
-device := env("DEVICE", "00008150-000A31D10CF2401C")
+# The phone's UDID lives in scripts/phone-udid, read by the scripts too; DEVICE=<udid> overrides it.
+device := env("DEVICE", `cat scripts/phone-udid`)
 bundle := "com.idvorkin.exerciseanalyzer"
 sim_app := "Build/Build/Products/Debug-iphonesimulator/ExerciseAnalyzer.app"
 device_app := "Build/Build/Products/Debug-iphoneos/ExerciseAnalyzer.app"
