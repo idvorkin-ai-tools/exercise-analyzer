@@ -118,8 +118,7 @@ the first frame (story 001).
 - **When:** the wrist comes up
 - **Then:** for the first 2 s the watch shows the screen of the last status it heard (the link returns ~0.5 s after
   a raise, fresh status one round trip later), and only a phone still silent after that gets the not-reachable
-  screen; before, each of the 32 raises of the 2026-09-22 gym workout showed "Not connected" for about half a
-  second (Igor, 2026-09-22: "go", [#76](https://github.com/idvorkin/exercise-analyzer/issues/76))
+  screen (Igor, 2026-09-22: "go", [#76](https://github.com/idvorkin/exercise-analyzer/issues/76))
 
 - **Scenario:** The link is measured, so a drop has a time and a pattern
 - **Given:** the watch app in front, or a workout keeping it running wrist-down
@@ -216,6 +215,8 @@ the first frame (story 001).
 - **When:** I tap it
 - **Then:** the watch app opens showing the live status or the Record button
 
+- **Issues:** none
+
 ---
 
 ### User Story 027:
@@ -242,7 +243,7 @@ the first frame (story 001).
 ### User Story 040:
 
 - **Summary:** Pause and resume a set from the wrist
-- **Status:** implemented in [5fe2561](https://github.com/idvorkin/exercise-analyzer/commit/5fe2561); on phone + watch since 2026-09-13, Igor's check pending
+- **Status:** implemented in [cf4b0ce](https://github.com/idvorkin/exercise-analyzer/commit/cf4b0ce); on phone + watch since 2026-09-13, Igor's check pending
 - **Why:** Igor, 2026-09-13: "Give me the ability to pause and resume on my watch." A set gets interrupted (chalk, someone crossing the frame, a tripod to move) and the choices were to record the interruption or cancel the set.
 
 #### Use Case:
@@ -299,7 +300,7 @@ the first frame (story 001).
 ### User Story 042:
 
 - **Summary:** The picture fills the watch and the controls sit on it
-- **Status:** implemented in [08c563c](https://github.com/idvorkin/exercise-analyzer/commit/08c563c); the layout redone for the Ultra's 205 pt face in [5622ee1](https://github.com/idvorkin/exercise-analyzer/commit/5622ee1) and lightened in [83751cf](https://github.com/idvorkin/exercise-analyzer/commit/83751cf); verified with `just watch-screens` on the Apple Watch Ultra 3 (49mm) simulator; on phone + watch since 2026-09-14, Igor's check of the bottom corners pending
+- **Status:** implemented in [8d1e945](https://github.com/idvorkin/exercise-analyzer/commit/8d1e945); the layout redone for the Ultra's 205 pt face in [5622ee1](https://github.com/idvorkin/exercise-analyzer/commit/5622ee1) and lightened in [83751cf](https://github.com/idvorkin/exercise-analyzer/commit/83751cf); verified with `just watch-screens` on the Apple Watch Ultra 3 (49mm) simulator; on phone + watch since 2026-09-14, Igor's check of the bottom corners pending
 - **Why:** Igor, 2026-09-13: "make the preview larger and overlay the buttons a lot"; 2026-09-14: "avoid covering the screen, get those buttons in the bottom, make sure my tap targets are usable, use more transparency."
 
 #### Use Case:
@@ -325,7 +326,7 @@ the first frame (story 001).
 ### User Story 043:
 
 - **Summary:** The watch face shows the set
-- **Status:** implemented in [375e3aa](https://github.com/idvorkin/exercise-analyzer/commit/375e3aa), [0bde654](https://github.com/idvorkin/exercise-analyzer/commit/0bde654), [3255a38](https://github.com/idvorkin/exercise-analyzer/commit/3255a38); verified on the host (`FaceStateTests`); on the watch since 2026-09-14, Igor's check pending (add the complication to a face; its bundle id changed); the kettlebell (#88) in [54761a6](https://github.com/idvorkin/exercise-analyzer/commit/54761a6), [4d51684](https://github.com/idvorkin/exercise-analyzer/commit/4d51684), verified by the simulator build, on the watch since 2026-09-16, Igor's check pending; the previous final kept across a Cancel (#143) in [ddfd0e1](https://github.com/idvorkin/exercise-analyzer/commit/ddfd0e1), verified on the host (`FaceStateTests`), on the phone and the watch since 2026-09-26
+- **Status:** implemented in [35fdc67](https://github.com/idvorkin/exercise-analyzer/commit/35fdc67), [0bde654](https://github.com/idvorkin/exercise-analyzer/commit/0bde654), [3255a38](https://github.com/idvorkin/exercise-analyzer/commit/3255a38); verified on the host (`FaceStateTests`); on the watch since 2026-09-14, Igor's check pending (add the complication to a face; its bundle id changed); the kettlebell (#88) in [54761a6](https://github.com/idvorkin/exercise-analyzer/commit/54761a6), [4d51684](https://github.com/idvorkin/exercise-analyzer/commit/4d51684), verified by the simulator build, on the watch since 2026-09-16, Igor's check pending; the previous final kept across a Cancel (#143) in [ddfd0e1](https://github.com/idvorkin/exercise-analyzer/commit/ddfd0e1), verified on the host (`FaceStateTests`), on the phone and the watch since 2026-09-26
 - **Why:** with the wrist down the watch app is suspended (#32); the face is the one screen that stays right, and the complication was only a launcher.
 
 #### Use Case:
@@ -563,7 +564,7 @@ the first frame (story 001).
 ### User Story 059:
 
 - **Summary:** Add a set I forgot to record to the workout, with its count typed on the wrist
-- **Status:** implemented in [0c07704](https://github.com/idvorkin/exercise-analyzer/commit/0c07704), [7a86049](https://github.com/idvorkin/exercise-analyzer/commit/7a86049) (#154, the exercise on the count page); verified on the host (`HandSetTests`), by build (the signed phone and watch apps) and on the watch simulator (`just watch-screens`: setByHand, setByHandExercise); phone + watch pending
+- **Status:** implemented in [0c07704](https://github.com/idvorkin/exercise-analyzer/commit/0c07704), [7a86049](https://github.com/idvorkin/exercise-analyzer/commit/7a86049) (#154, the exercise on the count page); verified on the host (`HandSetTests`), by build (the signed phone and watch apps) and on the watch simulator (`just watch-screens`: setByHand, setByHandExercise); on the phone and the watch since 2026-09-28, Igor's check pending
 - **Why:** Igor, 2026-09-25, from the phone: "Let's add a watch button. Rep happened if I forgot to record." Decided 2026-09-26: a watch button adds one unrecorded set to the running workout, its count typed on the wrist, no video, no score, marked "by hand" in Workouts.
 
 #### Use Case:
@@ -602,7 +603,7 @@ the first frame (story 001).
 - **Scenario:** The set on the phone's workout page
 - **Given:** the set was saved on the wrist and the phone app is open on the running workout's page (053)
 - **When:** I read the page
-- **Then:** the set's row sits at the time of the save with "8 [swing]" and a "by hand" tag in place of the picture and the score capsule, and a thin mark at that time on the heart-rate chart; the heart numbers come from Health as for any set; tapping it opens nothing (there is no video), a long press offers "Remove from Workouts…" (056); the green strip and the day header count it among the sets and reps
+- **Then:** the set's row sits at the time of the save with "8 [swing]" and a "by hand" tag in place of the picture and the score capsule, and a thin mark at that time on the heart-rate chart; the heart numbers come from Health as for any set; tapping it opens nothing (there is no video), a long press offers "Set exercise and reps…" (062) and "Remove from Workouts…" (056); the green strip and the day header count it among the sets and reps
 
 - **Scenario:** The set in the day list
 - **Given:** the same set
@@ -641,7 +642,7 @@ the first frame (story 001).
 ### User Story 061:
 
 - **Summary:** Log sit-ups and half-kneeling rotations by hand, though the camera cannot count them
-- **Status:** implemented in [674216e](https://github.com/idvorkin/exercise-analyzer/commit/674216e); verified on the host (`HandSetTests`) and by build; phone + watch pending
+- **Status:** implemented in [674216e](https://github.com/idvorkin/exercise-analyzer/commit/674216e); verified on the host (`HandSetTests`) and by build; on the phone and the watch since 2026-09-28, Igor's check pending
 - **Why:** Igor, 2026-09-27, from the phone: "An exercise to teach you sit-ups, even if I don't support videos. Also add half-kneeling rotations."
 
 #### Use Case:
@@ -673,7 +674,7 @@ the first frame (story 001).
 ### User Story 064:
 
 - **Summary:** The running wrist workout sits on the phone's lock screen and in the Dynamic Island, one tap back to the app
-- **Status:** implemented in [50388e1](https://github.com/idvorkin/exercise-analyzer/commit/50388e1); verified on the host (`WorkoutTests`) and the simulator (`SWING_LIVE_WORKOUT=30`: `live_activity` start, and chronod rendered the activity from the Controls extension); the phone pending
+- **Status:** implemented in [50388e1](https://github.com/idvorkin/exercise-analyzer/commit/50388e1); verified on the host (`WorkoutTests`) and the simulator (`SWING_LIVE_WORKOUT=30`: `live_activity` start, and chronod rendered the activity from the Controls extension); on the phone since 2026-09-28, Igor's check pending (the look of the activity in a real workout)
 - **Why:** Igor, 2026-09-27, from the phone: "Can we leave an icon at the top so I can get back to the workout app if I switch out or want to come back?" Picked the same day: a Live Activity. Story 044's rejection of one stands for the recording phone only; between sets the phone does sit locked or in another app.
 
 #### Use Case:

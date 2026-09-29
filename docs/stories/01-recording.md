@@ -39,7 +39,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 060:
 
 - **Summary:** Count the Bulgarian split squats that are reps, not the setup, a wobble or a bad camera angle
-- **Status:** implemented in [681f98d](https://github.com/idvorkin/exercise-analyzer/commit/681f98d), [77c6731](https://github.com/idvorkin/exercise-analyzer/commit/77c6731) (#132), [7f809a5](https://github.com/idvorkin/exercise-analyzer/commit/7f809a5) (#134), [7e114b3](https://github.com/idvorkin/exercise-analyzer/commit/7e114b3) (#135); verified on the host (the five Bulgarian fixtures; 4CF19A9A and 7424BEDD by Igor's count); on the phone since 2026-09-22, Igor's count of 79271425 and 599F988A pending
+- **Status:** implemented in [681f98d](https://github.com/idvorkin/exercise-analyzer/commit/681f98d), [77c6731](https://github.com/idvorkin/exercise-analyzer/commit/77c6731) (#132), [7f809a5](https://github.com/idvorkin/exercise-analyzer/commit/7f809a5) (#134), [7e114b3](https://github.com/idvorkin/exercise-analyzer/commit/7e114b3) (#135); verified on the host (the five Bulgarian fixtures; 4CF19A9A and 7424BEDD by Igor's count); on the phone since 2026-09-22, Igor's count of 79271425 and 599F988A pending; the put-down after the last rep (#135) not implemented
 - **Why:** Igor, 2026-09-22, on a set counted 10: "Rep 1 was just me setting up. I think rep 2 was garbage too."
 
 #### Use Case:
@@ -66,21 +66,20 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
   looks no higher than my front one on screen
 - **When:** the set is analyzed as a Bulgarian split squat
 - **Then:** it counts my reps, because my rear foot resting on the top of the bench the app sees counts as up
-  (7424BEDD: six, Igor's count; it had counted none, [#134](https://github.com/idvorkin/exercise-analyzer/issues/134))
+  (7424BEDD: six, Igor's count, [#134](https://github.com/idvorkin/exercise-analyzer/issues/134))
 
 - **Scenario:** I walk up close to the camera after standing tall further away
 - **Given:** I stand tall further from the phone first, then set up near it, where my head sits lower on screen
 - **When:** the set is analyzed as a Bulgarian split squat
 - **Then:** it counts my reps: a rep whose head turns back down far short of the standing height is not a rep and
   resets the standing height there, and one that turns just short (under 0.15 of my height) is a rep that didn't
-  quite stand tall ([#135](https://github.com/idvorkin/exercise-analyzer/issues/135): 79271425 had counted none,
-  599F988A six of eight)
+  quite stand tall (79271425, 599F988A: [#135](https://github.com/idvorkin/exercise-analyzer/issues/135))
 
 - **Scenario:** Putting the dumbbells down after the last rep
 - **Given:** I finish a set and bend to put the dumbbells on the floor with my rear foot still on the bench
 - **When:** the set is analyzed as a Bulgarian split squat
-- **Then:** not yet: the put-down counts as a rep when my head drops as deep as one (79271425 counts nine for
-  eight; 599F988A counts its eight; [#135](https://github.com/idvorkin/exercise-analyzer/issues/135) open)
+- **Then:** the put-down is not a rep, however deep my head drops for it (not implemented,
+  [#135](https://github.com/idvorkin/exercise-analyzer/issues/135): 79271425 counts nine for eight today)
 
 - **Notes:** Rules and thresholds: [docs/analysis/bulgarian-split-squat.md](../analysis/bulgarian-split-squat.md).
   The front leg is the foot lower on screen (or the one not on the bench), chosen in the first frames and kept
@@ -252,6 +251,8 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **When:** I start the camera, tap Done, and play the clip back
 - **Then:** the music plays uninterrupted at the same volume throughout
 
+- **Issues:** none
+
 ---
 
 ### User Story 029:
@@ -279,7 +280,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 
 - **Summary:** A lock-screen button opens the app into Live
 - **Status:** implemented in [e9d47f1](https://github.com/idvorkin/exercise-analyzer/commit/e9d47f1), [6932014](https://github.com/idvorkin/exercise-analyzer/commit/6932014) (#153, the press opens the app again); on the phone since 2026-09-27, Igor's press pending
-- **Why:** Igor: "There's a ChatGPT button I can put on my lock screen. Give me an exercise button I can put on my lock screen that pops me open." A Live Activity was considered and rejected: the recording phone is never on its lock screen (locking backgrounds the app and iOS stops the camera; story 019 keeps it awake for exactly this reason), so a live lock-screen scoreboard is impossible. A button that opens the app is what the lock screen can do.
+- **Why:** Igor: "There's a ChatGPT button I can put on my lock screen. Give me an exercise button I can put on my lock screen that pops me open." A Live Activity was considered and rejected: the recording phone is never on its lock screen (locking backgrounds the app and iOS stops the camera; story 019 keeps it awake for exactly this reason), so a live lock-screen scoreboard of the set is impossible. A button that opens the app is what the lock screen can do while recording; between sets the wrist workout has its own Live Activity (064).
 
 #### Use Case:
 - **As a** lifter at the rack with a locked phone
