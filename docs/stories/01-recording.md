@@ -81,12 +81,18 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Then:** the put-down is not a rep, however deep my head drops for it (not implemented,
   [#135](https://github.com/idvorkin/exercise-analyzer/issues/135): 79271425 counts nine for eight today)
 
+- **Scenario:** The skeleton's legs stay on my feet
+- **Given:** the pose model trades my legs' names for under a second at the bottom of a rep
+- **When:** I watch the set, live or played back
+- **Then:** the drawn legs keep the names they had while I stood, and each ankle stays drawn on its own foot
+  (the feet do not move in a split squat), so the skeleton does not scissor; the count is untouched (#131;
+  Igor: "we know the legs from when we're standing ... You can latch a leg instead")
+
 - **Notes:** Rules and thresholds: [docs/analysis/bulgarian-split-squat.md](../analysis/bulgarian-split-squat.md).
   The front leg is the foot lower on screen (or the one not on the bench), chosen in the first frames and kept
   for the set. The bench detector runs only in the offline pass, so a live count can differ from the stored one.
-  Not built: keeping the legs' left and right names steady where the pose model trades them for under a second
-  (#131 step 2, held for Igor's call); the count runs on the ears, so it only makes the skeleton scissor on
-  screen. The Standing picture is story 006's.
+  The latched legs are drawing only: the analyzers and the stored track keep the model's poses, the knees are
+  not latched (they move), and the rep-gallery stills draw the model's pose. The Standing picture is story 006's.
 
 - **Issues:** [#131](https://github.com/idvorkin/exercise-analyzer/issues/131) standing didn't look like standing, dumbbells, the legs trading names; [#132](https://github.com/idvorkin/exercise-analyzer/issues/132) a Bulgarian counted its setup and a wobble; [#134](https://github.com/idvorkin/exercise-analyzer/issues/134) a Bulgarian with the bench nearer the camera counted none; [#135](https://github.com/idvorkin/exercise-analyzer/issues/135) two Bulgarians set up near the camera, the dumbbell put-down still counted
 

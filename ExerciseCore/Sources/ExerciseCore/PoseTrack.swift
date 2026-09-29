@@ -53,18 +53,54 @@ public final class PoseTrack {
 
   public private(set) var frames: [FrameRecord] = []
 
+  /// The Bulgarian draws latched legs (#131, `LegLatch`); the pipeline sets this for that exercise.
+  public var latchesLegs = false { didSet { drawnStale = true } }
+  /// The poses as drawn, by frame time, where the latch changed them; the frames keep the model's.
+  private var drawnPoses: [Double: Pose] = [:]
+  private var drawnStale = false
+  private let latch = LegLatch()
+
   public var isEmpty: Bool { frames.isEmpty }
 
-  public func removeAll() { frames.removeAll() }
+  public func removeAll() {
+    frames.removeAll()
+    drawnStale = true
+  }
 
-  public func replaceAll(with frames: [FrameRecord]) { self.frames = frames.sorted { $0.time < $1.time } }
+  public func replaceAll(with frames: [FrameRecord]) {
+    self.frames = frames.sorted { $0.time < $1.time }
+    drawnStale = true
+  }
 
   public func append(_ frame: FrameRecord) {
     if let last = frames.last, frame.time < last.time {
       frames.insert(frame, at: insertionIndex(for: frame.time))
+      drawnStale = true
     } else {
       frames.append(frame)
+      if latchesLegs, !drawnStale { latchLegs(frame) }
     }
+  }
+
+  /// The frame as the screen draws it: with latched legs where the track latches them.
+  public func drawn(_ frame: FrameRecord) -> FrameRecord {
+    guard latchesLegs else { return frame }
+    if drawnStale {
+      latch.reset()
+      drawnPoses = [:]
+      drawnStale = false
+      for f in frames { latchLegs(f) }
+    }
+    guard let pose = drawnPoses[frame.time] else { return frame }
+    return FrameRecord(
+      time: frame.time, imageSize: frame.imageSize, pose: pose, box: frame.box, analysis: frame.analysis,
+      bells: frame.bells, bell: frame.bell, bench: frame.bench)
+  }
+
+  private func latchLegs(_ frame: FrameRecord) {
+    guard let pose = frame.pose else { return }
+    let (out, fix) = latch.process(pose, standing: frame.analysis?.phase == BulgarianSplitSquatAnalyzer.standing)
+    if fix == .swapped || fix == .held { drawnPoses[frame.time] = out }
   }
 
   /// The stored frame closest to `time`, if one lies within `tolerance` seconds.
@@ -80,6 +116,7 @@ public final class PoseTrack {
   /// Frames inside `range`, re-timed so `range.lowerBound` becomes zero.
   public func shifted(toStartAt start: Double, end: Double) -> PoseTrack {
     let track = PoseTrack()
+    track.latchesLegs = latchesLegs
     track.frames = frames.filter { $0.time >= start && $0.time <= end }.map {
       FrameRecord(
         time: $0.time - start, imageSize: $0.imageSize, pose: $0.pose, box: $0.box, analysis: $0.analysis,

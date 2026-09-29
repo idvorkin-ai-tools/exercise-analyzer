@@ -19,12 +19,14 @@ public final class AnalysisPipeline: @unchecked Sendable {
   public init(exercise: ExerciseKind) {
     self.exercise = exercise
     analyzer = exercise.makeAnalyzer()
+    track.latchesLegs = exercise == .bulgarianSplitSquat  // #131
   }
 
   /// For tuning and tests: run a specific analyzer instance (e.g. custom thresholds).
   public init(exercise: ExerciseKind, analyzer: ExerciseAnalyzer) {
     self.exercise = exercise
     self.analyzer = analyzer
+    track.latchesLegs = exercise == .bulgarianSplitSquat
   }
 
   public func reset() {

@@ -1436,7 +1436,7 @@ final class VideoPoseSession: NSObject, ObservableObject {
     lastQuality = pipeline.reps.last?.quality
     // Show the frame under the playhead, not frame 0: after a re-analysis the HUD must reflect the new result
     // where the lifter is looking, without waiting for playback to advance.
-    latestFrame = pipeline.track.nearest(to: currentTime, tolerance: 0.2) ?? pipeline.track.frames.first
+    latestFrame = (pipeline.track.nearest(to: currentTime, tolerance: 0.2) ?? pipeline.track.frames.first).map(pipeline.track.drawn)
     lastLoggedPhase = nil
     recentBoxes = []
     personCrop = pipeline.stableCrop
@@ -1925,7 +1925,7 @@ final class VideoPoseSession: NSObject, ObservableObject {
   }
 
   private func show(_ frame: FrameRecord) {
-    latestFrame = frame
+    latestFrame = pipeline.track.drawn(frame)  // the Bulgarian's latched legs (#131)
     if let phase = frame.analysis?.phase, phase != lastLoggedPhase {
       lastLoggedPhase = phase
       // The log numbers reps the way the screen does (#54): the gallery's 1-based rep while reviewing

@@ -169,6 +169,43 @@ final class TuningReports: XCTestCase {
     fflush(stdout)
   }
 
+  /// #131: the split-squat fixtures' drawn legs with and without the latch. A jump is a knee or ankle moving more
+  /// than 0.05 of the frame between frames; hips are counted apart, to see whether the model trades them too.
+  func testLegLatch() throws {
+    for fixture in Fixture.all where [.bulgarianSplitSquat, .splitSquat].contains(fixture.expectedExercise) {
+      let pipeline = AnalysisPipeline(exercise: fixture.expectedExercise)
+      let latch = LegLatch()
+      var fixes: [LegLatch.Fix: Int] = [:]
+      var raw = (legs: 0, hips: 0, knees: 0), drawn = (legs: 0, knees: 0)
+      var lastRaw: Pose?, lastDrawn: Pose?
+      let legs = [CocoKeypoint.leftKnee, .rightKnee, .leftAnkle, .rightAnkle].map(\.rawValue)
+      let knees = [CocoKeypoint.leftKnee, .rightKnee].map(\.rawValue)
+      let hips = [CocoKeypoint.leftHip, .rightHip].map(\.rawValue)
+      func jumps(_ a: Pose, _ b: Pose, _ ks: [Int]) -> Int {
+        ks.filter { a.conf[$0] > 0.2 && b.conf[$0] > 0.2 && LegLatch.distance(a.xyn[$0], b.xyn[$0]) > 0.05 }.count
+      }
+      var frames = 0
+      for frame in try fixture.frames() {
+        let result = pipeline.process(extracted: frame) { nil }
+        guard let pose = frame.pose else { continue }
+        frames += 1
+        let standing = result.analysis?.phase == BulgarianSplitSquatAnalyzer.standing
+        let (out, fix) = latch.process(pose, standing: standing)
+        fixes[fix, default: 0] += 1
+        if let lastRaw {
+          raw.legs += jumps(lastRaw, pose, legs); raw.hips += jumps(lastRaw, pose, hips); raw.knees += jumps(lastRaw, pose, knees)
+        }
+        if let lastDrawn { drawn.legs += jumps(lastDrawn, out, legs); drawn.knees += jumps(lastDrawn, out, knees) }
+        lastRaw = pose
+        lastDrawn = out
+      }
+      print(
+        "\(fixture.name): \(frames) frames, \(pipeline.reps.count) reps; leg jumps \(raw.legs) → \(drawn.legs), knees \(raw.knees) → \(drawn.knees) (hips \(raw.hips)); "
+          + "latched \(fixes[.latched] ?? 0), swapped \(fixes[.swapped] ?? 0), held \(fixes[.held] ?? 0)")
+    }
+    fflush(stdout)
+  }
+
   /// The pull-up fixtures (#108): every transition with the shoulders' distance under the bar, the reps, and the
   /// count under other rises, to see how far the setup on the pegs sits from a rep.
   func testPullUpTrace() throws {

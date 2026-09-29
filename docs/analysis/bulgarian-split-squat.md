@@ -101,3 +101,24 @@ Reports: `TuningReports.testBulgarianPhoneSetUnderThresholds`, `testBulgarianTen
 - **2026-09-28, review (no fixture; [#171](https://github.com/idvorkin/exercise-analyzer/issues/171))**: the score's
   `minFrontKnee`/`minRearKnee` took an unmeasured knee (0°) as full depth and skipped the rear-knee penalty; 0 is
   now ignored, as the split squat already did. Counts unchanged (8, 8, 8, 8, 6). AnalysisVersion 2026-09-28.1.
+- **2026-09-29, the drawn legs latch ([#131](https://github.com/idvorkin/exercise-analyzer/issues/131))**: Igor
+  turned down hiding the bones ("we know the legs from when we're standing ... You can latch a leg instead").
+  `LegLatch` latches each ankle's spot on every standing frame. Elsewhere it swaps knee and ankle back when
+  swapping moves the ankles less than half as far, and draws an ankle more than 0.05 from its spot at it.
+  `TuningReports.testLegLatch`, knee and ankle jumps over 0.05 of the frame between frames, raw → drawn:
+
+  | Fixture | Frames | Leg jumps | Knee jumps | Swapped | Held |
+  |---|---|---|---|---|---|
+  | bulgarian-10reps | 1094 | 348 → 123 | 112 → 77 | 151 | 422 |
+  | bulgarian-phone | 1221 | 63 → 44 | 4 → 2 | 475 | 153 |
+  | bulgarian-4CF19A9A-phone | 1577 | 478 → 214 | 101 → 75 | 173 | 474 |
+  | bulgarian-7424BEDD-phone | 1271 | 180 → 63 | 50 → 45 | 78 | 279 |
+  | bulgarian-599F988A-phone | 1256 | 296 → 106 | 81 → 44 | 52 | 435 |
+  | splitsquat-barbell-phone | 2418 | 16 → 27 | 4 → 6 | 19 | 713 |
+  | splitsquat-256C9B06-phone | 2677 | 39 → 39 | 17 → 17 | 336 | 1101 |
+
+  Holding only an ankle that sat on the other foot left about twice the jumps (348 → 247 on bulgarian-10reps).
+  The hips never jump, so they keep their names. bulgarian-phone's 475 swaps are a steady trade after its first
+  standing frame, invisible since both legs draw alike. The split squats gain nothing, so the latch draws the
+  Bulgarian only. The remaining jumps are knee spikes, which a latch cannot fix. Drawing only: counts unchanged,
+  no AnalysisVersion bump.
