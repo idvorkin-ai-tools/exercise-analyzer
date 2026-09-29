@@ -49,6 +49,12 @@ from which the pipeline's tracker picks the one in play (#18). `just analyze <cl
 --fixture old.json` adds bells to an existing fixture without touching its verified poses. Each is registered in `Fixture.all` with the exercise, the expected rep count, and `humanVerified`
 (Igor confirmed the count) versus a regression baseline (the count the analyzer produced when the fixture was cut).
 
+**Archived tracks** (`just pull-tracks`, every set on the phone, under `Fixtures/tracks/`) are pinned, not verified:
+`ArchivedTracks` detects each one's exercise and counts it, and `Fixtures/archived-counts.json` holds what the
+analyzers said when pinned. A change that moves any of them fails the suite. When the move is intended, rerun with
+`ARCHIVED_PIN_WRITE=1 swift test --filter ArchivedTracks` and name the moved tracks in the analysis note; a fresh
+`just pull-tracks` needs the same rerun to pin the new sets.
+
 To make a fixture from a set on the phone:
 
 ```bash
