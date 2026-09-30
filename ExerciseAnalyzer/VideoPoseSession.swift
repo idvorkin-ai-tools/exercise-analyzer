@@ -1207,8 +1207,6 @@ final class VideoPoseSession: NSObject, ObservableObject {
     recents.remove(id: entry.id)
   }
 
-  /// The lifter's own exercise and count for a stored set (#156, #157): it stays in Workouts as a by-hand set and
-  /// its in-app video goes (a Photos original stays in Photos). The sheet has said so before Save.
   /// A set typed by hand: on the wrist (059) or from a tap on a workout's chart (#178). Once per id however often
   /// it arrives.
   func addByHand(_ set: HandSet, from place: String) {
@@ -1219,6 +1217,8 @@ final class VideoPoseSession: NSObject, ObservableObject {
        "where": place])
   }
 
+  /// The lifter's own exercise and count for a stored set (#156, #157): it stays in Workouts as a by-hand set and
+  /// its in-app video goes (a Photos original stays in Photos). The sheet has said so before Save.
   func keepByHand(set entry: RecentEntry, exercise: ExerciseKind, reps: Int, from place: String) {
     log.event(
       "set_kept_by_hand",
