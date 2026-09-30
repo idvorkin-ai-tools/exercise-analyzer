@@ -1101,6 +1101,9 @@ final class VideoLayerHostView: UIView {
 
   override init(frame: CGRect) {
     super.init(frame: frame)
+    // Keeps the enlarged layer of a zoom inside the picture. This UIKit clip came with the HDR fix (dda7827) and
+    // story 008 was verified in HDR on the phone with it; what washed HDR out was a SwiftUI clip and a pixel
+    // output on the player's container (1233b25). Checked again in the 2026-09-28 review (#171).
     clipsToBounds = true
   }
 
@@ -1195,6 +1198,6 @@ enum OverlayMode: String, CaseIterable {
 
   var symbol: String { self == .both ? "eye" : "eye.slash" }
 
-  /// Names what the button will switch to.
+  /// Names the mode; the eye button shows `next.label`, what a tap will switch to.
   var label: String { self == .both ? "Show video and skeleton" : "Show video only" }
 }

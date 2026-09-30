@@ -19,12 +19,14 @@ public final class AnalysisPipeline: @unchecked Sendable {
   public init(exercise: ExerciseKind) {
     self.exercise = exercise
     analyzer = exercise.makeAnalyzer()
+    track.latchesLegs = exercise == .bulgarianSplitSquat  // #131
   }
 
   /// For tuning and tests: run a specific analyzer instance (e.g. custom thresholds).
   public init(exercise: ExerciseKind, analyzer: ExerciseAnalyzer) {
     self.exercise = exercise
     self.analyzer = analyzer
+    track.latchesLegs = exercise == .bulgarianSplitSquat
   }
 
   public func reset() {
@@ -88,8 +90,6 @@ public final class AnalysisPipeline: @unchecked Sendable {
   public func replaceReps(_ reps: [RepRecord]) { self.reps = reps }
 
   /// One crop covering the person through the set, so playback stays zoomed without following frame by frame.
-  /// Only frames inside the rep span count (walking in and out of frame would otherwise widen it to the whole
-  /// picture), and the edges are 5th/95th percentiles so a single mis-detection can't blow it up.
   /// The me-view crop: the lifter's skeleton over the frames inside reps, the 5th/95th percentiles padded.
   /// Only the reps' frames, not the span between the first and the last: a walk between two halves of a set
   /// sat inside that span and pushed the crop's edge into empty gym while the lifter stood still for every

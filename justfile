@@ -1,7 +1,8 @@
 # Exercise Analyzer build helpers.
 
 sim := env("SIM", "iPhone 17")
-device := env("DEVICE", "00008150-000A31D10CF2401C")
+# The phone's UDID lives in scripts/phone-udid, read by the scripts too; DEVICE=<udid> overrides it.
+device := env("DEVICE", `cat scripts/phone-udid`)
 bundle := "com.idvorkin.exerciseanalyzer"
 sim_app := "Build/Build/Products/Debug-iphonesimulator/ExerciseAnalyzer.app"
 device_app := "Build/Build/Products/Debug-iphoneos/ExerciseAnalyzer.app"
@@ -9,12 +10,21 @@ device_app := "Build/Build/Products/Debug-iphoneos/ExerciseAnalyzer.app"
 default:
     @just --list
 
+# The print-only reports (TuningReports, DetectionReport, SwingThresholdSweep, ZoomPreviewReport) assert nothing
+# and were 38 of the run's 49 s; `just reports` runs them. (`just --list` shows a recipe's last comment line.)
 # Test ladder, cheapest first. Rung 1: analyzers and detector replayed over stored pose tracks on the Mac.
 test:
     #!/usr/bin/env bash
     # pipefail: a failing suite must fail the recipe instead of hiding behind tail's exit 0 (#51).
+    # The skipped suites only print. ZoomPreviewReport is a by-hand tool: it runs, and checks the picture it draws,
+    # only given ZOOM_PREVIEW_IMAGE, ZOOM_PREVIEW_CROP and ZOOM_PREVIEW_OUT (docs/TESTING.md, #98).
     set -uo pipefail
-    cd ExerciseCore && swift test 2>&1 | grep -E "Test Suite|passed|failed|error" | tail -20
+    cd ExerciseCore && swift test --skip TuningReports --skip DetectionReport --skip SwingThresholdSweep --skip ZoomPreviewReport 2>&1 \
+      | grep -E "Test Suite|passed|failed|error" | tail -20
+
+# The tuning reports: every trace, sweep and signal table, printed (docs/TESTING.md "Tuning reports").
+reports filter="TuningReports|DetectionReport|SwingThresholdSweep":
+    cd ExerciseCore && swift test --filter "{{filter}}" 2>&1 | grep -vE "^\[|^Build|^Compiling|^Linking|^Test Case|^Executed|^Test Suite"
 
 # Rung 2: simulator smoke run of every sample clip; checks detection and rep counts from the session log.
 test-sim: build-sim
@@ -78,8 +88,8 @@ pull-logs:
     @echo "--- bug reports (newest last); each names its log file:"
     @tail -5 ~/tmp/agent/swing-logs/bugs.jsonl 2>/dev/null | jq -c '{reported_at, note, log, clip, exercise, playhead}' || true
 
-# The phone's own crash reports (.ips) via libimobiledevice; needs the phone on USB and paired (`idevicepair pair`).
 # MetricKit reports (Documents/crashes, pulled by pull-logs) do not need this.
+# The phone's own crash reports (.ips) via libimobiledevice; needs the phone on USB and paired (`idevicepair pair`).
 pull-crashes:
     mkdir -p ~/tmp/agent/swing-logs/ips
     cd ~/tmp/agent/swing-logs/ips && idevicecrashreport -k . && ls -t | grep -i exercise | head -5
@@ -88,10 +98,10 @@ pull-crashes:
 symbolicate file:
     scripts/symbolicate.sh {{file}}
 
-# Instruments from the command line: attach to the running app on the phone for `seconds` with an Instruments
-# template (Allocations, Leaks, Time Profiler, Core ML, Activity Monitor) and write the .trace under
-# ~/tmp/agent/traces/. Launch the app first; do the action (reopen the set) inside the window. Open the .trace in
-# Instruments, or `xcrun xctrace export --input <trace> --toc` to list its tables.
+# Templates: Allocations, Leaks, Time Profiler, Core ML, Activity Monitor. Launch the app first; do the action
+# (reopen the set) inside the window. Open the .trace in Instruments, or `xcrun xctrace export --input <trace>
+# --toc` to list its tables.
+# Instruments from the command line: attach to the running app on the phone for `seconds`, .trace under ~/tmp/agent/traces/.
 trace-device template="Allocations" seconds="90":
     mkdir -p ~/tmp/agent/traces
     xcrun xctrace record --template "{{template}}" --device {{device}} --attach ExerciseAnalyzer \

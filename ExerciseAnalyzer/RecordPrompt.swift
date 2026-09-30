@@ -15,17 +15,17 @@ enum RecordPrompt {
   /// Ask once while the app is in front: a request made from a background-launched app is deferred by iOS until
   /// the app is foregrounded, and its completion never runs, so the watch's Record would post nothing.
   static func prepare(log: SessionLog) {
-    #if targetEnvironment(simulator)
-      return  // no watch on the simulator, and the permission dialog would sit over every screenshot
-    #endif
-    let center = UNUserNotificationCenter.current()
-    center.getNotificationSettings { settings in
-      log.event("notification_auth", ["status": settings.authorizationStatus.rawValue])
-      guard settings.authorizationStatus == .notDetermined else { return }
-      center.requestAuthorization(options: [.alert, .sound]) { granted, error in
-        log.event("notification_auth", ["requested": true, "granted": granted, "error": error.map { "\($0)" } ?? ""])
+    // Not on the simulator: no watch there, and the permission dialog would sit over every screenshot.
+    #if !targetEnvironment(simulator)
+      let center = UNUserNotificationCenter.current()
+      center.getNotificationSettings { settings in
+        log.event("notification_auth", ["status": settings.authorizationStatus.rawValue])
+        guard settings.authorizationStatus == .notDetermined else { return }
+        center.requestAuthorization(options: [.alert, .sound]) { granted, error in
+          log.event("notification_auth", ["requested": true, "granted": granted, "error": error.map { "\($0)" } ?? ""])
+        }
       }
-    }
+    #endif
   }
 
   /// A Preview asked while the phone app is backgrounded carries the viewfinder flag, so the tap opens

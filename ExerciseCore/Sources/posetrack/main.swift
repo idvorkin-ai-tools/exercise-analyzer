@@ -232,8 +232,9 @@ Task {
         // Overlapped as ever, so with the previous frame's wrists: the same-frame pose is not known yet,
         // and waiting for it would serialize the two models (the app runs the bell after the pose, H26).
         let wrists = lastWrists
+        nonisolated(unsafe) let framePixels = pixelBuffer  // not marked Sendable by Core Video; only read there
         DispatchQueue.global(qos: .userInitiated).async {
-          bells = detector.detect(in: pixelBuffer, wrists: wrists)
+          bells = detector.detect(in: framePixels, wrists: wrists)
           group.leave()
         }
       }
@@ -245,7 +246,9 @@ Task {
         person = parse(array, letterbox: letterbox, confidence: options.confidence)
       }
       lastWrists = BellDetector.wrists(of: person?.pose)
-      if parallel { group.wait() } else { bells = bellDetector?.detect(in: pixelBuffer, wrists: lastWrists) ?? [] }
+      if parallel {
+        await withCheckedContinuation { done in group.notify(queue: .global(qos: .userInitiated)) { done.resume() } }
+      } else { bells = bellDetector?.detect(in: pixelBuffer, wrists: lastWrists) ?? [] }
       if ProcessInfo.processInfo.environment["POSETRACK_TRACE"] == "1" {
         let tracked = traceTracker.track(bells, pose: person?.pose)
         let wrists = person.map { p in [9, 10].map { String(format: "%.2f,%.2f", p.pose.xyn[$0].x, p.pose.xyn[$0].y) }.joined(separator: "/") } ?? "-"

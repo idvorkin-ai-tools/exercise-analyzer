@@ -97,13 +97,14 @@ final class PhoneLink: NSObject, ObservableObject {
     !showsAsLive && reachable && status.recording
   }
 
-  /// Asks the phone for a fresh status (a reachable phone app answers with one).
+  /// Asks the phone for a fresh status (a reachable phone app answers with one). Only from an app in front: a
+  /// workout keeps the app running wrist-down (048), where a ping every 2 s would wake the phone for a screen nobody
+  /// is reading, and the phone takes any command as "in front" (WatchBridge).
   func ping() {
-    guard screenshot == nil else { return }
+    guard screenshot == nil, inFront else { return }
     guard WCSession.default.activationState == .activated, WCSession.default.isReachable else { return }
-    // Say "in front" again while the phone is not live, in case the scene message was lost; only when the
-    // scene really is in front (the 2 s retry also pings, and an always-on watch sits at inactive).
-    if inFront, !isLive { sendScene(true) }
+    // Say "in front" again while the phone is not live, in case the scene message was lost.
+    if !isLive { sendScene(true) }
     send(.status)
   }
 
@@ -282,7 +283,10 @@ final class PhoneLink: NSObject, ObservableObject {
     if let last = receivedAt, Date().timeIntervalSince(last) >= Self.maxStatusAge {
       logEvent("status_back", ["via": channel, "silent_s": Int(Date().timeIntervalSince(last)), "reachable": reachable])
     }
-    receivedAt = Date()
+    // An application context can be hours old when it is delivered (at activation, on a wake): date it by the
+    // phone's send, so a phone that quit mid-set does not read as live for 8 s. Messages are dated on arrival.
+    let sentAt = (message["sentAt"] as? Double).map { Date(timeIntervalSince1970: $0) }
+    receivedAt = channel.hasSuffix("context") ? min(sentAt ?? Date(), Date()) : Date()
     lastError = nil
     if previous.recording != next.recording || previous.rolling != next.rolling || previous.reps != next.reps {
       logEvent(

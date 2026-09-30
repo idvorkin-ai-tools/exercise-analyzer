@@ -43,7 +43,7 @@ final class FaceStateTests: XCTestCase {
     var out: [FaceState] = []
     for next in statuses.dropFirst() {
       if let (updated, _) = face.applying(
-        previous: previous, next: next, now: Date(), lastWrite: .distantPast)
+        previous: previous, next: next, now: Date(timeIntervalSince1970: 1_000_000), lastWrite: .distantPast)
       {
         face = updated
       }

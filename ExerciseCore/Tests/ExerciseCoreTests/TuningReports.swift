@@ -47,7 +47,7 @@ final class TuningReports: XCTestCase {
   }
 
   func testBulgarianTenRepSetTrace() throws {
-    let frames = try Fixture(name: "bulgarian-10reps", expectedExercise: .bulgarianSplitSquat, expectedReps: 10, humanVerified: false).frames()
+    let frames = try Fixture.named("bulgarian-10reps").frames()
     report("bulgarian-10reps defaults", analyze(frames, BulgarianSplitSquatThresholds()))
   }
 
@@ -60,7 +60,8 @@ final class TuningReports: XCTestCase {
         forResource: "bulgarian-split-squat-20260909-98B26725", withExtension: "json", subdirectory: "Fixtures/tracks"))
     var tracks = try Fixture.all.filter { $0.expectedExercise == .bulgarianSplitSquat }.map { ($0.name, try $0.frames()) }
     tracks.append(("98B26725 (archived, 8)", try Fixture.frames(at: url)))
-    report("bulgarian-4CF19A9A-phone defaults", analyze(tracks[2].1, BulgarianSplitSquatThresholds()))
+    let verified = try XCTUnwrap(tracks.first { $0.0 == "bulgarian-4CF19A9A-phone" })
+    report("bulgarian-4CF19A9A-phone defaults", analyze(verified.1, BulgarianSplitSquatThresholds()))
     for depth in [0.0, 0.15, 0.2, 0.3] {
       for setUp in [0.0, 1.0, 1.5, 2.5] {
         var t = BulgarianSplitSquatThresholds()
@@ -92,26 +93,65 @@ final class TuningReports: XCTestCase {
       (f, frames.map { FrameRecord(time: $0.time, imageSize: $0.imageSize, pose: $0.pose, box: $0.box, analysis: nil, bells: $0.bells) })
     }
     print("  no bench: " + stripped.map { "\($0.0.name.prefix(22)) \(count($0.1, BulgarianSplitSquatThresholds()))/\($0.0.expectedReps)" }.joined(separator: " · "))
-    print("  defaults: " + tracks.map { "\($0.0.name.prefix(22)) \(count($0.1, BulgarianSplitSquatThresholds()))/\($0.0.expectedReps)" }.joined(separator: " · "))    // Knees' side-to-side gap at each rep's bottom, over the standing body height (ear to lower ankle at Standing):
-    // a split stance against a hinge with the feet together (79271425's put-down: 0.01 of the frame).
-    for (f, frames) in tracks {
-      let reps = AnalysisPipeline.analyze(frames: frames, exercise: .bulgarianSplitSquat).reps
-      let gaps = reps.compactMap { rep -> String? in
-        guard let bottom = rep.positions[BulgarianSplitSquatAnalyzer.bottom]?.pose,
-          let top = rep.positions[BulgarianSplitSquatAnalyzer.standing]?.pose
-        else { return nil }
-        let height = Double(max(top.xy[15].y, top.xy[16].y) - min(top.xy[3].y, top.xy[4].y))
-        let gap = Double(abs(bottom.xy[13].x - bottom.xy[14].x))
-        return String(format: "%.1f:%.2f", rep.positions[BulgarianSplitSquatAnalyzer.bottom]!.time, gap / max(height, 0.01))
-      }
-      print("  knee gap / height at bottoms, \(f.name): " + gaps.joined(separator: " "))
-    }
+    print("  defaults: " + tracks.map { "\($0.0.name.prefix(22)) \(count($0.1, BulgarianSplitSquatThresholds()))/\($0.0.expectedReps)" }.joined(separator: " · "))
     for share in [0.15, 0.25, 0.35, 0.5] {
       var t = BulgarianSplitSquatThresholds()
       t.benchTopShare = share
       print(String(format: "  top %.2f: ", share) + tracks.map { "\($0.0.name.prefix(22)) \(count($0.1, t))/\($0.0.expectedReps)" }.joined(separator: " · "))
     }
     fflush(stdout)  // redirected, XCTest exits with the tail of a long report still buffered
+  }
+
+  /// Every Bulgarian fixture's counted bottoms (#172): the knees' side-to-side gap over the standing body height
+  /// (ear to lower ankle at Standing), a split stance against a hinge with the feet together (79271425's
+  /// put-down: 0.01), then the ankles' gap across and up, the spine's lean and the front knee.
+  func testBulgarianBottoms() throws {
+    for f in Fixture.all where f.expectedExercise == .bulgarianSplitSquat {
+      let reps = AnalysisPipeline.analyze(frames: try f.frames(), exercise: .bulgarianSplitSquat).reps
+      let gaps = reps.compactMap { rep -> String? in
+        guard let bottom = rep.positions[BulgarianSplitSquatAnalyzer.bottom]?.pose,
+          let top = rep.positions[BulgarianSplitSquatAnalyzer.standing]?.pose
+        else { return nil }
+        let height = Double(max(top.xy[15].y, top.xy[16].y) - min(top.xy[3].y, top.xy[4].y))
+        let gap = Double(abs(bottom.xy[13].x - bottom.xy[14].x))
+        let ankles = Double(abs(bottom.xy[15].x - bottom.xy[16].x)), up = Double(abs(bottom.xy[15].y - bottom.xy[16].y))
+        let m = rep.positions[BulgarianSplitSquatAnalyzer.bottom]!.metrics
+        // A hinge to the floor: the wrists near the lower ankle, the ear near the hips.
+        let s = BodySkeleton(pose: bottom)
+        let floor = [s.ankleY(.left), s.ankleY(.right)].compactMap { $0 }.max() ?? 0
+        let wrists = [CocoKeypoint.leftWrist, .rightWrist].compactMap { s.point($0).map { Double($0.y) } }.max()
+        let hips = [CocoKeypoint.leftHip, .rightHip].compactMap { s.point($0).map { Double($0.y) } }.max()
+        let h = max(height, 0.01)
+        let wristUp = wrists.map { String(format: "%.2f", (floor - $0) / h) } ?? "-"
+        var earOverHip = "-"
+        if let hips, let ear = s.earY { earOverHip = String(format: "%.2f", (hips - ear) / h) }
+        return String(
+          format: "%.1f:%.2f ankles %.2f/%.2f spine %.0f knee %.0f wrist↑%@ ear↑%@",
+          rep.positions[BulgarianSplitSquatAnalyzer.bottom]!.time, gap / h, ankles / h, up / h, m["spine"] ?? -1,
+          m["frontKnee"] ?? -1, wristUp, earOverHip)
+      }
+      print("\(f.name), \(reps.count) reps, bottoms (knee gap / height, ankles across/up, spine, front knee):\n  "
+        + gaps.joined(separator: "\n  "))
+      // Over each rep's whole dip rather than one bottom frame: the spine's median and 90th percentile, the knee
+      // gap's median over the standing height, and the share of frames with the knees together (under 0.08).
+      let frames = try f.frames()
+      for rep in reps {
+        guard let top = rep.positions[BulgarianSplitSquatAnalyzer.standing]?.pose else { continue }
+        let height = Double(max(top.xy[15].y, top.xy[16].y) - min(top.xy[3].y, top.xy[4].y))
+        let dip = frames.filter { $0.time >= rep.startTime && $0.time <= rep.endTime }.compactMap(\.pose)
+        let spines = dip.map { BodySkeleton(pose: $0).spineAngle }.sorted()
+        let gapsIn = dip.compactMap { p -> Double? in
+          guard p.conf[13] > 0.2, p.conf[14] > 0.2 else { return nil }
+          return Double(abs(p.xy[13].x - p.xy[14].x)) / max(height, 0.01)
+        }.sorted()
+        func pct(_ a: [Double], _ q: Double) -> Double { a.isEmpty ? -1 : a[min(a.count - 1, Int(Double(a.count) * q))] }
+        let together = gapsIn.isEmpty ? -1 : Double(gapsIn.filter { $0 < 0.08 }.count) / Double(gapsIn.count)
+        print(String(
+          format: "  rep %d %.1f–%.1f s: spine med %.0f p90 %.0f · knee gap med %.2f · together %.2f", rep.number,
+          rep.startTime, rep.endTime, pct(spines, 0.5), pct(spines, 0.9), pct(gapsIn, 0.5), together))
+      }
+      fflush(stdout)
+    }
   }
 
   /// #135: 79271425's transitions through its setup and first reps (Muse's strips: setup 0.8–4.5 s, reps bottom
@@ -127,6 +167,80 @@ final class TuningReports: XCTestCase {
       let pipeline = AnalysisPipeline(exercise: .bulgarianSplitSquat, analyzer: analyzer)
       for frame in try Fixture.frames(at: url) { pipeline.process(extracted: frame) { nil } }
       print("\(id):\n" + lines.filter { Double($0.prefix { $0 != "s" }) ?? 99 < 11 }.joined(separator: "\n"))
+    }
+    fflush(stdout)
+  }
+
+  /// The pistol fixtures (#171): where the head goes unmeasured (no ear, no nose) and in which phase, next to each
+  /// rep's standing / bottom / done times, so a rule about headless frames is read against the frames it touches.
+  func testPistolHeadlessFrames() throws {
+    for fixture in Fixture.all where fixture.expectedExercise == .pistolSquat {
+      let analyzer = PistolSquatAnalyzer()
+      let pipeline = AnalysisPipeline(exercise: .pistolSquat, analyzer: analyzer)
+      var runs: [(start: Double, end: Double, phase: String, knee: Double)] = []
+      for frame in try fixture.frames() {
+        let result = pipeline.process(extracted: frame) { nil }
+        guard let pose = frame.pose, BodySkeleton(pose: pose).earY == nil else { continue }
+        let phase = result.analysis?.phase ?? "-"
+        let knee = BodySkeleton(pose: pose).kneeAngle(.left)
+        if let last = runs.last, last.phase == phase, frame.time - last.end < 0.1 {
+          runs[runs.count - 1].end = frame.time
+        } else {
+          runs.append((frame.time, frame.time, phase, knee))
+        }
+      }
+      print("\(fixture.name): \(pipeline.reps.count) reps")
+      for rep in pipeline.reps {
+        let times = rep.positions.sorted { $0.value.time < $1.value.time }.map { String(format: "%@ %.2f", $0.key, $0.value.time) }
+        print("  rep \(rep.number): " + times.joined(separator: " · ") + String(format: " · done %.2f", rep.endTime))
+      }
+      for run in runs {
+        print(String(format: "  headless %.2f–%.2f s in %@ (left knee %.0f)", run.start, run.end, run.phase, run.knee))
+      }
+      // Signal by signal, every half second: where the head and the knees come into view, and every dip.
+      for frame in try fixture.frames() where Int((frame.time * 30).rounded()) % 15 == 0 {
+        guard let pose = frame.pose else { continue }
+        let s = BodySkeleton(pose: pose)
+        print(String(format: "  %.2f ear %@ knees L %.0f R %.0f spine %.0f", frame.time,
+          s.earY.map { String(format: "%.0f", $0) } ?? "-", s.kneeAngle(.left), s.kneeAngle(.right), s.spineAngle))
+      }
+    }
+    fflush(stdout)
+  }
+
+  /// #131: the split-squat fixtures' drawn legs with and without the latch. A jump is a knee or ankle moving more
+  /// than 0.05 of the frame between frames; hips are counted apart, to see whether the model trades them too.
+  func testLegLatch() throws {
+    for fixture in Fixture.all where [.bulgarianSplitSquat, .splitSquat].contains(fixture.expectedExercise) {
+      let pipeline = AnalysisPipeline(exercise: fixture.expectedExercise)
+      let latch = LegLatch()
+      var fixes: [LegLatch.Fix: Int] = [:]
+      var raw = (legs: 0, hips: 0, knees: 0), drawn = (legs: 0, knees: 0)
+      var lastRaw: Pose?, lastDrawn: Pose?
+      let legs = [CocoKeypoint.leftKnee, .rightKnee, .leftAnkle, .rightAnkle].map(\.rawValue)
+      let knees = [CocoKeypoint.leftKnee, .rightKnee].map(\.rawValue)
+      let hips = [CocoKeypoint.leftHip, .rightHip].map(\.rawValue)
+      func jumps(_ a: Pose, _ b: Pose, _ ks: [Int]) -> Int {
+        ks.filter { a.conf[$0] > 0.2 && b.conf[$0] > 0.2 && LegLatch.distance(a.xyn[$0], b.xyn[$0]) > 0.05 }.count
+      }
+      var frames = 0
+      for frame in try fixture.frames() {
+        let result = pipeline.process(extracted: frame) { nil }
+        guard let pose = frame.pose else { continue }
+        frames += 1
+        let standing = result.analysis?.phase == BulgarianSplitSquatAnalyzer.standing
+        let (out, fix) = latch.process(pose, standing: standing)
+        fixes[fix, default: 0] += 1
+        if let lastRaw {
+          raw.legs += jumps(lastRaw, pose, legs); raw.hips += jumps(lastRaw, pose, hips); raw.knees += jumps(lastRaw, pose, knees)
+        }
+        if let lastDrawn { drawn.legs += jumps(lastDrawn, out, legs); drawn.knees += jumps(lastDrawn, out, knees) }
+        lastRaw = pose
+        lastDrawn = out
+      }
+      print(
+        "\(fixture.name): \(frames) frames, \(pipeline.reps.count) reps; leg jumps \(raw.legs) → \(drawn.legs), knees \(raw.knees) → \(drawn.knees) (hips \(raw.hips)); "
+          + "latched \(fixes[.latched] ?? 0), swapped \(fixes[.swapped] ?? 0), held \(fixes[.held] ?? 0)")
     }
     fflush(stdout)
   }
@@ -239,7 +353,7 @@ extension TuningReports {
   /// A fixture name (`SWING_TRACK=swing-walkin-9reps`) works too.
   func testSwingSignals() throws {
     let env = ProcessInfo.processInfo.environment
-    guard let name = env["SWING_TRACK"] else { return }
+    guard let name = env["SWING_TRACK"] else { throw XCTSkip("set SWING_TRACK=<fixture or archived track> to print a swing's signals") }
     let url = try XCTUnwrap(
       Bundle.module.url(forResource: name, withExtension: "json", subdirectory: "Fixtures/tracks")
         ?? Bundle.module.url(forResource: name, withExtension: "json", subdirectory: "Fixtures"), "missing track \(name)")
@@ -518,8 +632,8 @@ extension TuningReports {
       }
     } else {
       for (name, exercise) in [
-        ("swing-4reps", ExerciseKind.kettlebellSwing), ("swing-1h-9reps", ExerciseKind.kettlebellSwing),
-        ("tgu-phone-2min", ExerciseKind.turkishGetUp), ("pistol-6reps", ExerciseKind.pistolSquat),
+        ("swing-4reps", ExerciseKind.kettlebellSwing), ("swing-1h-10reps", ExerciseKind.kettlebellSwing),
+        ("tgu-phone-2min", ExerciseKind.turkishGetUp), ("pistol-5reps", ExerciseKind.pistolSquat),
         ("bulgarian-10reps", ExerciseKind.bulgarianSplitSquat),
       ] as [(String, ExerciseKind)] {
         let fixture = Fixture(name: name, expectedExercise: exercise, expectedReps: 0, humanVerified: false)

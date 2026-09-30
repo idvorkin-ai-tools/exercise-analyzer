@@ -10,8 +10,8 @@ import SwiftUI
 import UserNotifications
 import WatchKit
 
-/// Counts the rest since the last set ended. Driven by `PhoneLink`: set on a live recording true→false
-/// transition, cleared when recording goes true or on Record.
+/// Counts the rest since the last set ended. Driven by `PhoneLink`: set when the phone's `rolling` goes
+/// true→false (a set ended; a Preview neither starts nor ends a rest, 047), cleared when it goes true or on Record.
 @MainActor
 final class RestTimer: ObservableObject {
   /// When the last set ended; nil while recording or before the first set.
@@ -100,7 +100,11 @@ final class RestTimer: ObservableObject {
     tapTask = Task { [weak self] in
       guard let remaining = self?.state.remaining(for: id, at: Date()) else { return }
       try? await Task.sleep(for: .seconds(remaining))
-      guard let self, !Task.isCancelled, self.state.id == id else { return }
+      // A suspended app (wrist down outside a workout) wakes past the deadline: the notification already tapped
+      // at the rest length, so a late sleep must not tap a second time on the next raise.
+      guard let self, !Task.isCancelled, self.state.id == id,
+        let deadline = self.state.deadline, Date().timeIntervalSince(deadline) < 2
+      else { return }
       WKInterfaceDevice.current().play(.notification)
       try? await Task.sleep(for: .milliseconds(300))
       guard !Task.isCancelled, self.state.id == id else { return }

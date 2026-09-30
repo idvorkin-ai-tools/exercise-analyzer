@@ -118,8 +118,7 @@ the first frame (story 001).
 - **When:** the wrist comes up
 - **Then:** for the first 2 s the watch shows the screen of the last status it heard (the link returns ~0.5 s after
   a raise, fresh status one round trip later), and only a phone still silent after that gets the not-reachable
-  screen; before, each of the 32 raises of the 2026-09-22 gym workout showed "Not connected" for about half a
-  second (Igor, 2026-09-22: "go", [#76](https://github.com/idvorkin/exercise-analyzer/issues/76))
+  screen (Igor, 2026-09-22: "go", [#76](https://github.com/idvorkin/exercise-analyzer/issues/76))
 
 - **Scenario:** The link is measured, so a drop has a time and a pattern
 - **Given:** the watch app in front, or a workout keeping it running wrist-down
@@ -163,7 +162,7 @@ the first frame (story 001).
 ### User Story 019:
 
 - **Summary:** The phone stays awake while the watch is in charge
-- **Status:** implemented in [73d41d5](https://github.com/idvorkin/exercise-analyzer/commit/73d41d5); on the phone, Igor's check pending; the workout and ten-minute rule (#142) in [cb20f99](https://github.com/idvorkin/exercise-analyzer/commit/cb20f99), verified on the host (`KeepAwakeTests`), on the phone since 2026-09-26, Igor's check pending (a long rest wrist-down); the dim (#160) in [a2ea685](https://github.com/idvorkin/exercise-analyzer/commit/a2ea685), verified on the host and the simulator (`SWING_LIVE_WORKOUT`), on the phone since 2026-09-27, the touch restore pending
+- **Status:** implemented in [73d41d5](https://github.com/idvorkin/exercise-analyzer/commit/73d41d5); on the phone, Igor's check pending; the workout and ten-minute rule (#142) in [cb20f99](https://github.com/idvorkin/exercise-analyzer/commit/cb20f99), verified on the host (`KeepAwakeTests`), on the phone since 2026-09-26, Igor's check pending (a long rest wrist-down); the dim (#160) in [a2ea685](https://github.com/idvorkin/exercise-analyzer/commit/a2ea685), verified on the host and the simulator (`SWING_LIVE_WORKOUT`), on the phone since 2026-09-27, the touch restore pending; the level put back after a kill while dimmed in [d80c7ed](https://github.com/idvorkin/exercise-analyzer/commit/d80c7ed), verified by build, the force-quit pending the phone
 - **Why:** Igor (2026-09-26, #142): keep the phone awake while a workout runs on the watch, and outside one for 10 minutes after the last contact. Reachability could not decide it: with the wrist down the watch reads as unreachable most of the time (#76).
 
 #### Use Case:
@@ -190,11 +189,11 @@ the first frame (story 001).
 - **Scenario:** Held awake, dimmed (#160)
 - **Given:** the phone is held awake for a wrist workout or the ten minutes after the watch's last message, and nothing is recording, analyzing or in watch mode
 - **When:** 30 seconds pass without a touch on the screen
-- **Then:** the screen dims to 5 % and stays on; a touch anywhere (the touch still does what it touches), Record from the wrist, a pass starting, the app leaving the front or the hold ending puts my own brightness back at once
+- **Then:** the screen dims to 5 % and stays on; a touch anywhere (the touch still does what it touches), Record from the wrist, a pass starting, the app leaving the front or the hold ending puts my own brightness back at once; if the app is killed while dimmed, the next launch puts my brightness back (a level set this way outlives the app), unless I changed the brightness myself since
 
 #### Notes:
 - The rule is `KeepAwake.decide` in ExerciseCore (host tests in `KeepAwakeTests`); recording, an offline pass and watch mode keep the phone awake too, and a backgrounded app never does. The phone re-checks it on every watch message, on the workout starting or ending, and on its 3 s tick. `keep_awake` logs `reason` (recording, analyzing, watch_mode, workout, watch_contact, idle, background) and `contact_s`.
-- The dim: `KeepAwake.dims` (workout, watch_contact), `dimAfter` 30 s, `dimBrightness` 0.05; `ScreenDimmer` in the app checks on each decision and the 3 s tick (so it dims 30–33 s after the last touch) and sees touches through a window recognizer that never claims them. Log: `screen_dim` (on, reason, brightness: the lifter's level it restores).
+- The dim: `KeepAwake.dims` (workout, watch_contact), `dimAfter` 30 s, `dimBrightness` 0.05; `ScreenDimmer` in the app checks on each decision and the 3 s tick (so it dims 30–33 s after the last touch) and sees touches through a window recognizer that never claims them; the level it dimmed from is also kept in the defaults, so a run killed while dimmed is put right at the next launch (`screen_dim` off, reason `relaunch`). Log: `screen_dim` (on, reason, brightness: the lifter's level it restores).
 
 - **Issues:** [#142](https://github.com/idvorkin/exercise-analyzer/issues/142) the phone locked during a rest in a wrist workout; [#160](https://github.com/idvorkin/exercise-analyzer/issues/160) dim while held awake
 
@@ -215,6 +214,8 @@ the first frame (story 001).
 - **Given:** the Exercise Analyzer complication is on my watch face
 - **When:** I tap it
 - **Then:** the watch app opens showing the live status or the Record button
+
+- **Issues:** none
 
 ---
 
@@ -242,7 +243,7 @@ the first frame (story 001).
 ### User Story 040:
 
 - **Summary:** Pause and resume a set from the wrist
-- **Status:** implemented in [5fe2561](https://github.com/idvorkin/exercise-analyzer/commit/5fe2561); on phone + watch since 2026-09-13, Igor's check pending
+- **Status:** implemented in [cf4b0ce](https://github.com/idvorkin/exercise-analyzer/commit/cf4b0ce); on phone + watch since 2026-09-13, Igor's check pending
 - **Why:** Igor, 2026-09-13: "Give me the ability to pause and resume on my watch." A set gets interrupted (chalk, someone crossing the frame, a tripod to move) and the choices were to record the interruption or cancel the set.
 
 #### Use Case:
@@ -299,7 +300,7 @@ the first frame (story 001).
 ### User Story 042:
 
 - **Summary:** The picture fills the watch and the controls sit on it
-- **Status:** implemented in [08c563c](https://github.com/idvorkin/exercise-analyzer/commit/08c563c); the layout redone for the Ultra's 205 pt face in [5622ee1](https://github.com/idvorkin/exercise-analyzer/commit/5622ee1) and lightened in [83751cf](https://github.com/idvorkin/exercise-analyzer/commit/83751cf); verified with `just watch-screens` on the Apple Watch Ultra 3 (49mm) simulator; on phone + watch since 2026-09-14, Igor's check of the bottom corners pending
+- **Status:** implemented in [8d1e945](https://github.com/idvorkin/exercise-analyzer/commit/8d1e945); the layout redone for the Ultra's 205 pt face in [5622ee1](https://github.com/idvorkin/exercise-analyzer/commit/5622ee1) and lightened in [83751cf](https://github.com/idvorkin/exercise-analyzer/commit/83751cf); verified with `just watch-screens` on the Apple Watch Ultra 3 (49mm) simulator; on phone + watch since 2026-09-14, Igor's check of the bottom corners pending
 - **Why:** Igor, 2026-09-13: "make the preview larger and overlay the buttons a lot"; 2026-09-14: "avoid covering the screen, get those buttons in the bottom, make sure my tap targets are usable, use more transparency."
 
 #### Use Case:
@@ -325,7 +326,7 @@ the first frame (story 001).
 ### User Story 043:
 
 - **Summary:** The watch face shows the set
-- **Status:** implemented in [375e3aa](https://github.com/idvorkin/exercise-analyzer/commit/375e3aa), [0bde654](https://github.com/idvorkin/exercise-analyzer/commit/0bde654), [3255a38](https://github.com/idvorkin/exercise-analyzer/commit/3255a38); verified on the host (`FaceStateTests`); on the watch since 2026-09-14, Igor's check pending (add the complication to a face; its bundle id changed); the kettlebell (#88) in [54761a6](https://github.com/idvorkin/exercise-analyzer/commit/54761a6), [4d51684](https://github.com/idvorkin/exercise-analyzer/commit/4d51684), verified by the simulator build, on the watch since 2026-09-16, Igor's check pending; the previous final kept across a Cancel (#143) in [ddfd0e1](https://github.com/idvorkin/exercise-analyzer/commit/ddfd0e1), verified on the host (`FaceStateTests`), on the phone and the watch since 2026-09-26
+- **Status:** implemented in [35fdc67](https://github.com/idvorkin/exercise-analyzer/commit/35fdc67), [0bde654](https://github.com/idvorkin/exercise-analyzer/commit/0bde654), [3255a38](https://github.com/idvorkin/exercise-analyzer/commit/3255a38); verified on the host (`FaceStateTests`); on the watch since 2026-09-14, Igor's check pending (add the complication to a face; its bundle id changed); the kettlebell (#88) in [54761a6](https://github.com/idvorkin/exercise-analyzer/commit/54761a6), [4d51684](https://github.com/idvorkin/exercise-analyzer/commit/4d51684), verified by the simulator build, on the watch since 2026-09-16, Igor's check pending; the previous final kept across a Cancel (#143) in [ddfd0e1](https://github.com/idvorkin/exercise-analyzer/commit/ddfd0e1), verified on the host (`FaceStateTests`), on the phone and the watch since 2026-09-26
 - **Why:** with the wrist down the watch app is suspended (#32); the face is the one screen that stays right, and the complication was only a launcher.
 
 #### Use Case:
@@ -398,7 +399,7 @@ the first frame (story 001).
 ### User Story 046:
 
 - **Summary:** Rest timer on the wrist
-- **Status:** implemented in [da516fd](https://github.com/idvorkin/exercise-analyzer/commit/da516fd); on phone + watch since 2026-09-13, Igor's check pending; the late permission reply (#52) in [88768f5](https://github.com/idvorkin/exercise-analyzer/commit/88768f5), verified on the host and the watch simulator; the log names (#145) in [6a17b25](https://github.com/idvorkin/exercise-analyzer/commit/6a17b25), verified by build; on the watch since 2026-09-26, Igor's check pending (the tap at the rest length, the names in the next pulled log)
+- **Status:** implemented in [da516fd](https://github.com/idvorkin/exercise-analyzer/commit/da516fd); on phone + watch since 2026-09-13, Igor's check pending; the late permission reply (#52) in [88768f5](https://github.com/idvorkin/exercise-analyzer/commit/88768f5), verified on the host and the watch simulator; the log names (#145) in [6a17b25](https://github.com/idvorkin/exercise-analyzer/commit/6a17b25), verified by build; on the watch since 2026-09-26, Igor's check pending (the tap at the rest length, the names in the next pulled log); no late double tap on a raise after the rest ended (#171) in [535b964](https://github.com/idvorkin/exercise-analyzer/commit/535b964), verified by the watch simulator build, the wrist pending
 - **Why:** rest length is the one number between sets, and the watch is the only screen on the lifter; it showed nothing between Done and the next Record.
 
 #### Use Case:
@@ -426,6 +427,11 @@ the first frame (story 001).
 - **Given:** the rest length was 90 s when the set ended
 - **When:** the notification settings or permission answer arrives at or after 90 s
 - **Then:** no late tap is scheduled and the rest count keeps counting until Record
+
+- **Scenario:** The wrist comes up long after the rest ended
+- **Given:** a 90 s rest outside a workout, the wrist down so the watch app is suspended
+- **When:** I raise the wrist three minutes after Done
+- **Then:** the notification tapped at 90 s, and the raise brings no second, late double tap (the 2026-09-28 review, #171)
 
 - **Notes:** Watch only, no phone change; the rest length is a watch setting (60, 90, 120, 180 s). With the wrist
   down the app is suspended, so the tap at 90 s is a scheduled local notification on the watch (one permission
@@ -563,7 +569,7 @@ the first frame (story 001).
 ### User Story 059:
 
 - **Summary:** Add a set I forgot to record to the workout, with its count typed on the wrist
-- **Status:** implemented in [0c07704](https://github.com/idvorkin/exercise-analyzer/commit/0c07704), [7a86049](https://github.com/idvorkin/exercise-analyzer/commit/7a86049) (#154, the exercise on the count page); verified on the host (`HandSetTests`), by build (the signed phone and watch apps) and on the watch simulator (`just watch-screens`: setByHand, setByHandExercise); phone + watch pending
+- **Status:** implemented in [0c07704](https://github.com/idvorkin/exercise-analyzer/commit/0c07704), [7a86049](https://github.com/idvorkin/exercise-analyzer/commit/7a86049) (#154, the exercise on the count page); verified on the host (`HandSetTests`), by build (the signed phone and watch apps) and on the watch simulator (`just watch-screens`: setByHand, setByHandExercise); on the phone and the watch since 2026-09-28, Igor's check pending
 - **Why:** Igor, 2026-09-25, from the phone: "Let's add a watch button. Rep happened if I forgot to record." Decided 2026-09-26: a watch button adds one unrecorded set to the running workout, its count typed on the wrist, no video, no score, marked "by hand" in Workouts.
 
 #### Use Case:
@@ -602,7 +608,7 @@ the first frame (story 001).
 - **Scenario:** The set on the phone's workout page
 - **Given:** the set was saved on the wrist and the phone app is open on the running workout's page (053)
 - **When:** I read the page
-- **Then:** the set's row sits at the time of the save with "8 [swing]" and a "by hand" tag in place of the picture and the score capsule, and a thin mark at that time on the heart-rate chart; the heart numbers come from Health as for any set; tapping it opens nothing (there is no video), a long press offers "Remove from Workouts…" (056); the green strip and the day header count it among the sets and reps
+- **Then:** the set's row sits at the time of the save with "8 [swing]" and a "by hand" tag in place of the picture and the score capsule, and a thin mark at that time on the heart-rate chart; the heart numbers come from Health as for any set; tapping it opens nothing (there is no video), a long press offers "Set exercise and reps…" (062) and "Remove from Workouts…" (056); the green strip and the day header count it among the sets and reps
 
 - **Scenario:** The set in the day list
 - **Given:** the same set
@@ -641,7 +647,7 @@ the first frame (story 001).
 ### User Story 061:
 
 - **Summary:** Log sit-ups and half-kneeling rotations by hand, though the camera cannot count them
-- **Status:** implemented in [674216e](https://github.com/idvorkin/exercise-analyzer/commit/674216e); verified on the host (`HandSetTests`) and by build; phone + watch pending
+- **Status:** implemented in [674216e](https://github.com/idvorkin/exercise-analyzer/commit/674216e); verified on the host (`HandSetTests`) and by build; on the phone and the watch since 2026-09-28, Igor's check pending
 - **Why:** Igor, 2026-09-27, from the phone: "An exercise to teach you sit-ups, even if I don't support videos. Also add half-kneeling rotations."
 
 #### Use Case:
@@ -673,7 +679,7 @@ the first frame (story 001).
 ### User Story 064:
 
 - **Summary:** The running wrist workout sits on the phone's lock screen and in the Dynamic Island, one tap back to the app
-- **Status:** implemented in [50388e1](https://github.com/idvorkin/exercise-analyzer/commit/50388e1); verified on the host (`WorkoutTests`) and the simulator (`SWING_LIVE_WORKOUT=30`: `live_activity` start, and chronod rendered the activity from the Controls extension); the phone pending
+- **Status:** implemented in [50388e1](https://github.com/idvorkin/exercise-analyzer/commit/50388e1); verified on the host (`WorkoutTests`) and the simulator (`SWING_LIVE_WORKOUT=30`: `live_activity` start, and chronod rendered the activity from the Controls extension); on the phone since 2026-09-28, Igor's check pending (the look of the activity in a real workout)
 - **Why:** Igor, 2026-09-27, from the phone: "Can we leave an icon at the top so I can get back to the workout app if I switch out or want to come back?" Picked the same day: a Live Activity. Story 044's rejection of one stands for the recording phone only; between sets the phone does sit locked or in another app.
 
 #### Use Case:

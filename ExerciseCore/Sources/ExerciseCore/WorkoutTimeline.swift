@@ -50,8 +50,8 @@ extension RecentEntry {
   }
 }
 
-public struct WorkoutTimeline: Equatable {
-  public struct SetRow: Equatable, Identifiable {
+public struct WorkoutTimeline: Equatable, Sendable {
+  public struct SetRow: Equatable, Identifiable, Sendable {
     public let id: String
     public let start: Date
     public let end: Date
@@ -104,7 +104,7 @@ public struct WorkoutTimeline: Equatable {
 
   /// The page's Grouped list (#164): one group per exercise in the order each first came, its sets keeping the
   /// number they have in time order.
-  public struct Group: Equatable, Identifiable {
+  public struct Group: Equatable, Identifiable, Sendable {
     public let exercise: ExerciseKind
     public let sets: [(number: Int, row: SetRow)]
     public var id: ExerciseKind { exercise }

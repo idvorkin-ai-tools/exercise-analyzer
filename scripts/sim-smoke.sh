@@ -140,8 +140,35 @@ check_clip_switch() {  # stage: force A's render/replay/Photos/trim result to ar
   else echo "FAIL  clip_switch $1: $f"; fail=1; fi
   xcrun simctl terminate "$SIM" "$BUNDLE" 2>/dev/null || true
 }
+# The simulator's own sets and workouts, moved aside and back (check_live_workout). A stash an interrupted run
+# left behind is put back first, so the lifter's simulator data is never lost to it.
+STASHED="recents/index.json workouts.json workouts"
+unstash() {
+  local docs stash p; docs=$(dirname "$LOGS"); stash="$docs/.smoke-stash"
+  [ -d "$stash" ] || return 0
+  for p in $STASHED; do
+    if [ -e "$stash/$p" ]; then rm -rf "${docs:?}/$p"; mv "$stash/$p" "$docs/$p"
+    elif [ -e "$stash/$p.absent" ]; then rm -rf "${docs:?}/$p"; fi
+  done
+  rm -rf "$stash"
+}
+stash() {
+  local docs stash p; docs=$(dirname "$LOGS"); stash="$docs/.smoke-stash"
+  unstash
+  mkdir -p "$stash/recents"
+  for p in $STASHED; do
+    if [ -e "$docs/$p" ]; then mv "$docs/$p" "$stash/$p"; else touch "$stash/$p.absent"; fi
+  done
+}
+# A run cut short (Ctrl-C, a failed command) puts the simulator's data back at once, so no stale ".absent"
+# marker waits for a later run to delete data made in between (PR #175 review).
+trap unstash EXIT
 check_live_workout() {
   reset_mode
+  # The pretend workout began 2 minutes ago, so the sets the checks before this one just saved, or a workout a
+  # previous run saved (sessions merge under 30 minutes apart, #169), would land in it (#171): run it on an empty
+  # list and put the simulator's own back after.
+  stash
   SIMCTL_CHILD_SWING_LIVE_WORKOUT=2 SIMCTL_CHILD_SWING_WORKOUT_EVOLVE=1 \
     xcrun simctl launch "$SIM" "$BUNDLE" >/dev/null
   wait_for workout_saved 60 || echo "      (timed out waiting for live workout to end)"
@@ -161,16 +188,30 @@ check_live_workout() {
     echo "ok    live_workout: 1 → 2 sets / 16 reps, clock and window advanced, Health re-asked, saved page retained both sets"
   else echo "FAIL  live_workout: $f"; fail=1; fi
   xcrun simctl terminate "$SIM" "$BUNDLE" 2>/dev/null || true
+  # 065: delete the workout just saved, as a confirmed long-press would. Its sets were the pretend watch's (no
+  # video), so no set is saved here and none may appear or go.
+  previous_log=$(newest_log)
+  SIMCTL_CHILD_SWING_DELETE_WORKOUT=confirm xcrun simctl launch "$SIM" "$BUNDLE" >/dev/null
+  wait_for workout_deleted 30 || echo "      (timed out waiting for the workout delete)"
+  sleep 1
+  local docs; docs=$(dirname "$LOGS"); f=$(newest_log)
+  if jq -se '[.[] | select(.type=="workout_deleted")][-1] | .rows == 1 and .message == ""' "$f" >/dev/null &&
+    jq -e '.workouts | length == 0' "$docs/workouts.json" >/dev/null &&
+    ! jq -se 'any(.[]; .type=="set_deleted")' "$f" >/dev/null; then
+    echo "ok    delete_workout: the row gone, no set touched"
+  else echo "FAIL  delete_workout: $f"; fail=1; fi
+  xcrun simctl terminate "$SIM" "$BUNDLE" 2>/dev/null || true
+  unstash  # the check's own workout goes; the simulator's sets and workouts come back
 }
 # ONLY=<substring> runs just the matching checks (e.g. ONLY=trim).
 run() { if [ -z "${ONLY:-}" ] || [[ "$*" == *"${ONLY}"* ]]; then "$@"; fi; }
 run check swing-sample-4reps kettlebell-swing 4 90
-run check pistols pistol-squat 6 180
+run check pistols pistol-squat 5 180  # 6 until the walk-in stopped counting (#171)
 run check bulgarian bulgarian-split-squat 8 180
 run check_trim igor-1h-swing 10 150  # 9 until the first swing counted (#148)
 run check_cancel pistols 60
-run check_cancel_reopen pistols 6 180
-run check_interrupt pistols 60 pistol-squat 6 180
+run check_cancel_reopen pistols 5 180
+run check_interrupt pistols 60 pistol-squat 5 180
 run check_clip_switch render
 run check_clip_switch mode
 run check_clip_switch photos

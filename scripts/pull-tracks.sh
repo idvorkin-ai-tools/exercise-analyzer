@@ -11,7 +11,7 @@
 # the id key and never deleted.
 # PULL_TRACKS_STAGE / PULL_TRACKS_OUT override the phone staging dir and the archive dir when testing this script.
 set -euo pipefail
-DEVICE=${1:-00008150-000A31D10CF2401C}
+DEVICE=${1:-${DEVICE:-$(cat "$(dirname "$0")/phone-udid")}}
 BUNDLE=com.idvorkin.exerciseanalyzer
 STAGE=${PULL_TRACKS_STAGE:-$HOME/tmp/agent/swing-logs/phone/Documents/recents}
 OUT=${PULL_TRACKS_OUT:-ExerciseCore/Tests/ExerciseCoreTests/Fixtures/tracks}

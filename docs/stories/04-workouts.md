@@ -9,7 +9,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 012:
 
 - **Summary:** See a day's training as sets per exercise, not a list of files
-- **Status:** implemented in [bf074c8](https://github.com/idvorkin/exercise-analyzer/commit/bf074c8), [8747d9b](https://github.com/idvorkin/exercise-analyzer/commit/8747d9b), [f8633a8](https://github.com/idvorkin/exercise-analyzer/commit/f8633a8); verified by simulator screenshot; the repeated-exercise row (#78, #79) in [cdbc435](https://github.com/idvorkin/exercise-analyzer/commit/cdbc435), verified on the simulator, on the phone since 2026-09-16; the workout line (048) in [b2df153](https://github.com/idvorkin/exercise-analyzer/commit/b2df153); the card's picture (#110) in [c460df5](https://github.com/idvorkin/exercise-analyzer/commit/c460df5), verified on the host (`PersonCropTests`) and the simulator, on the phone since 2026-09-19; the A drawings (#120) in [d6a139f](https://github.com/idvorkin/exercise-analyzer/commit/d6a139f), verified on the simulator, on the phone since 2026-09-20; the folded day's chips (#129) in [553d211](https://github.com/idvorkin/exercise-analyzer/commit/553d211) and the workout line's figure (#130) in [198b92c](https://github.com/idvorkin/exercise-analyzer/commit/198b92c), verified on the simulator, on the phone since 2026-09-22; Igor's check pending (the year on the header, the cards, the chips); a workout day opens, it does not expand (#163) in [a98d4c5](https://github.com/idvorkin/exercise-analyzer/commit/a98d4c5), verified on the simulator, installed on the phone 2026-09-28, Igor's check pending; workouts under 30 minutes apart are one line (#169) in [96a7de3](https://github.com/idvorkin/exercise-analyzer/commit/96a7de3), verified on the host (`WorkoutTests`) and the simulator, installed on the phone 2026-09-28, Igor's check pending; the fold memory of #121 ("Returning to my folded workout list") not implemented
+- **Status:** implemented in [bf074c8](https://github.com/idvorkin/exercise-analyzer/commit/bf074c8), [8747d9b](https://github.com/idvorkin/exercise-analyzer/commit/8747d9b), [f8633a8](https://github.com/idvorkin/exercise-analyzer/commit/f8633a8); verified by simulator screenshot; the repeated-exercise row (#78, #79) in [cdbc435](https://github.com/idvorkin/exercise-analyzer/commit/cdbc435), verified on the simulator, on the phone since 2026-09-16; the workout line (048) in [b2df153](https://github.com/idvorkin/exercise-analyzer/commit/b2df153); the card's picture (#110) in [c460df5](https://github.com/idvorkin/exercise-analyzer/commit/c460df5), verified on the host (`PersonCropTests`) and the simulator, on the phone since 2026-09-19; the A drawings (#120) in [d6a139f](https://github.com/idvorkin/exercise-analyzer/commit/d6a139f), verified on the simulator, on the phone since 2026-09-20; the folded day's chips (#129) in [553d211](https://github.com/idvorkin/exercise-analyzer/commit/553d211) and the workout line's figure (#130) in [198b92c](https://github.com/idvorkin/exercise-analyzer/commit/198b92c), verified on the simulator, on the phone since 2026-09-22; Igor's check pending (the year on the header, the cards, the chips); a workout day opens, it does not expand (#163) in [a98d4c5](https://github.com/idvorkin/exercise-analyzer/commit/a98d4c5), verified on the simulator, installed on the phone 2026-09-28, Igor's check pending; workouts under 30 minutes apart are one line (#169) in [96a7de3](https://github.com/idvorkin/exercise-analyzer/commit/96a7de3), verified on the host (`WorkoutTests`) and the simulator, on the phone since 2026-09-28, Igor's check pending; the fold memory (#121, "Which days start folded") in [140b758](https://github.com/idvorkin/exercise-analyzer/commit/140b758), a choice equal to the day's default kept too, so it outlasts the day aging past a week, in [2de049f](https://github.com/idvorkin/exercise-analyzer/commit/2de049f), verified on the host (`DayFoldsTests`) and by build, the relaunch pending the phone
 
 #### Use Case:
 - **As a** lifter reviewing the week
@@ -38,14 +38,14 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Then:** the swing's card is cut from the whole frame in the card's own shape around me at the first rep's bottom, so I see myself head to feet with the bell, not the middle of a tall crop (a back with no hips or legs); when the frame is too narrow for all of me at that shape, the cut runs the full width from just over my head down. The set with no reps shows the middle moment somebody was on camera, not a blank card. Sets analyzed before this keep their picture until they are analyzed again
 
 - **Scenario:** Recognizable exercise drawings
-- **Given:** any of the six supported exercises appears in Workouts
+- **Given:** any of the eight exercises appears in Workouts
 - **When:** I look at its header or a card with no thumbnail
-- **Then:** I see the approved A figure in that exercise's color: standing swing with the bell out front, compact pistol, rear-foot bench for Bulgarian, overhead bell for get-up, narrow-grip pull-up, or overhead-barbell split squat; subtle arrows show swing and pull-up motion; available set photos stay visible
+- **Then:** I see the approved A figure in that exercise's color: standing swing with the bell out front, compact pistol, rear-foot bench for Bulgarian, overhead bell for get-up, narrow-grip pull-up, overhead-barbell split squat, the mint sit-up rising and the indigo half-kneeling turn (061); subtle arrows show swing, pull-up, sit-up and rotation motion; available set photos stay visible
 
-- **Scenario:** Returning to my folded workout list
-- **Given:** I collapsed a day
-- **When:** I close and reopen Workouts or relaunch the app
-- **Then:** those sections keep my choices; a day with a workout from the wrist does not fold at all, its workout lines open the workout (053, #163)
+- **Scenario:** Which days start folded
+- **Given:** I open Workouts
+- **When:** I read the day list
+- **Then:** today and the last seven days start open, older days start folded; a day I fold or open by hand stays as I left it, through closing Workouts and relaunching the app, and keeps that choice as it ages past a week (Igor, 2026-09-20: "Have workouts remember what's collapsed", [#121](https://github.com/idvorkin/exercise-analyzer/issues/121)); a day with a workout from the wrist does not fold at all, its workout lines open the workout (053, #163)
 
 - **Scenario:** A folded day says what was done
 - **Given:** a day of eight swing sets of eight and five get-up sets of two, folded shut
@@ -56,6 +56,8 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Given:** a day with a workout from the wrist
 - **When:** I read its green line
 - **Then:** it begins with the lifter figure the playback screen's "‹" uses, not a watch; the words are unchanged (Igor, 2026-09-22: "don't show watch … whatever we use for workout", [#130](https://github.com/idvorkin/exercise-analyzer/issues/130))
+
+- **Notes:** Where the history lives ([#159](https://github.com/idvorkin/exercise-analyzer/issues/159), decided 2026-09-27, nothing to build): every set, its analysis and pictures, and `workouts.json` sit in the app's Documents folder with nothing excluded from backup, so iCloud Backup and Quick Start carry the whole list to a new phone; Photos clips travel with iCloud Photos, workouts and heart rate with Health. The issue stays open until Igor confirms iCloud Backup is on.
 
 - **Issues:** [#8](https://github.com/idvorkin/exercise-analyzer/issues/8); [#35](https://github.com/idvorkin/exercise-analyzer/issues/35); [#78](https://github.com/idvorkin/exercise-analyzer/issues/78), [#79](https://github.com/idvorkin/exercise-analyzer/issues/79) Saturday's four swing sets drew as a blank band under a header that counted them (the row's id was the exercise name, repeated across days); [#110](https://github.com/idvorkin/exercise-analyzer/issues/110) Igor asked for the workout page's previews to be more representative (the cards showed a hunched back; sets with no reps a blank); [#120](https://github.com/idvorkin/exercise-analyzer/issues/120) the exercise drawings, approved in Lavish on 2026-09-20; [#121](https://github.com/idvorkin/exercise-analyzer/issues/121) keep my folds; [#129](https://github.com/idvorkin/exercise-analyzer/issues/129) the folded day's chips (simulator screenshot with `SWING_WORKOUTS_FOLDED=1`); [#130](https://github.com/idvorkin/exercise-analyzer/issues/130) the workout line's figure
 
@@ -288,7 +290,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 053:
 
 - **Summary:** See a whole workout on one page: the sets in time, the rests between them, the heart rate across them
-- **Status:** implemented in [20f99e3](https://github.com/idvorkin/exercise-analyzer/commit/20f99e3), [c97cf1d](https://github.com/idvorkin/exercise-analyzer/commit/c97cf1d), [48f8daf](https://github.com/idvorkin/exercise-analyzer/commit/48f8daf); verified on the host (`WorkoutTimelineTests`), the simulator (`SWING_OPEN_WORKOUT=1`) and the phone (the Health read, 2026-09-18); "‹ Workout" on any set (#99) in [ebbcdf8](https://github.com/idvorkin/exercise-analyzer/commit/ebbcdf8) and the bar tap (#101) in [caa6407](https://github.com/idvorkin/exercise-analyzer/commit/caa6407), verified on the simulator, on the phone since 2026-09-19; the A drawings (#120) in [d6a139f](https://github.com/idvorkin/exercise-analyzer/commit/d6a139f), on the phone since 2026-09-20; the row's drawing (#127) in [90d5ffa](https://github.com/idvorkin/exercise-analyzer/commit/90d5ffa), the pinch and pan (#125) in [3070998](https://github.com/idvorkin/exercise-analyzer/commit/3070998), the live landing (#123) in [6579404](https://github.com/idvorkin/exercise-analyzer/commit/6579404), the swipe while zoomed (#128) in [92da327](https://github.com/idvorkin/exercise-analyzer/commit/92da327), verified on the simulator, on the phone since 2026-09-22; the live page (#52) in [bdcfda4](https://github.com/idvorkin/exercise-analyzer/commit/bdcfda4), [b639300](https://github.com/idvorkin/exercise-analyzer/commit/b639300), verified on the host and the simulator (`live_workout`), on the phone since 2026-09-26; the axis in time into the workout (#165) in [1a3d625](https://github.com/idvorkin/exercise-analyzer/commit/1a3d625), verified on the host (`WorkoutTests`) and the simulator, and about four ticks on a workout left running (#165) in [f63a0af](https://github.com/idvorkin/exercise-analyzer/commit/f63a0af), verified on the host; the Time / Grouped switch (#164) in [5bf8ded](https://github.com/idvorkin/exercise-analyzer/commit/5bf8ded), verified on the host (`WorkoutTimelineTests`) and the simulator; a workout day opens, it does not expand (#163) in [a98d4c5](https://github.com/idvorkin/exercise-analyzer/commit/a98d4c5), verified on the simulator; all three installed on the phone 2026-09-28, Igor's check pending; workouts under 30 minutes apart are one (#169) in [96a7de3](https://github.com/idvorkin/exercise-analyzer/commit/96a7de3), verified on the host (`WorkoutTests`) and the simulator, installed on the phone 2026-09-28, Igor's check pending; Igor's check pending (the pinch, the swipe, the landing mid-workout)
+- **Status:** implemented in [20f99e3](https://github.com/idvorkin/exercise-analyzer/commit/20f99e3), [c97cf1d](https://github.com/idvorkin/exercise-analyzer/commit/c97cf1d), [48f8daf](https://github.com/idvorkin/exercise-analyzer/commit/48f8daf); verified on the host (`WorkoutTimelineTests`), the simulator (`SWING_OPEN_WORKOUT=1`) and the phone (the Health read, 2026-09-18); "‹ Workout" on any set (#99) in [ebbcdf8](https://github.com/idvorkin/exercise-analyzer/commit/ebbcdf8) and the bar tap (#101) in [caa6407](https://github.com/idvorkin/exercise-analyzer/commit/caa6407), verified on the simulator, on the phone since 2026-09-19; the A drawings (#120) in [d6a139f](https://github.com/idvorkin/exercise-analyzer/commit/d6a139f), on the phone since 2026-09-20; the row's drawing (#127) in [90d5ffa](https://github.com/idvorkin/exercise-analyzer/commit/90d5ffa), the pinch and pan (#125) in [3070998](https://github.com/idvorkin/exercise-analyzer/commit/3070998), the live landing (#123) in [6579404](https://github.com/idvorkin/exercise-analyzer/commit/6579404), the swipe while zoomed (#128) in [92da327](https://github.com/idvorkin/exercise-analyzer/commit/92da327), verified on the simulator, on the phone since 2026-09-22; the live page (#52) in [bdcfda4](https://github.com/idvorkin/exercise-analyzer/commit/bdcfda4), [b639300](https://github.com/idvorkin/exercise-analyzer/commit/b639300), verified on the host and the simulator (`live_workout`), on the phone since 2026-09-26; the axis in time into the workout (#165) in [1a3d625](https://github.com/idvorkin/exercise-analyzer/commit/1a3d625), verified on the host (`WorkoutTests`) and the simulator, and about four ticks on a workout left running (#165) in [f63a0af](https://github.com/idvorkin/exercise-analyzer/commit/f63a0af), verified on the host; the Time / Grouped switch (#164) in [5bf8ded](https://github.com/idvorkin/exercise-analyzer/commit/5bf8ded), verified on the host (`WorkoutTimelineTests`) and the simulator; a workout day opens, it does not expand (#163) in [a98d4c5](https://github.com/idvorkin/exercise-analyzer/commit/a98d4c5), verified on the simulator; all three installed on the phone 2026-09-28, Igor's check pending; workouts under 30 minutes apart are one (#169) in [96a7de3](https://github.com/idvorkin/exercise-analyzer/commit/96a7de3), verified on the host (`WorkoutTests`) and the simulator, on the phone since 2026-09-28; Igor's check pending (the pinch, the swipe, the landing mid-workout, the axis, the switch, the merged sessions); a workout day's header a label, not a do-nothing button, and the grouped switch logged, in [d80c7ed](https://github.com/idvorkin/exercise-analyzer/commit/d80c7ed), verified by build
 - **Why:** Igor, 2026-09-18: "I probably have a workout view where I look at the whole workout together. That's probably an interesting view I need as well."
 
 #### Use Case:
@@ -377,7 +379,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Scenario:** A workout day opens, it does not expand (#163)
 - **Given:** a day with a workout line under its header
 - **When:** I look at the day in Workouts
-- **Then:** its title has no fold arrow and a tap on it does nothing; the green workout lines, each ending in a chevron, are the way in and open the workout's page; the sets inside a workout are on that page, not under the day; sets recorded outside every workout that day stay under the workout lines, by exercise as before; a day with no workout folds as it always did (Igor, 2026-09-28: "If I'm on the work page and I have a workout, don't let me expand a workout, just make me click on it")
+- **Then:** its title is a plain label (no fold arrow, not a button: VoiceOver reads the day and its totals, nothing to press); the green workout lines, each ending in a chevron, are the way in and open the workout's page; the sets inside a workout are on that page, not under the day; sets recorded outside every workout that day stay under the workout lines, by exercise as before; a day with no workout folds as it always did (Igor, 2026-09-28: "If I'm on the work page and I have a workout, don't let me expand a workout, just make me click on it")
 
 - **Scenario:** Workouts under half an hour apart are one (#169)
 - **Given:** a workout 7:48–7:50 AM and another 7:51–7:54 AM (ended by mistake and started again)
@@ -386,7 +388,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 
 - **Scenario:** A workout that is still running
 - **Given:** a workout running on the wrist
-- **When:** I tap "Workout since 8:43 AM · on the watch"
+- **When:** I tap "Workout since 8:43 AM · ♥ 128 · on the watch" (048)
 - **Then:** the same page shows the workout up to now, and nothing is kept until it ends
 
 - **Scenario:** No heart rate
@@ -425,7 +427,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Scenario:** From the Workouts list
 - **Given:** Workouts is open
 - **When:** I long-press a set and pick "Delete set and video…" or "Remove from Workouts…"
-- **Then:** the same dialog asks first; before this the long-press removed the set at once, the only copy of an in-app video with it
+- **Then:** the same dialog asks first
 
 - **Scenario:** A set deleted while the app is still working on it
 - **Given:** a stored set is being re-analyzed (a new build's refresh, a re-run, a trim under way)
@@ -515,7 +517,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 062:
 
 - **Summary:** Put my own exercise and count on a set, even when the camera got it wrong, and keep it without its video
-- **Status:** implemented in [8007b50](https://github.com/idvorkin/exercise-analyzer/commit/8007b50); verified on the host (`HandSetTests`) and by build; the sheet on the phone pending
+- **Status:** implemented in [8007b50](https://github.com/idvorkin/exercise-analyzer/commit/8007b50); verified on the host (`HandSetTests`) and by build; on the phone since 2026-09-28, Igor's check pending (the sheet)
 - **Why:** Igor, 2026-09-27, from the phone on a pull-up set counted 0: "Press and hold on [the] workouts to change what it was" and "I press and hold. Let me pop up a screen to pick the exercise and pick the reps, and leave that in even though I delete the video"
 
 #### Use Case:
@@ -553,3 +555,70 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
   `set_kept_by_hand` ([DEBUGGING.md](../DEBUGGING.md)).
 
 - **Issues:** [#156](https://github.com/idvorkin/exercise-analyzer/issues/156), [#157](https://github.com/idvorkin/exercise-analyzer/issues/157)
+
+### User Story 065:
+
+- **Summary:** Delete a workout from Workouts
+- **Status:** implemented in [e3277b5](https://github.com/idvorkin/exercise-analyzer/commit/e3277b5) ([#138](https://github.com/idvorkin/exercise-analyzer/issues/138); [#151](https://github.com/idvorkin/exercise-analyzer/issues/151) was its duplicate); verified on the host (`WorkoutTests`) and the simulator (`delete_workout`, Health skipped there); the long-press, the dialog and the Health delete pending the phone
+- **Why:** Igor, from the phone, 2026-09-26: "Let me delete a workout"; on the Health record, 2026-09-29: "Delete it from Health too"
+
+#### Use Case:
+- **As a** lifter whose wrist started a workout by mistake, or ended one twice
+- **I want to** delete that workout from the Workouts list
+- **so that** the day shows the sessions I did, not the false starts
+
+#### Acceptance Criteria:
+- **Scenario:** Deleting a workout that has no sets
+- **Given:** a green workout line on a day, with no set recorded inside it
+- **When:** I long-press the line and choose "Delete workout…", and confirm
+- **Then:** the line is gone from the day and from the phone's list, and the wrist's record is gone from Health
+- **And:** when Health refuses (permission declined), the line still goes and the phone says Health kept its record
+
+- **Scenario:** Deleting a line that merged several workouts
+- **Given:** workouts under 30 minutes apart, shown as one line (#169)
+- **When:** I delete that line
+- **Then:** every workout inside it goes, from the list and from Health
+
+- **Scenario:** The running workout
+- **Given:** the line of a workout still running on the wrist
+- **When:** I long-press it
+- **Then:** there is no "Delete workout…"; the watch owns it until it ends
+
+- **Scenario:** Deleting a workout that has sets
+- **Given:** a workout with sets inside it
+- **When:** I long-press its line and choose "Delete workout…"
+- **Then:** the sets stay, under the day as sets outside any workout (053, #163); only the workout row and its heart-rate file go
+
+- **Notes:** The phone keeps a row per ended workout in `Documents/workouts.json` and its heart rate under `Documents/workouts/<id>/` (053); both go. The phone never learned the Health record's id, so it finds the records this app or its watch app wrote that start within a minute of each deleted row, after asking Health to read workouts (a prompt the first time). Health lets an app delete only what it wrote; whether it treats the watch app's records as the phone app's is the phone check. The heart-rate samples the wrist wrote stay in Health. `workout_deleted` logs what went.
+
+- **Issues:** [#138](https://github.com/idvorkin/exercise-analyzer/issues/138), [#151](https://github.com/idvorkin/exercise-analyzer/issues/151)
+
+---
+
+### User Story 066:
+
+- **Summary:** The bell's weight on each set of the workout page
+- **Status:** not implemented ([#102](https://github.com/idvorkin/exercise-analyzer/issues/102)); the proposal (A detector only, B Igor taps it, C both, C recommended and built as B first) is on the issue, waiting for Igor's pick
+- **Why:** Igor, by voice, 2026-09-18: "If I can figure out the weight, that would be great."
+
+#### Use Case:
+- **As a** lifter reading a workout's page
+- **I want to** see the bell's weight on each set
+- **so that** the page shows the load, not only the reps
+
+#### Acceptance Criteria:
+- **Scenario:** The weight on a set
+- **Given:** a set whose weight the phone knows (the detector's colour reading, or a tap of mine)
+- **When:** I read its row on the workout page
+- **Then:** the row says the weight, "28 kg", a detector guess with a question mark until I confirm it
+
+- **Scenario:** Setting the weight
+- **Given:** a set with no weight, or a wrong guess
+- **When:** I tap the weight on the playback screen
+- **Then:** a row of seven big buttons (8 … 32 kg) and "other" sets it, and the next set of the same workout starts from it
+
+- **Notes:** `BellColor.palette` maps the bell's hue to the competition code (pink 8 … red 32) and the playback screen's status line already says "· 28 kg bell" for the open set, but the weight is not stored on the set and the detector is off by default (034), so a colour reading alone cannot fill the page. Gym light moves a dark red/orange bell between the 28 and 16 readings.
+
+- **Issues:** [#102](https://github.com/idvorkin/exercise-analyzer/issues/102)
+
+---

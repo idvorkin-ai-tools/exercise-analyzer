@@ -95,29 +95,31 @@ public final class PistolSquatAnalyzer: ExerciseAnalyzer {
       "knee": workingKnee, "hip": skeleton.hipAngle(working), "extendedKnee": extendedKnee, "spine": spine,
       "depth": SingleLegTracker.depthPercent(knee: workingKnee),
     ]
-    let earY = skeleton.earY ?? 0
-
-    guard spine <= thresholds.maxValidSpineAngle else {
+    // A frame without a head cannot place the lifter (an unmeasured ear once read as the top of the screen and
+    // three such frames confirmed a bottom); it keeps the phase and counts for nothing.
+    guard spine <= thresholds.maxValidSpineAngle, let earY = skeleton.earY else {
       return ExerciseFrameResult(phase: machine.phase, repCount: machine.repCount, metrics: m, completedRep: nil)
     }
 
-    let smoothed = smooth(workingKnee)
-    kneeHistory.append(smoothed)
-    if kneeHistory.count > 10 { kneeHistory.removeFirst(kneeHistory.count - 10) }
+    if workingKnee > 0 {
+      kneeHistory.append(smooth(workingKnee))
+      if kneeHistory.count > 10 { kneeHistory.removeFirst(kneeHistory.count - 10) }
+    }
 
     let frame = SingleLegFrame(pose: pose, time: time, earY: earY, metrics: m)
     frameHistory.append(frame)
     if frameHistory.count > 120 { frameHistory.removeFirst() }
 
-    metrics.minWorkingKnee = min(metrics.minWorkingKnee, workingKnee)
+    // 0 is an unmeasured knee, never a deep one.
+    if workingKnee > 0 { metrics.minWorkingKnee = min(metrics.minWorkingKnee, workingKnee) }
     metrics.maxSpine = max(metrics.maxSpine, spine)
-    metrics.minExtendedKnee = min(metrics.minExtendedKnee, extendedKnee)
+    if extendedKnee > 0 { metrics.minExtendedKnee = min(metrics.minExtendedKnee, extendedKnee) }
     machine.framesInPhase += 1
 
     var completedRep: RepRecord?
     switch machine.phase {
     case Self.standing:
-      if machine.canTransition && workingKnee < thresholds.descendingKneeThreshold {
+      if machine.canTransition && workingKnee > 0 && workingKnee < thresholds.descendingKneeThreshold {
         machine.storePeak(
           RepPosition(
             phase: Self.standing, time: time, pose: pose, metrics: m, score: workingKnee, image: image()))

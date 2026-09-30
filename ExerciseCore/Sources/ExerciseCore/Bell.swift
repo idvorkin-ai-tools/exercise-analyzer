@@ -9,7 +9,7 @@ import Foundation
 
 /// A kettlebell the detector saw in one frame: its box normalized to the image, the confidence, and the mean
 /// colour of the pixels inside it (sRGB, 0–1) when the caller sampled it.
-public struct BellSighting: Codable, Equatable {
+public struct BellSighting: Codable, Equatable, Sendable {
   public let box: CGRect
   public let conf: Float
   public let color: [Float]?
@@ -148,8 +148,8 @@ public final class BellTracker {
     Int(Double(p.x) / cell) * 4096 + Int(Double(p.y) / cell)
   }
 
-  /// True when both colours are known and vivid and their hues differ by more than a quarter turn: not the same
-  /// bell (a rack of coloured competition bells beside one in play).
+  /// True when both colours are known and vivid and their hues differ by more than a sixth of a turn (60°): not
+  /// the same bell (a rack of coloured competition bells beside one in play).
   static func colorsDiffer(_ a: BellSighting, _ b: BellSighting) -> Bool {
     guard let ca = a.color, let cb = b.color, let ha = BellColor.hsv(ca), let hb = BellColor.hsv(cb),
       ha.s >= 0.35, hb.s >= 0.35, ha.v >= 0.2, hb.v >= 0.2

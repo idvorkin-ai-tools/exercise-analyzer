@@ -4,7 +4,8 @@
 //  from across the room: the rep count in huge digits, the in-frame hint in red when the lifter is out, the
 //  elapsed time and the exercise; VIEWFINDER in place of the count while framing (047). Nothing else. Only while
 //  the camera is up (the session refuses it otherwise and
-//  leaves it with the set, #36). Long-press anywhere to leave (a stray tap must not).
+//  leaves it with the set, #36). Three ways out: the button, a double tap, a half-second hold (a stray tap must
+//  not).
 
 import ExerciseCore
 import SwiftUI

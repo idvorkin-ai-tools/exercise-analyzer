@@ -6,7 +6,7 @@
 
 import Foundation
 
-public struct HandSet: Codable, Equatable {
+public struct HandSet: Codable, Equatable, Sendable {
   /// Made on the wrist, so a repeat delivery of the same transfer is one set on the phone.
   public let id: String
   public let exercise: ExerciseKind

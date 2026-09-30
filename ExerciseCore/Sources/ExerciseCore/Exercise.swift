@@ -7,7 +7,7 @@
 import CoreGraphics
 import Foundation
 
-public enum ExerciseKind: String, Codable, CaseIterable, Identifiable {
+public enum ExerciseKind: String, Codable, CaseIterable, Identifiable, Sendable {
   case kettlebellSwing = "kettlebell-swing"
   case pistolSquat = "pistol-squat"
   case bulgarianSplitSquat = "bulgarian-split-squat"

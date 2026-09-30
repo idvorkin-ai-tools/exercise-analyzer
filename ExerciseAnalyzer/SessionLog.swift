@@ -22,7 +22,12 @@ final class SessionLog: @unchecked Sendable {
     formatter.dateFormat = "yyyyMMdd-HHmmss"
     url = dir.appendingPathComponent("swing-\(formatter.string(from: start)).jsonl")
     FileManager.default.createFile(atPath: url.path, contents: nil)
-    handle = try? FileHandle(forWritingTo: url)
+    do {
+      handle = try FileHandle(forWritingTo: url)
+    } catch {
+      // No file, no evidence: say so once where a tethered run can see it; every event after this is dropped.
+      print("SessionLog: cannot open \(url.path): \(error)")
+    }
     event(
       "session_start",
       [
@@ -38,9 +43,19 @@ final class SessionLog: @unchecked Sendable {
     var record: [String: Any] = ["type": type, "t": Int(Date().timeIntervalSince(start) * 1000)]
     for (key, value) in fields { record[key] = Self.sanitize(value) }
     queue.async { [self] in
-      guard let data = try? JSONSerialization.data(withJSONObject: record) else { return }
-      handle?.write(data)
-      handle?.write(Data([0x0A]))
+      guard let handle else { return }
+      let data: Data
+      do {
+        data = try JSONSerialization.data(withJSONObject: record)
+      } catch {
+        // A value JSON cannot carry (a Date, a CGRect) must not lose the line: keep the type and say what happened.
+        let fallback: [String: Any] = [
+          "type": "error", "t": record["t"] ?? 0, "where": "log", "event": type, "message": "\(error)",
+        ]
+        data = (try? JSONSerialization.data(withJSONObject: fallback)) ?? Data()
+      }
+      handle.write(data)
+      handle.write(Data([0x0A]))
     }
   }
 
@@ -69,11 +84,13 @@ final class SessionLog: @unchecked Sendable {
   }
 
   /// JSONSerialization rejects non-finite doubles; round and clamp so a NaN angle can't drop a whole line.
+  /// Recurses into dictionaries and arrays (a bell box, a list of ankle confidences).
   private static func sanitize(_ value: Any) -> Any {
     switch value {
     case let d as Double: return d.isFinite ? (d * 100).rounded() / 100 : -1
     case let f as Float: return sanitize(Double(f))
-    case let dict as [String: Double]: return dict.mapValues { sanitize($0) }
+    case let dict as [String: Any]: return dict.mapValues { sanitize($0) }
+    case let array as [Any]: return array.map { sanitize($0) }
     default: return value
     }
   }

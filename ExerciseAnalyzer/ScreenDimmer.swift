@@ -15,13 +15,25 @@ final class ScreenDimmer {
   /// Whether the last update's hold dims. The clock restarts on entering one (the app back in front included,
   /// since a backgrounded app's hold does not dim), so the 30 s counts only time the app is in front.
   private var dimming = false
-  /// The lifter's brightness while dimmed; nil when not dimmed.
-  private var restoreTo: CGFloat?
+  /// The lifter's brightness while dimmed; nil when not dimmed. Also kept in the defaults: a brightness set through
+  /// UIScreen outlives the app, so a run killed while dimmed would leave the phone at 5 % until the next run
+  /// puts the level back (the `relaunch` restore below).
+  private var restoreTo: CGFloat? {
+    didSet {
+      if let restoreTo {
+        UserDefaults.standard.set(Double(restoreTo), forKey: Self.leftDimmedKey)
+      } else {
+        UserDefaults.standard.removeObject(forKey: Self.leftDimmedKey)
+      }
+    }
+  }
+  private static let leftDimmedKey = "screenDimmerLeftDimmed"
   private weak var watchedWindow: UIWindow?
 
   /// Called on every keep-awake decision and on the session's 3 s tick.
   func update(_ reason: KeepAwake, now: Date = Date()) {
     watchTouches()
+    restoreAfterRelaunch()
     defer { dimming = reason.dims }
     guard reason.dims else {
       restore(reason: reason.rawValue)
@@ -32,6 +44,22 @@ final class ScreenDimmer {
     restoreTo = screen.brightness
     screen.brightness = CGFloat(KeepAwake.dimBrightness)
     onEvent?("screen_dim", ["on": true, "reason": reason.rawValue, "brightness": Double(restoreTo ?? 0)])
+  }
+
+  /// A previous run's level left in the defaults (killed while dimmed): put it back at the first update with a
+  /// screen, but only while the screen is still at the dim level this app left. A brightness the lifter chose in
+  /// Control Center since then is theirs (the PR #175 review).
+  private func restoreAfterRelaunch() {
+    guard restoreTo == nil, let left = UserDefaults.standard.object(forKey: Self.leftDimmedKey) as? Double, let screen
+    else { return }
+    UserDefaults.standard.removeObject(forKey: Self.leftDimmedKey)
+    let now = Double(screen.brightness)
+    guard abs(now - KeepAwake.dimBrightness) < 0.02 else {
+      onEvent?("screen_dim", ["on": false, "reason": "relaunch_kept", "brightness": now])
+      return
+    }
+    screen.brightness = CGFloat(left)
+    onEvent?("screen_dim", ["on": false, "reason": "relaunch", "brightness": left])
   }
 
   private func touched() {

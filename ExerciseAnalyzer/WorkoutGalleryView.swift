@@ -1,8 +1,9 @@
 // Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 
 //  Workout gallery (issue #8): every analyzed set, grouped by day, then by exercise. A day reads as a workout
-//  card: which exercises, how many sets and reps of each, with a strip of set thumbnails per exercise. Tap a set
-//  to reopen it; long-press to remove it from the list (never touches Photos).
+//  card: which exercises, how many sets and reps of each, with a strip of set thumbnails per exercise, and the
+//  wrist's workouts as green lines that open the workout's page (053). Tap a set to reopen it; long-press for
+//  Open, "Set exercise and reps…" (062) or "Delete set and video…" (056).
 
 import ExerciseCore
 import SwiftUI
@@ -19,12 +20,17 @@ struct WorkoutGalleryView: View {
   /// Pushes a workout's page (053), from a tap on its line, or on landing mid-workout (#123).
   let onOpenWorkout: (StoredWorkout) -> Void
   @StateObject private var suggestions = PhotosSuggestions()
-  /// Days folded shut, by start-of-day time; days older than a week start folded, today and this week start open.
-  @State private var collapsed: Set<Date> = []
-  @State private var collapseSeeded = false
+  /// The days folded or opened by hand, kept across launches (#121); the rest follow the age rule in `DayFolds`.
+  @AppStorage("workoutDayFolds") private var foldsStored = "{}"
+  /// Test hook: every day folded, for a screenshot of the folded headers (#129; the simulator cannot scroll).
+  @State private var foldAllForScreenshot = ProcessInfo.processInfo.environment["SWING_WORKOUTS_FOLDED"] == "1"
   /// Once per launch (#123): the log lands on the running workout's page; "‹" from it is the day list, and the
   /// list re-appearing after that must not push the page again.
   @State private var landedOnLive = false
+  /// The workout line whose "Delete workout…" is being confirmed (065).
+  @State private var deletingWorkout: StoredWorkout?
+  /// What Health or the list refused while deleting, said once.
+  @State private var workoutDeletionFailure: String?
 
   private static let dayKey: DateFormatter = {
     let f = DateFormatter()
@@ -33,6 +39,34 @@ struct WorkoutGalleryView: View {
   }()
 
   private var knownPhotosIDs: Set<String> { Set(store.entries.compactMap(\.photosIdentifier)) }
+
+  /// Older than a week: the days that start folded.
+  private static func isOld(_ day: Date) -> Bool {
+    let weekAgo = Calendar.current.date(byAdding: .day, value: -7, to: Calendar.current.startOfDay(for: Date())) ?? .distantPast
+    return day < weekAgo
+  }
+
+  private func isFolded(_ day: WorkoutDay) -> Bool {
+    // A workout day does not fold (#163; Igor: "don't let me expand a workout, just make me click on it"): its
+    // workout lines open the page, and only the sets outside every workout sit under them.
+    guard !day.hasWorkout else { return false }
+    return foldAllForScreenshot
+      || DayFolds(stored: foldsStored).isFolded(Self.dayKey.string(from: day.date), olderThanAWeek: Self.isOld(day.date))
+  }
+
+  /// The dialog's line (065): what goes, and that the sets stay.
+  private func deletionMessage(_ workout: StoredWorkout) -> String {
+    let sets = store.entries.filter { workout.contains($0.start) }.count
+    let stay = sets == 0 ? "" : " Its \(sets) set\(sets == 1 ? "" : "s") stay in Workouts."
+    return "The workout goes from this list and from Health.\(stay)"
+  }
+
+  private func deleteWorkout(_ workout: StoredWorkout) {
+    Task {
+      let deletion = await workouts.delete(workout)
+      workoutDeletionFailure = deletion.failure
+    }
+  }
 
   /// The days, from the sets and the workouts alike: a workout without a set on camera is still a day.
   private var days: [WorkoutDay] { WorkoutDay.group(store.entries, workouts: workouts.sessions, live: workouts.live) }
@@ -69,9 +103,7 @@ struct WorkoutGalleryView: View {
                 .padding(.top, 8)
               }
               ForEach(days) { day in
-                // A workout day does not fold (#163; Igor: "don't let me expand a workout, just make me click on
-                // it"): its workout lines open the page, and only the sets outside every workout sit under them.
-                let folded = !day.hasWorkout && collapsed.contains(day.date)
+                let folded = isFolded(day)
                 Section {
                   if !folded {
                     ForEach(day.hasWorkout ? day.outsideWorkouts : day.exercises) { exercise in
@@ -95,13 +127,18 @@ struct WorkoutGalleryView: View {
                   DayHeader(
                     day: day, collapsed: folded,
                     onToggle: day.hasWorkout ? nil : {
-                      let opening = collapsed.contains(day.date)
-                      onEvent?("workouts_day", ["day": Self.dayKey.string(from: day.date), "opened": opening])
+                      let key = Self.dayKey.string(from: day.date)
+                      let opening = folded
+                      onEvent?("workouts_day", ["day": key, "opened": opening])
+                      var folds = DayFolds(stored: foldsStored)
+                      folds.set(key, folded: !opening)
                       withAnimation(.easeInOut(duration: 0.2)) {
-                        if opening { collapsed.remove(day.date) } else { collapsed.insert(day.date) }
+                        foldAllForScreenshot = false
+                        foldsStored = folds.stored
                       }
                     },
-                    onOpenWorkout: onOpenWorkout)
+                    onOpenWorkout: onOpenWorkout,
+                    onDeleteWorkout: { deletingWorkout = $0 })
                 }
               }
             }
@@ -112,14 +149,24 @@ struct WorkoutGalleryView: View {
       }
       .navigationTitle("Workouts")
       .navigationBarTitleDisplayMode(.inline)
+      .confirmationDialog(
+        "Delete this workout?",
+        isPresented: Binding(get: { deletingWorkout != nil }, set: { if !$0 { deletingWorkout = nil } }),
+        titleVisibility: .visible, presenting: deletingWorkout
+      ) { workout in
+        Button("Delete workout", role: .destructive) { deleteWorkout(workout) }
+        Button("Keep it", role: .cancel) {}
+      } message: { workout in
+        Text(deletionMessage(workout))
+      }
+      .alert(
+        "Workout deleted", isPresented: Binding(get: { workoutDeletionFailure != nil }, set: { if !$0 { workoutDeletionFailure = nil } })
+      ) {
+        Button("OK", role: .cancel) {}
+      } message: {
+        Text(workoutDeletionFailure ?? "")
+      }
       .onAppear {
-        if !collapseSeeded {
-          collapseSeeded = true
-          let weekAgo = Calendar.current.date(byAdding: .day, value: -7, to: Calendar.current.startOfDay(for: Date())) ?? .distantPast
-          collapsed = Set(days.map(\.date).filter { $0 < weekAgo })
-          // Test hook: every day folded, for a screenshot of the folded headers (#129; the simulator cannot scroll).
-          if ProcessInfo.processInfo.environment["SWING_WORKOUTS_FOLDED"] == "1" { collapsed = Set(days.map(\.date)) }
-        }
         suggestions.onEvent = onEvent
         suggestions.refresh(known: knownPhotosIDs)
         guard !landedOnLive else { return }
@@ -140,6 +187,11 @@ struct WorkoutGalleryView: View {
           {
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) { onOpen(entry) }
           }
+        }
+        // Test hook (065): delete the newest ended workout as a confirmed long-press would; the simulator can't
+        // long-press.
+        if ProcessInfo.processInfo.environment["SWING_DELETE_WORKOUT"] == "confirm", let newest = workouts.sessions.last {
+          deleteWorkout(newest)
         }
         // Test hook: ask for Photos access on open so a simulator run can answer the system dialog.
         if ProcessInfo.processInfo.environment["SWING_PHOTOS_ACCESS"] == "1", suggestions.status == .notDetermined {
@@ -315,7 +367,9 @@ struct ExerciseSets: Identifiable {
 }
 
 extension RecentEntry {
-  var start: Date { recordedAt ?? analyzedAt }
+  /// Where the set sits in time, the same instant the workout page and `outsideWorkouts` place it at (the clip's
+  /// first frame when known), so a set is never on one day here and in another workout there.
+  var start: Date { span.lowerBound }
 }
 
 extension ExerciseKind {
@@ -341,6 +395,8 @@ struct DayHeader: View {
   var onToggle: (() -> Void)? = nil
   /// A tap on a green workout line (053); nil where the header is only a label.
   var onOpenWorkout: ((StoredWorkout) -> Void)? = nil
+  /// A long-press's "Delete workout…" on an ended line (065); nil where the header is only a label.
+  var onDeleteWorkout: ((StoredWorkout) -> Void)? = nil
 
   private static let dayFormatter: DateFormatter = {
     let f = DateFormatter()
@@ -366,43 +422,14 @@ struct DayHeader: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
-      Button {
-        onToggle?()
-      } label: {
-        HStack(alignment: .firstTextBaseline) {
-          // No arrow where the day does not fold (a workout day, #163).
-          if onToggle != nil {
-            Image(systemName: "chevron.right")
-              .font(.caption.bold())
-              .rotationEffect(.degrees(collapsed ? 0 : 90))
-              .foregroundStyle(.secondary)
-          }
-          Text(title).font(.title3.bold())
-          if title == "Today" || title == "Yesterday" {
-            Text(dateLine).font(.subheadline).foregroundStyle(.secondary)
-          }
-          Spacer()
-          if collapsed {
-            // A folded day says what was done (#129; Igor: "show an icon like 8x8 swings, 3xTGUs"): sets ×
-            // reps per exercise with its drawing, "8×8 [swing] · 5×2 [get-up]", a range when the sets differ.
-            HStack(spacing: 6) {
-              ForEach(day.exercises) { exercise in
-                HStack(spacing: 3) {
-                  Text(exercise.setsByReps).font(.subheadline).monospacedDigit().foregroundStyle(.secondary)
-                  ExerciseGlyph(kind: exercise.kind, size: 18)
-                }
-              }
-            }
-            .lineLimit(1)
-          } else {
-            Text(summary).font(.subheadline).foregroundStyle(.secondary)
-          }
-        }
-        .contentShape(Rectangle())
+      // A day that folds is a button; a workout day's line is a label (#163), not a button that does nothing.
+      if let onToggle {
+        Button(action: onToggle) { dayLine }
+          .buttonStyle(.plain)
+          .accessibilityLabel("\(title), \(collapsed ? spokenExercises : summary), \(collapsed ? "collapsed" : "expanded")")
+      } else {
+        dayLine.accessibilityElement(children: .combine).accessibilityLabel("\(title), \(summary)")
       }
-      .buttonStyle(.plain)
-      .accessibilityLabel(
-        "\(title), \(collapsed ? spokenExercises : summary)" + (onToggle == nil ? "" : ", \(collapsed ? "collapsed" : "expanded")"))
       // The day's workouts from the wrist (048): the hour, its heart rate, and that it is in Health. Each line
       // is its own target and opens the workout's page (053); a workout day has no fold of its own (#163).
       ForEach(workoutLines, id: \.workout.id) { line in
@@ -425,11 +452,50 @@ struct DayHeader: View {
         }
         .buttonStyle(.plain)
         .accessibilityHint("Opens the whole workout")
+        // An ended workout can be deleted (065); the running one belongs to the watch.
+        .contextMenu {
+          if let onDeleteWorkout, line.workout.id != WorkoutMirror.liveID {
+            Button("Delete workout…", role: .destructive) { onDeleteWorkout(line.workout) }
+          }
+        }
       }
     }
     .foregroundStyle(.primary)
     .padding(.vertical, 8)
     .background(Color(.systemBackground))
+  }
+
+  private var dayLine: some View {
+    HStack(alignment: .firstTextBaseline) {
+      // No arrow where the day does not fold (a workout day, #163).
+      if onToggle != nil {
+        Image(systemName: "chevron.right")
+          .font(.caption.bold())
+          .rotationEffect(.degrees(collapsed ? 0 : 90))
+          .foregroundStyle(.secondary)
+      }
+      Text(title).font(.title3.bold())
+      if title == "Today" || title == "Yesterday" {
+        Text(dateLine).font(.subheadline).foregroundStyle(.secondary)
+      }
+      Spacer()
+      if collapsed {
+        // A folded day says what was done (#129; Igor: "show an icon like 8x8 swings, 3xTGUs"): sets ×
+        // reps per exercise with its drawing, "8×8 [swing] · 5×2 [get-up]", a range when the sets differ.
+        HStack(spacing: 6) {
+          ForEach(day.exercises) { exercise in
+            HStack(spacing: 3) {
+              Text(exercise.setsByReps).font(.subheadline).monospacedDigit().foregroundStyle(.secondary)
+              ExerciseGlyph(kind: exercise.kind, size: 18)
+            }
+          }
+        }
+        .lineLimit(1)
+      } else {
+        Text(summary).font(.subheadline).foregroundStyle(.secondary)
+      }
+    }
+    .contentShape(Rectangle())
   }
 
   private var summary: String {
@@ -640,9 +706,9 @@ struct SetCard: View {
   let thumbnail: UIImage?
   let tint: Color
 
-  static let size = CGSize(width: 104, height: 74)
-  /// The shape the set's picture is cut to from the clip (#110).
-  static let aspect = size.width / size.height
+  nonisolated static let size = CGSize(width: 104, height: 74)
+  /// The shape the set's picture is cut to from the clip (#110), read off the main actor by CoreBridge.
+  nonisolated static let aspect = size.width / size.height
 
   private static let timeFormatter: DateFormatter = {
     let f = DateFormatter()
@@ -689,15 +755,17 @@ struct SetCard: View {
         if !entry.isByHand {
           Text("· " + Self.duration(entry.duration))
           if !entry.isInPhotos {
-            Image(systemName: "iphone").accessibilityLabel("Kept in app")
+            Image(systemName: "iphone")
           }
         }
       }
       .font(.caption2).foregroundStyle(.secondary)
     }
     .accessibilityElement(children: .combine)
+    // The combined label replaces the children's, so the phone glyph's "kept in app" is said here.
     .accessibilityLabel(
-      "\(entry.exerciseKind.definition.name), \(entry.repCount) reps\(entry.isByHand ? " by hand" : ""), \(Self.timeFormatter.string(from: entry.start))")
+      "\(entry.exerciseKind.definition.name), \(entry.repCount) reps\(entry.isByHand ? " by hand" : ""), \(Self.timeFormatter.string(from: entry.start))"
+        + (!entry.isByHand && !entry.isInPhotos ? ", kept in app" : ""))
   }
 
   private static func scoreColor(_ score: Int) -> Color {

@@ -38,10 +38,17 @@ final class HeartRateSeriesTests: XCTestCase {
     XCTAssertNil(series.peak(from: date(300), to: date(400)))
   }
 
+  /// A span given end first (a workout row whose watch clock ran ahead) is the same span, not a trap.
+  func testASliceWithItsEndsReversedIsTheSameSlice() {
+    XCTAssertEqual(series.slice(from: date(125), to: date(100)), series.slice(from: date(100), to: date(125)))
+    XCTAssertEqual(series.peak(from: date(125), to: date(100)), 145)
+  }
+
   func testMedianIntervalAndRoundTrip() throws {
     XCTAssertEqual(series.medianInterval, 5)
     let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: folder) }
     try series.save(to: folder)
     XCTAssertEqual(HeartRateSeries.load(from: folder), series)
   }

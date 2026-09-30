@@ -12,7 +12,9 @@ fixed line and the body's travel is the whole signal. A rep is hang to hang and 
   well seen (confidence ≥ `barWristConfidence` 0.7), smoothed, and held through the top. At the top the head and
   the arms hide the wrists: their confidence falls to 0.5 and the model guesses them down at the elbows, 0.2–0.36
   torso lengths under the real bar. Per-frame wrists would shorten every rep.
-- **Torso length** (shoulder midpoint to hip midpoint) is learned in the hang and frozen during a rep.
+- **Torso length** (shoulder midpoint to hip midpoint) is learned in the hang and frozen during a rep; letting go
+  forgets it, so the next grip learns its own scale as it does its own bar line (the lifter may come back nearer
+  or further from the camera).
 - **Taking the bar**: both wrists at least `gripAboveShoulders` (0.25) over the shoulders. **Letting go**: every
   wrist seen sits more than `letGoUnderBar` (0.7) under the bar line for 3 frames, or no wrist is seen for 30.
   Hands by the sides read 1.0 under it.
@@ -56,3 +58,7 @@ around the one "split squat" the wrong analyzer found, and the pull-ups were cut
   was dropped. Replaced by the let-go rule above (far under the line, for 3 frames); `letGoUnderBar` from 0.2 to
   1.2 counts 5 on both tracks, because the other wrist stays near the line. Both fixtures 5 (commit b56766b, with
   the analyzer).
+- **2026-09-19, review (commit fbb5459)**: letting go reset the bar line and the hang but kept the torso length, so a
+  second set filmed nearer or further was measured on the first set's scale for its first reps; the torso is now
+  forgotten with the grip. Both fixtures still 5. Landed without its own AnalysisVersion bump; the same day's
+  2026-09-19.2 covered it.

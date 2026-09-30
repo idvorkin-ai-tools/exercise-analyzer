@@ -82,7 +82,22 @@ public struct RecentsSave {
       try fm.removeItem(at: transaction) // No journal means no destination mutation was started.
       return
     }
-    let journal = try JSONDecoder().decode(Journal.self, from: Data(contentsOf: journalURL))
+    let journal: Journal
+    do {
+      journal = try JSONDecoder().decode(Journal.self, from: Data(contentsOf: journalURL))
+    } catch {
+      // A journal this build cannot read (its shape changed) would otherwise block every save until the folder is
+      // removed by hand: set it aside with its old files, keep what is on disk, and let saving go on. A save cut
+      // off after moving the set's folder into old/ left its index row without a folder (the PR #175 review):
+      // when exactly one row lacks its folder (by-hand sets never have one), old/ is that folder and goes back.
+      let old = transaction.appendingPathComponent("old")
+      let missing = RecentsIndex.load(root: root).entries.filter { !$0.isByHand && !fm.fileExists(atPath: root.appendingPathComponent($0.id).path) }
+      if fm.fileExists(atPath: old.path), missing.count == 1 {
+        try fm.moveItem(at: old, to: root.appendingPathComponent(missing[0].id))
+      }
+      try fm.moveItem(at: transaction, to: root.appendingPathComponent(transactionName + ".bad-" + IndexDamage.stamp()))
+      return
+    }
     let destination = root.appendingPathComponent(journal.id)
     let old = transaction.appendingPathComponent("old")
     let committed = fm.fileExists(atPath: transaction.appendingPathComponent("committed").path)

@@ -8,7 +8,7 @@ evidence, so a threshold is never re-derived from scratch. One file per exercise
 |---|---|
 | [kettlebell-swing.md](kettlebell-swing.md) | top / connect / bottom / release on spine, hip and arm angles; walk-in, pick-up and bell-park rejection |
 | [pistol-squat.md](pistol-squat.md) | working leg from knee asymmetry; bottom from head height |
-| [bulgarian-split-squat.md](bulgarian-split-squat.md) | phases on head height scaled by leg length; the front knee only scores |
+| [bulgarian-split-squat.md](bulgarian-split-squat.md) | phases on head height scaled by body height; the front knee only scores |
 | [turkish-get-up.md](turkish-get-up.md) | lying / rising / standing / lowering on uprightness; the 2026-09-12 staging study and the proposed stages |
 | [split-squat.md](split-squat.md) | both feet on the floor: phases on the hips' height in leg lengths, a bottom counts only with the feet split; why not the head |
 | [pull-up.md](pull-up.md) | hang / pulling / top / lowering on the shoulders' distance under the bar line; why the wrists cannot be trusted at the top |
@@ -26,8 +26,9 @@ evidence, so a threshold is never re-derived from scratch. One file per exercise
 3. **`BodySkeleton`** turns a pose into the per-frame signals below. Joints under the visibility threshold are
    *missing*; an angle with a missing joint reads **0** and must never drive a transition (AGENTS.md).
 4. **An analyzer** runs a phase state machine over the signals (`PhaseStateMachine`: phase, frames in phase, rep
-   count, one stored position per phase). Transitions need a condition to *hold* for a few frames; each completed
-   rep carries its positions (for the gallery and phase navigation) and a `RepQuality` (0–100 score, feedback).
+   count, one stored position per phase). A transition fires on one frame's condition once the machine has spent
+   at least two frames in its phase; where a condition must *hold*, the analyzer says so (the get-up's `Hold`,
+   the N-frame bottom confirmations); each completed rep carries its positions (for the gallery and phase navigation) and a `RepQuality` (0–100 score, feedback).
 5. **`AnalysisVersion.current`** is stamped on every stored analysis; the app re-analyzes older sets on open and at
    launch (#19). Bump it in any commit that changes an analyzer, the detector or the skeleton math.
 
@@ -46,7 +47,8 @@ evidence, so a threshold is never re-derived from scratch. One file per exercise
 
 **Sides are chosen per frame by confidence, not by label.** The model's left/right labels flip in side views and
 when the lifter faces left; `bestSide` takes a whole side's joints at once so a near-side hip never pairs with a
-far-side knee.
+far-side knee. Two deliberate exceptions: the pistol and the Bulgarian read the left leg by label until their
+working or front leg is chosen, and the detector measures leg length on the model's left side.
 
 ## What the camera does to the signals
 

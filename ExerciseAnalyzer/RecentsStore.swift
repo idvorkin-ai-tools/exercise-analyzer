@@ -13,6 +13,8 @@ import UIKit
 @MainActor
 final class RecentsStore: ObservableObject {
   @Published private(set) var entries: [RecentEntry] = []
+  /// What was wrong with index.json at launch, if anything; the session logs it.
+  let indexDamage: IndexDamage?
 
   private let root: URL
 
@@ -27,6 +29,7 @@ final class RecentsStore: ObservableObject {
     try? FileManager.default.createDirectory(at: self.root, withIntermediateDirectories: true)
     try? RecentsSave.recover(root: self.root)
     var index = RecentsIndex.load(root: self.root)
+    indexDamage = index.damage
     if index.backfill(root: self.root) { try? index.save(root: self.root) }
     entries = index.entries
   }
@@ -197,15 +200,13 @@ final class RecentsStore: ObservableObject {
     return UIImage(contentsOfFile: folder(for: entry.id).appendingPathComponent(name).path)
   }
 
-  /// The stored analysis with rep images re-attached.
-  /// The models the stored track came from (empty for files from before this was recorded); read off the entry,
-  /// backfilled once from the snapshot on first read — no frames decoded.
+  /// The models the stored track came from, off the entry (`RecentsIndex.backfill` fills rows from before this
+  /// was recorded when the index loads); empty for a set typed by hand.
   func models(for entry: RecentEntry) -> [String] {
     entry.models ?? []
   }
 
-  /// True when the stored reps were computed by an older analyzer than the one in this build; read off the entry,
-  /// backfilled once from the snapshot on first read — no frames decoded.
+  /// True when the stored reps were computed by an older analyzer than the one in this build, off the entry.
   func isStale(_ entry: RecentEntry) -> Bool {
     entry.isStale(currentVersion: AnalysisVersion.current)
   }

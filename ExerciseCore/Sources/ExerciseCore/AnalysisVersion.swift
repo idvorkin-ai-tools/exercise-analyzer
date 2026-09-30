@@ -29,5 +29,10 @@ public enum AnalysisVersion {
   // the top within 0.4 s of crossing vertical, timed from the hinge instead of the setup (#148).
   // 2026-09-26.3: a swing top more than 1 s after the deepest frame of its hinge counts only when a hinge follows
   // within 2.5 s: the hike does, standing up after setting the bell down at the end of a set does not (#149).
-  public static let current = "2026-09-26.3"
+  // 2026-09-28.1: unmeasured joints (0°) drive nothing: a pistol's hidden working knee no longer starts a descent
+  // and a headless frame no longer confirms its bottom; a 0° knee is not a deep knee in any score (#171).
+  // 2026-09-29.1: a pistol's hidden working knee no longer enters the smoothed knee, so it cannot fake the rise
+  // out of the bottom (#171).
+  // 2026-09-29.2: a Bulgarian dip with the knees together in more than 65% of its frames is not a rep (#172).
+  public static let current = "2026-09-29.2"
 }

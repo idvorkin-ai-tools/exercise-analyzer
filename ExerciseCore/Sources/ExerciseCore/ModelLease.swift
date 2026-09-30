@@ -28,8 +28,9 @@ public final class ModelLease: Sendable {
     }
   }
 
-  /// Waits in line for the lease. Throws `CancellationError` if the task is cancelled before or while waiting;
-  /// the lease is then not held by the caller.
+  /// Waits in line for the lease. Throws `CancellationError` if the task is cancelled before or while waiting,
+  /// and the lease is then not held by the caller, with one exception: a cancel that lands in the same instant
+  /// `release()` hands the lease over returns normally with the lease held, so callers `defer { release() }`.
   public func acquire() async throws {
     try Task.checkCancellation()
     let id = UUID()

@@ -35,12 +35,12 @@ final class WorkoutLiveActivity {
   private var cancellables = Set<AnyCancellable>()
 
   /// Follows the mirror from launch; takes over an activity a previous run left up.
-  func install(mirror: WorkoutMirror = .shared) {
+  func install(mirror: WorkoutMirror) {
     guard cancellables.isEmpty else { return }
     activity = Activity<WorkoutActivityAttributes>.activities.first
     // The mirror starts at nil until Health hands the running workout back, so that first nil must not end an
-    // activity a previous run left up mid-workout; one with no workout behind it goes with the next workout's end,
-    // or iOS takes it down after eight hours.
+    // activity a previous run left up mid-workout; one with no workout behind it goes when the next workout
+    // starts (replaced), or iOS takes it down after eight hours.
     if let live = mirror.live { follow(live) }
     mirror.$live.dropFirst().receive(on: DispatchQueue.main).sink { [weak self] in self?.follow($0) }
       .store(in: &cancellables)

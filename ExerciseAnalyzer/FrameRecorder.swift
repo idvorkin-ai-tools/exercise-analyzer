@@ -1,7 +1,7 @@
 // Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 
-//  Records camera frames to an H.264 .mov with their capture timestamps, and helpers to trim a clip and save it to
-//  the Photos library.
+//  Records camera frames to an H.264 .mov with their capture timestamps; `VideoFile` joins segments, scans
+//  keyframes, trims a clip, and saves it to or deletes it from the Photos library.
 
 import AVFoundation
 import Photos
@@ -330,7 +330,6 @@ enum VideoFile {
     }.value
   }
 
-  /// Saves the clip to Photos and returns the new asset's local identifier.
   /// Deletes an asset from Photos (iOS shows its own confirmation; the asset lands in Recently Deleted).
   static func deleteFromPhotos(identifier: String) async throws {
     let assets = PHAsset.fetchAssets(withLocalIdentifiers: [identifier], options: nil)
@@ -340,6 +339,7 @@ enum VideoFile {
     }
   }
 
+  /// Saves the clip to Photos and returns the new asset's local identifier.
   static func saveToPhotos(_ url: URL) async throws -> String? {
     let status = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
     guard status == .authorized || status == .limited else { throw VideoFileError.photosDenied }
@@ -349,5 +349,16 @@ enum VideoFile {
       identifier = request?.placeholderForCreatedAsset?.localIdentifier
     }
     return identifier
+  }
+}
+
+/// The session's current recorder, read by the capture queue on every frame and swapped by the main actor.
+final class RecorderSlot: @unchecked Sendable {
+  private let lock = NSLock()
+  private var recorder: FrameRecorder?
+
+  var value: FrameRecorder? {
+    get { lock.withLock { recorder } }
+    set { lock.withLock { recorder = newValue } }
   }
 }

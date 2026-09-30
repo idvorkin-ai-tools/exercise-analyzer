@@ -128,13 +128,27 @@ public struct StoredWorkout: Codable, Hashable, Identifiable, Sendable {
 public struct WorkoutIndex: Codable, Equatable, Sendable {
   public static let fileName = "workouts.json"
   public var workouts: [StoredWorkout]
+  /// What was wrong with the file `load` read, if anything (not stored).
+  public var damage: IndexDamage? = nil
+
+  enum CodingKeys: String, CodingKey { case workouts }
 
   public init(workouts: [StoredWorkout] = []) { self.workouts = workouts }
 
+  /// Empty when the file is missing. A row this build cannot decode is dropped, not the list, and the file as
+  /// found is kept beside it; `damage` says what happened (RecentsIndex.load does the same for sets).
   public static func load(root: URL) -> WorkoutIndex {
     let url = root.appendingPathComponent(fileName)
-    guard let data = try? Data(contentsOf: url), let index = try? JSONDecoder().decode(WorkoutIndex.self, from: data)
-    else { return WorkoutIndex() }
+    guard let data = try? Data(contentsOf: url) else { return WorkoutIndex() }
+    struct LossyFile: Decodable { var workouts: [Lossy<StoredWorkout>] }
+    guard let file = try? JSONDecoder().decode(LossyFile.self, from: data) else {
+      var index = WorkoutIndex()
+      index.damage = .unreadableFile(keptAs: IndexDamage.keepAside(url))
+      return index
+    }
+    var index = WorkoutIndex(workouts: file.workouts.compactMap(\.value))
+    let dropped = file.workouts.count - index.workouts.count
+    if dropped > 0 { index.damage = .droppedRows(dropped, keptAs: IndexDamage.keepAside(url)) }
     return index
   }
 
@@ -173,9 +187,16 @@ public struct WorkoutIndex: Codable, Equatable, Sendable {
     }
   }
 
-  /// The workouts that started on the calendar day of `date`, in start order.
-  public func workouts(on date: Date, calendar: Calendar = .current) -> [StoredWorkout] {
-    let day = calendar.startOfDay(for: date)
-    return workouts.filter { calendar.startOfDay(for: $0.start) == day }.sorted { $0.start < $1.start }
+  /// The ended workouts a line of `sessions()` stands for: every workout inside its span (065).
+  public func parts(of session: StoredWorkout) -> [StoredWorkout] {
+    workouts.filter { $0.start >= session.start && $0.end <= session.end }
+  }
+
+  /// Deletes a line (065): every workout inside it, since a merged line cannot be half deleted. Returns them.
+  @discardableResult public mutating func removeSession(_ session: StoredWorkout) -> [StoredWorkout] {
+    let gone = parts(of: session)
+    let ids = Set(gone.map(\.id))
+    workouts.removeAll { ids.contains($0.id) }
+    return gone
   }
 }

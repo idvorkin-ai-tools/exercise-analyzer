@@ -18,7 +18,7 @@ camera, a display, or a wrist goes higher.
 | Change | Where it must be verified | How |
 |---|---|---|
 | Analyzer thresholds, phase logic, rep rules | Host | fixture count pinned in [`PoseTrackFixtures.swift`](../ExerciseCore/Tests/ExerciseCoreTests/PoseTrackFixtures.swift); trace via `TuningReports` |
-| Exercise detector | Host | `DetectionTests`: every fixture must detect as its own exercise with confidence ≥ 60 |
+| Exercise detector | Host | `DetectionTests`: every fixture must detect as its own exercise with confidence ≥ 75 |
 | Skeleton geometry (angles, sides, uprightness) | Host | `SkeletonTests` with synthetic poses |
 | Crop / me-view, rep span for trimming | Host | `RepCountTests.testRepSpanAndStableCropCoverTheSet` |
 | Where the zoomed lifter sits in the picture (#98) | Host, then the simulator for the HUD around it | `ZoomTransformTests`; to see it, `ZoomPreviewReport` draws the zoomed picture at both gallery heights from a still, with the HUD's bands, in under a second: `cd ExerciseCore && ZOOM_PREVIEW_IMAGE=<set>/rep-1-top.jpg ZOOM_PREVIEW_CROP=0.43,0.21,0.50,0.60 ZOOM_PREVIEW_FRAME=1080x1920 ZOOM_PREVIEW_OUT=/tmp/zoom.png swift test --filter ZoomPreviewReport` (a stored set's rep stills are cut to its crop, so `ZOOM_PREVIEW_FRAME` places one in an empty frame; leave it out for a full-frame still) |
@@ -49,6 +49,12 @@ from which the pipeline's tracker picks the one in play (#18). `just analyze <cl
 --fixture old.json` adds bells to an existing fixture without touching its verified poses. Each is registered in `Fixture.all` with the exercise, the expected rep count, and `humanVerified`
 (Igor confirmed the count) versus a regression baseline (the count the analyzer produced when the fixture was cut).
 
+**Archived tracks** (`just pull-tracks`, every set on the phone, under `Fixtures/tracks/`) are pinned, not verified:
+`ArchivedTracks` detects each one's exercise and counts it, and `Fixtures/archived-counts.json` holds what the
+analyzers said when pinned. A change that moves any of them fails the suite. When the move is intended, rerun with
+`ARCHIVED_PIN_WRITE=1 swift test --filter ArchivedTracks` and name the moved tracks in the analysis note; a fresh
+`just pull-tracks` needs the same rerun to pin the new sets.
+
 To make a fixture from a set on the phone:
 
 ```bash
@@ -72,7 +78,8 @@ the phone analyzed.
 - `FrameStatusTests`: in frame / clipped edges / coverage and the watch message round trip.
 
 **Tuning reports** ([`TuningReports.swift`](../ExerciseCore/Tests/ExerciseCoreTests/TuningReports.swift)) are not
-assertions. `swift test --filter TuningReports` prints, per fixture, every phase transition an analyzer took (its
+assertions, and `just test` skips them (they were 38 of the run's 49 s); `just reports` runs them all, or
+`swift test --filter TuningReports/<name>` one. They print, per fixture, every phase transition an analyzer took (its
 `trace` hook), each rep's checkpoint times and quality, raw per-second signals, and the count under alternative
 thresholds. This is how an analyzer gets tuned against a bad set, and how a "why did it count that" question gets
 answered with numbers instead of theories.
@@ -96,11 +103,12 @@ compiled once into `~/tmp/agent/skill/posetrack/`.
 Any question about a *different* model (a detector for the bell, a bigger pose model, a new export) is answered on
 the Mac with Core ML before anything touches the app: export the candidate to `.mlpackage` the way the phone
 would run it, run it over the sample clips, and measure against the pose fixtures for the same clips. Scripts live
-in [`scripts/model-trials/`](../scripts/model-trials/) as uv scripts (declared dependencies, run them directly):
+in [`scripts/model-trials/`](../scripts/model-trials/) as uv scripts (inline dependencies, no shebang: run them
+with `uv run`, never `python3`, which skips the dependency resolution):
 
 ```bash
-scripts/model-trials/export_bell_detector.py world      # YOLO-World with the class "kettlebell" → Core ML
-scripts/model-trials/bell_trial.py yolov8s-worldv2.mlpackage \
+uv run scripts/model-trials/export_bell_detector.py world      # YOLO-World with the class "kettlebell" → Core ML
+uv run scripts/model-trials/bell_trial.py yolov8s-worldv2.mlpackage \
   ~/tmp/agent/swing-samples/swing-sample-4reps.mp4:ExerciseCore/Tests/ExerciseCoreTests/Fixtures/swing-4reps.json ...
 ```
 
@@ -122,7 +130,7 @@ ski-erg wheel, which is how a rule once showed +15 % that was all wheel (docs/an
 
 ```bash
 cd ExerciseCore && BELL_LAB_DOTS=1 swift test --filter TuningReports/testBellTrackerHeldPerFixture | grep ^DOT > /tmp/dots.txt
-scripts/model-trials/cut-dot-frames.sh /tmp/dots.txt swing-1h-9reps ~/tmp/agent/swing-samples/igor-1h-swing.mp4 25 /tmp/gt
+scripts/model-trials/cut-dot-frames.sh /tmp/dots.txt swing-1h-10reps ~/tmp/agent/swing-samples/igor-1h-swing.mp4 25 /tmp/gt
 scripts/model-trials/grade-dots.sh /tmp/gt          # Muse grades every frame headless, six at a time → labels-muse.csv
 ```
 
@@ -142,8 +150,9 @@ A fresh checkout or worktree needs `just model` before any app build: the `.mlpa
 downloads, and a build without them launches with no predictor — one `model_missing` event, then silence until
 every check times out (2026-09-13).
 
-The simulator cannot be tapped from a script, so the app has **launch hooks** read from the environment
-(pass them through `simctl` as `SIMCTL_CHILD_<name>`):
+`just run-sim [clip]` builds, installs and launches the app on the simulator for a look by hand (the clip, if
+given, loads through `SWING_VIDEO`). The simulator cannot be tapped from a script, so the app has **launch hooks**
+read from the environment (pass them through `simctl` as `SIMCTL_CHILD_<name>`):
 
 | Hook | Effect |
 |---|---|
@@ -158,10 +167,15 @@ The simulator cannot be tapped from a script, so the app has **launch hooks** re
 | `SWING_OPEN_RECENT=1` | reopen the newest Recents entry |
 | `SWING_BUG=text` | file a bug report on launch |
 | `SWING_SHOW_GALLERY=1` | open the rep gallery sheet on launch (gallery screenshots, #61) |
+| `SWING_SHOW_SEEK_CONTROLS=1` | raise the frame-step stacks 4 s after launch, as a middle hold would, for a screenshot (030) |
+| `SWING_BELLS=1` | run the bell detector in the offline pass (off by default since 2026-09-12; the `bellDetector` default does the same) |
+| `SWING_LIVE_BELLS=1` | with `SWING_BELLS=1`: bells while recording too (#69; the `liveBells` default does the same) |
+| `SWING_DEBUG_RUN=1` | start an instrumented run once the launch refresh is done: every stored set through the models with the detector on, `debug_run` start/end in the log (`scripts/sim-debug-run.sh` drives it) |
 | `SWING_WORKOUTS_FOLDED=1` | every day without a workout starts folded (a workout day never folds, #163), so the folded headers' "8×8 [swing]" chips (#129) and the workout days' lines are on the first screen |
 | `SWING_HEART_RATE=1` | give the loaded clip a made-up heart rate (118 → 150 over 30 s, a reading every 5 s) so the HUD's ♥ chip shows; the simulator has no Health data (051) |
 | `SWING_OPEN_WORKOUT=1` | push the newest stored workout's page over the log at launch (053); `=set` goes on to open the workout's first set 2 s later, as a tap on its row would, which puts "‹ Workout" on the playback screen. The simulator has no Health: seed `Documents/workouts.json` with a workout that covers some stored sets and `Documents/workouts/<id>/heartrate.json` (`{"samples":[{"at": <seconds since 1970>, "bpm": 120}, …]}`) in the app's data container; index dates are seconds since 2001 |
-| `SWING_WORKOUT_EVOLVE=1` | simulator-only, with `SWING_LIVE_WORKOUT=2`: the open page receives one in-memory 8-rep set immediately and a second 3 s later, then ends the workout at 25 s through the mirror's save path. `ONLY=live_workout just test-sim` checks `workout_page` goes from 1 to 2 sets / 16 reps, its duration and window grow, Health is re-asked, and the saved page retains both sets. No video or analysis is seeded |
+| `SWING_WORKOUT_EVOLVE=1` | simulator-only, with `SWING_LIVE_WORKOUT=2`: the open page receives one in-memory 8-rep set immediately and a second 3 s later, then ends the workout at 25 s through the mirror's save path. `ONLY=live_workout just test-sim` checks `workout_page` goes from 1 to 2 sets / 16 reps, its duration and window grow, Health is re-asked, and the saved page retains both sets. No video or analysis is seeded. The same check then relaunches with `SWING_DELETE_WORKOUT=confirm` and checks the saved row is deleted (`delete_workout`) |
+| `SWING_DELETE_WORKOUT=confirm` | delete the newest ended workout at launch, as a confirmed "Delete workout…" long-press would (065; the simulator cannot long-press). `workout_deleted` logs the rows gone; the simulator skips Health (no watch records, and its permission sheet would wait for a tap) |
 | `SWING_BACK_TO_WORKOUT=1` | with `SWING_OPEN_RECENT=<id of a set inside a seeded workout>`: 4 s after the set opens, do what a tap on "‹ Workout" does (#99). The log then has `ui back_to_workout` with `from_page: false` and a `workout_page`; `ui back_to_workout_missing` means the set has no workout and the button is not there |
 | `SWING_WORKOUT_BAR_TAP=0.58` | with `SWING_OPEN_WORKOUT=1`: 3 s after the workout's page opens, tap its chart that share of the way across the window on screen (#101). The log then has `ui workout_bar_tap` with `hit` and `window_s` and, on a hit, `recents_open` with the set's id (the seeded workout's sets sit at 0.32, 0.56 and 0.81) |
 | `SWING_WORKOUT_ZOOM=3` | with `SWING_OPEN_WORKOUT=1`: 2 s after the page opens, narrow the chart to a third of the workout around the moment 80 % through it, as a pinch would (#125); `ui workout_zoom` logs `window_s`, `whole_s`, `start_s` and what the chart's proxy reads at the plot's edges (`plot_start_s`, `plot_end_s`, `plot_w`), which must equal the window. With `SWING_WORKOUT_BAR_TAP=0.12` the tap then lands 12 % into that window: the middle seeded set opens, where unzoomed 0.12 hits nothing |
@@ -175,7 +189,7 @@ Results are read from the **session log** (`Documents/logs/*.jsonl` in the app c
 simulator runs the pose model on the CPU at roughly 20 fps, a tenth of the phone, so the script waits for the
 `analyzed` or `trim` event (`wait_for`) instead of sleeping a fixed time. `ONLY=trim just test-sim` runs one check.
 
-Checks today: three clips must detect and count (4 swings, 6 pistols, 8 Bulgarian); the trim check auto-trims the
+Checks today: three clips must detect and count (4 swings, 5 pistols, 8 Bulgarian); the trim check auto-trims the
 one-hand swing clip (10 reps since the first swing counts, #148) and asserts a lossless passthrough cut that starts on a keyframe within 1.5 s of the requested start and
 a first displayed frame at time zero. Cancel must leave playback paused and save nothing; interruption followed
 by a mode switch must re-extract. Four `clip_switch` checks force late foreground completions after another
@@ -186,11 +200,14 @@ Sample clips live outside the repo in `~/tmp/agent/swing-samples/` (`$SAMPLES`);
 
 **Screenshots** for the README come from the same machinery:
 [`scripts/screenshots.sh`](../scripts/screenshots.sh) presets view modes through user defaults (`overlayMode`,
-`meView`, `galleryHeight`), launches each clip, waits for `analyzed`, and captures with `simctl io screenshot`.
+`meView`, `galleryHeight`; the workout page's grouping is `workoutPageGrouped`), launches each clip, waits for
+`analyzed`, and captures with `simctl io screenshot`.
 
 Simulator names are not unique: every Xcode update leaves the previous runtime's "iPhone 17" behind, and
-`simctl` by name can boot one device and launch on another. Every script resolves the name through
-`scripts/sim-udid.sh` (the newest available runtime) before touching the device; pass a UDID to skip it.
+`simctl` by name can boot one device and launch on another. The scripts (`sim-smoke.sh`, `screenshots.sh`,
+`sim-debug-run.sh`, `watch-screens.sh`) resolve the name through `scripts/sim-udid.sh` (the newest available
+runtime) before touching the device; pass a UDID to skip it. The justfile's own `run-sim` and `pull-logs-sim`
+hand the name straight to `simctl`, so give them a UDID (`SIM=<udid> just run-sim`) when two runtimes share it.
 
 ## Rung 2b: the watch simulator
 
@@ -198,7 +215,7 @@ Every watch change runs [`scripts/watch-screens.sh`](../scripts/watch-screens.sh
 after `just build-sim`): it finds the watch app inside the phone build, installs it on the watch simulator,
 and relaunches it once per state with `WATCH_STATE` naming a fixed status (`SIMCTL_CHILD_WATCH_STATE`, the
 same launch-hook pattern as rung 2) — no phone, no pairing, no taps. Each state sleeps 3 s for first render,
-then screenshots to `~/tmp/agent/sim/watch-<state>.png`. The eleven shots are compared by eye against the
+then screenshots to `~/tmp/agent/sim/watch-<state>.png`. The sixteen shots are compared by eye against the
 control inventory at the top of [`05-watch.md`](stories/05-watch.md); a missing button is a failed rung. This
 is the rung that would have caught #74 (the picture page gated on the phone being active): three watch changes
 shipped on green builds and nobody saw a watch screen.

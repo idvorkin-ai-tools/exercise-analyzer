@@ -31,7 +31,8 @@ final class WatchBridge: NSObject, ObservableObject {
   private var unreachableLogged = false
   private var contextFailedLogged = false
   private let minInterval = 0.3
-  /// The watch app is in front (it says so on scene changes); previews are only worth sending then.
+  /// The watch app is in front: it says so on scene changes, on the link's up-edge, in its heartbeat's `front`,
+  /// and by any command it sends; previews are only worth sending then.
   @Published private(set) var watchActive = false
   /// The last heartbeat from the wrist (#122): the next one logs its gap and how many beats never arrived.
   private var lastHeartbeatAt = Date.distantPast
@@ -52,8 +53,9 @@ final class WatchBridge: NSObject, ObservableObject {
     lastSent = status
     lastSentAt = now
     guard let data = try? JSONEncoder().encode(status) else { return }
-    // Application context always (at most once a second): it is delivered when the watch wakes, so a raised
-    // wrist shows the right state within a second even after a long unreachable spell.
+    // Application context always (at most once a second, unless forced by the 3 s tick or a command): it is
+    // delivered when the watch wakes, so a raised wrist shows the right state within a second even after a long
+    // unreachable spell.
     if force || now.timeIntervalSince(lastContextAt) >= 1 {
       lastContextAt = now
       // Logged once per failing spell (#137): the one-way outage could not say whether this channel died too.
@@ -97,10 +99,12 @@ final class WatchBridge: NSObject, ObservableObject {
         let missed = self.lastHeartbeatSeq == 0 ? 0 : max(seq - self.lastHeartbeatSeq - 1, 0)
         self.lastHeartbeatAt = now
         self.lastHeartbeatSeq = seq
-        // A beat from an app in front is as good as a tap for the preview gate (#76, #38).
-        if fields["front"] as? Bool == true, !self.watchActive {
-          self.watchActive = true
-          self.onEvent?("watch_scene", ["active": true, "from": command.rawValue])
+        // A beat from an app in front is as good as a tap for the preview gate (#76, #38); a beat from one that is
+        // not closes it. A workout keeps the watch app beating wrist-down (048), and a "not in front" scene message
+        // is never sent when the link dropped first, so without this the phone streamed previews to a lowered wrist.
+        if let front = fields["front"] as? Bool, front != self.watchActive {
+          self.watchActive = front
+          self.onEvent?("watch_scene", ["active": front, "from": command.rawValue])
         }
         var logged = fields
         logged["gap_ms"] = gap
@@ -119,9 +123,11 @@ final class WatchBridge: NSObject, ObservableObject {
       }
       return
     }
-    // Every other command is a tap on the wrist (or the wake ping), which proves the watch app is in front even
-    // when its scene message was lost: on 2026-09-14 the watch said "active" 56 ms before the phone saw it as
-    // reachable, the flag stayed false and not one preview went out for the whole session (#76, #38).
+    // Every other command is a tap on the wrist or its wake ping, taken as the watch app being in front even when
+    // its scene message was lost: on 2026-09-14 the watch said "active" 56 ms before the phone saw it as
+    // reachable, the flag stayed false and not one preview went out for the whole session (#76, #38). The watch
+    // pings only from an app in front (PhoneLink.ping), and its heartbeat's `front` closes the gate again when the
+    // wrist goes down inside a workout (048).
     Task { @MainActor in
       if !self.watchActive {
         self.watchActive = true

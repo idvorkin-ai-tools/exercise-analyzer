@@ -1,8 +1,9 @@
 // Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 
 //  The whole workout on one page (story 053, #95): heart rate across the session with each set as a band on the
-//  same time axis, then the sets in order with reps, score, peak heart rate, the rest that followed and how far
-//  the heart rate fell in its first minute. Reached from the green workout line in Workouts.
+//  same time axis (in time into the workout, #165), then the sets in order or grouped by exercise (#164) with
+//  reps, score, peak heart rate, the rest that followed and how far the heart rate fell in its first minute.
+//  Reached from the green workout line in Workouts.
 
 import Charts
 import ExerciseCore
@@ -201,12 +202,14 @@ private struct WorkoutPageView: View {
         if let entry = sets.first(where: { $0.id == row.id }), let image = thumbnail(entry) { thumbnails[row.id] = image }
       }
     }
-    .onChange(of: PageLog(workout: workout, timeline: timeline, samples: heartRate?.samples.count ?? 0), initial: true) { _, value in
+    .onChange(
+      of: PageLog(workout: workout, timeline: timeline, samples: heartRate?.samples.count ?? 0, grouped: grouped), initial: true
+    ) { _, value in
       onEvent?(
         "workout_page",
         ["sets": value.sets, "reps": value.reps, "heart_rate_samples": value.samples,
          "live": workout.id == WorkoutMirror.liveID, "workout_id": workout.id,
-         "duration_s": workout.duration, "window_s": visibleSeconds, "grouped": grouped])
+         "duration_s": workout.duration, "window_s": visibleSeconds, "grouped": value.grouped])
     }
   }
 
@@ -242,11 +245,13 @@ private struct WorkoutPageView: View {
     let sets: Int
     let reps: Int
     let samples: Int
-    init(workout: StoredWorkout, timeline: WorkoutTimeline, samples: Int) {
+    let grouped: Bool
+    init(workout: StoredWorkout, timeline: WorkoutTimeline, samples: Int, grouped: Bool) {
       self.workout = workout
       sets = timeline.rows.count
       reps = timeline.rows.reduce(0) { $0 + $1.reps }
       self.samples = samples
+      self.grouped = grouped
     }
   }
 

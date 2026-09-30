@@ -1,7 +1,8 @@
 # Screenshots
 
-Screens from the phone app and the watch app. Most phone images come from `just screenshots` (sample clips
-on the simulator, CPU inference, so the fps readout reads low); the workout timeline below is a real phone capture.
+Screens from the phone app and the watch app. The three analysis screens come from `just screenshots` (sample
+clips on the simulator, CPU inference, so the fps readout reads low); the rest were captured by hand on the
+simulator or, for the workout timeline, on the phone.
 The watch set comes from
 `just watch-screens "Apple Watch Ultra 4 (49mm)"`: every state rendered from a fixed status, in the order of
 the control inventory in [../stories/05-watch.md](../stories/05-watch.md).

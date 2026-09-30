@@ -5,19 +5,19 @@ Code: `ExerciseCore/Sources/ExerciseCore/BulgarianSplitSquatAnalyzer.swift`.
 ## Phases
 
 STANDING → DESCENDING → BOTTOM → ASCENDING → STANDING (rep complete), driven by **head height relative to the
-standing height, scaled by leg length**. The front knee often bends only modestly in a split squat (and reads even
+standing height, scaled by the standing body height (front ankle to ear)**. The front knee often bends only modestly in a split squat (and reads even
 less from a diagonal camera), so it scores quality but does not gate the phases.
 
 - **Front leg**: the foot that sits lower on screen (the rear foot is up on the bench). Elevation is voted over
-  recent frames (`elevationVoteFraction` 0.12 of leg length, `elevatedRecentlyFraction` 0.3).
+  recent frames (`elevationVoteFraction` 0.12 of body height, `elevatedRecentlyFraction` 0.3).
 - **The bench**: the offline pass runs a bench detector (YOLOE-26s, prompt "bench", `BellDetector.bench`) about
   once a second; an ankle inside the box's width, from 0.03 above its top edge down to `benchTopShare` (0.25) of its
   height, also counts as the rear foot up, and with one ankle there the other is the front leg. The last box
   stands for `benchMaxAge` (3 s). Live recording has no bench; the offline pass decides the stored count.
-- **Descend** when the head drops more than `descendFraction` (0.08) of leg length below standing height; **rise**
+- **Descend** when the head drops more than `descendFraction` (0.08) of body height below standing height; **rise**
   after it comes back up `riseFraction` (0.02) from the bottom; **standing** again within `returnFraction` (0.05) of
   the standing height. Frames with spine over `maxValidSpineAngle` (60°) are rejected.
-- **Not a rep**: a dip that bottoms out less than `minDepthFraction` (0.2 L) below the standing height (a head
+- **Not a rep**: a dip that bottoms out less than `minDepthFraction` (0.2 of body height) below the standing height (a head
   wobble); any dip before the rear foot has been up `minSetUpSeconds` (2.5 s) (the foot going up to the bench
   mid-crouch). The standing height is forgotten only after `forgetTopAfter` (4 s) with no elevated reading: from
   a diagonal camera the front leg hides the rear ankle while standing tall.
@@ -35,15 +35,17 @@ less from a diagonal camera), so it scores quality but does not gate the phases.
 | bulgarian-4CF19A9A-phone | 8 | yes | Igor's gym set (2026-09-22, #132), diagonal camera: a setup crouch and a head wobble counted as reps 1 and 2; bench boxes added by `posetrack --poses-from` |
 | bulgarian-599F988A-phone | 8 | no | Igor's evening set (#135), side camera: Muse counted 8 over one strip per head drop, the first checked by eye; counted 6 |
 | bulgarian-7424BEDD-phone | 6 | yes | Igor's gym set (2026-09-22, #134), camera front-left, bench nearer the camera than him: counted 0 without the bench |
+| bulgarian-79271425-phone | 8 | no | Igor's set (2026-09-22, #135, #172), set up near the camera: 8 by Muse's strip and checked by eye; the dumbbells put down with the feet together counted as a ninth |
 | tracks/bulgarian-split-squat-20260909-98B26725 | archived | | must still analyze (`ArchivedTracks`) |
 
-Reports: `TuningReports.testBulgarianPhoneSetUnderThresholds`, `testBulgarianTenRepSetTrace`,
+Reports: `TuningReports.testBulgarianBottoms` (every counted bottom, and each dip's spine and knee gap),
+`testBulgarianPhoneSetUnderThresholds`, `testBulgarianTenRepSetTrace`,
 `testBulgarianPhoneSignals` (knee angles, spine, ear and ankle heights per quarter second, plus a naive dip count).
 
 ## Experiments
 
 - **2026-09-12, bulgarian-phone**: `testBulgarianPhoneSignals` showed the front knee dipping only to 110–130° from
-  the diagonal camera while the head dropped by a steady fraction of leg length 8 times; phases moved from the
+  the diagonal camera while the head dropped by a steady fraction of body height 8 times; phases moved from the
   front knee to head height (commit 681f98d and the AGENTS.md rule).
 - Both counts are analyzer baselines. Next: Igor confirms 8 on one of them and it becomes `humanVerified`.
 - **2026-09-13, tracks/bulgarian-split-squat-20260909-98B26725 ([#55](https://github.com/idvorkin/exercise-analyzer/issues/55))**:
@@ -98,3 +100,37 @@ Reports: `TuningReports.testBulgarianPhoneSetUnderThresholds`, `testBulgarianTen
   `minDepthFraction`, 79271425 counts 9 (8 + the put-down, open), and abandoning every short turn made
   599F988A 7, whose first rep came back 0.06 L short (Muse and by eye: 8), hence `turnCountsFraction` 0.15:
   599F988A 8 (was 6). Verified fixtures unchanged (8, 8, 8, 6). AnalysisVersion 2026-09-22.4.
+- **2026-09-28, review (no fixture; [#171](https://github.com/idvorkin/exercise-analyzer/issues/171))**: the score's
+  `minFrontKnee`/`minRearKnee` took an unmeasured knee (0°) as full depth and skipped the rear-knee penalty; 0 is
+  now ignored, as the split squat already did. Counts unchanged (8, 8, 8, 8, 6). AnalysisVersion 2026-09-28.1.
+- **2026-09-29, the drawn legs latch ([#131](https://github.com/idvorkin/exercise-analyzer/issues/131))**: Igor
+  turned down hiding the bones ("we know the legs from when we're standing ... You can latch a leg instead").
+  `LegLatch` latches each ankle's spot on every standing frame. Elsewhere it swaps knee and ankle back when
+  swapping moves the ankles less than half as far, and draws an ankle more than 0.05 from its spot at it.
+  `TuningReports.testLegLatch`, knee and ankle jumps over 0.05 of the frame between frames, raw → drawn:
+
+  | Fixture | Frames | Leg jumps | Knee jumps | Swapped | Held |
+  |---|---|---|---|---|---|
+  | bulgarian-10reps | 1094 | 348 → 123 | 112 → 77 | 151 | 422 |
+  | bulgarian-phone | 1221 | 63 → 44 | 4 → 2 | 475 | 153 |
+  | bulgarian-4CF19A9A-phone | 1577 | 478 → 214 | 101 → 75 | 173 | 474 |
+  | bulgarian-7424BEDD-phone | 1271 | 180 → 63 | 50 → 45 | 78 | 279 |
+  | bulgarian-599F988A-phone | 1256 | 296 → 106 | 81 → 44 | 52 | 435 |
+  | splitsquat-barbell-phone | 2418 | 16 → 27 | 4 → 6 | 19 | 713 |
+  | splitsquat-256C9B06-phone | 2677 | 39 → 39 | 17 → 17 | 336 | 1101 |
+
+  Holding only an ankle that sat on the other foot left about twice the jumps (348 → 247 on bulgarian-10reps).
+  The hips never jump, so they keep their names. bulgarian-phone's 475 swaps are a steady trade after its first
+  standing frame, invisible since both legs draw alike. The split squats gain nothing, so the latch draws the
+  Bulgarian only. The remaining jumps are knee spikes, which a latch cannot fix. Drawing only: counts unchanged,
+  no AnalysisVersion bump.
+- **2026-09-29, bulgarian-79271425-phone, the put-down ([#172](https://github.com/idvorkin/exercise-analyzer/issues/172))**:
+  the fixture went in expecting 8 and failed at 9. One bottom frame does not part the put-down from a rep
+  (`testBulgarianBottoms`). The knee gap is 0.01 of body height there, but 0.04 at a real front-camera bottom.
+  The spine is 54° against up to 50°, and ear over hip 0.28 against 0.30 or more. The wrists hang near the floor
+  on several cameras anyway. Over the whole dip it parts clearly: the knees sit within 0.08 of body height
+  side to side in 77 % of the put-down's frames, and in at most 53 % of any real rep's (bulgarian-10reps, whose
+  front camera overlaps the legs). A dip with the knees together in over 65 % of its frames now goes back to
+  standing uncounted (`kneesTogetherFraction`, `hingeShare`). All six fixtures count as expected (8, 8, 8, 6, 8,
+  8) and the archived 98B26725 stays 8. One put-down is the only example, so the margin rests on it.
+  AnalysisVersion 2026-09-29.2.

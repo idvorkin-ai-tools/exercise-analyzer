@@ -49,7 +49,7 @@ final class FrameStatusTests: XCTestCase {
     // The gym Bulgarian set was framed with room to spare; the 13-rep swing clip has the feet on the bottom edge
     // throughout (which is why the detector once misread it), so the hint must say so.
     XCTAssertGreaterThan(try share("bulgarian-phone", "In frame"), 0.9)
-    XCTAssertGreaterThan(try share("swing-phone-13reps", "Feet cut off"), 0.95)
+    XCTAssertGreaterThan(try share("swing-phone-14reps","Feet cut off"), 0.95)
   }
 
   func testAnAnkleAtTheSideIsCutOffThere() throws {

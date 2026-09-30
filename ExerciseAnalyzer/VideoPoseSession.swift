@@ -1,12 +1,15 @@
 // Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 
-//  VideoPoseSession orchestrates the app: two frame sources (file playback, live camera), one shared pose
-//  predictor, an AnalysisPipeline per analysis, the recorder, the offline pass, trimming, saving, rep navigation,
-//  and the session log.
+//  VideoPoseSession orchestrates the app: two frame sources (file playback, live camera), the models behind
+//  ModelSet, an AnalysisPipeline per analysis, the recorder, the offline pass and the stored-set refresh, trimming,
+//  saving and sharing, rep navigation, the watch companion, the wrist workout's mirror and heart rate, keep-awake
+//  and the dimmer, bug reports, the instrumented run, and the session log. The 2026-09-13 decision (#52) takes it
+//  apart in small steps; what has moved out so far is listed in docs/architecture/2026-09-13-decision.md.
 //
 //  Live camera: every frame is recorded and analyzed live (frames drop if inference falls behind). Done trims the
-//  recording to the rep span and runs the offline pass on the clip. Imported files get the offline pass on load.
-//  Playback then replays the stored pose track from the player clock; no frames are pulled from the player.
+//  recording to the rep span (unless the count is implausible, #141) and runs the offline pass on the clip.
+//  Imported files get the offline pass on load. Playback then replays the stored pose track from the player
+//  clock; no frames are pulled from the player.
 
 import AVFoundation
 import ExerciseCore
@@ -40,13 +43,14 @@ final class VideoPoseSession: NSObject, ObservableObject {
 
   let player = AVPlayer()
   let log: SessionLog
+  /// Shake reports' files and old-log pruning (BugReport.swift).
+  private let bugReporter: BugReporter
   let recents = RecentsStore()
   /// Both models and their compute plans behind one readiness gate (#52 step 4); kicks loading on creation.
   let models: ModelSet
 
   @Published private(set) var source: Source = .none
   @Published private(set) var activity: Activity = .idle
-  @Published private(set) var modelStatus = "Loading model…"
   @Published private(set) var statusMessage: String?
   @Published private(set) var latestFrame: FrameRecord?
   @Published private(set) var reps: [RepRecord] = []
@@ -124,13 +128,19 @@ final class VideoPoseSession: NSObject, ObservableObject {
   /// How long the live pose path waits for the overlapped detector past the pose result: pose runs
   /// ~10 ms and the detector 11–15 ms from the same start, so this covers thermal wobble while a
   /// slow detector loses the frame instead of the frame rate.
-  private static let liveBellWait = DispatchTimeInterval.milliseconds(20)
+  nonisolated private static let liveBellWait = DispatchTimeInterval.milliseconds(20)
   private var frameDuration = 1.0 / 30
   private var timeObserver: Any?
   private var endObserver: NSObjectProtocol?
 
   private var camera: CameraSource?
-  private var recorder: FrameRecorder?
+  /// The capture queue writes every frame to the recorder while the main actor swaps it (rotation, pause, stop),
+  /// so it lives in a locked slot the capture callback holds, not in a main-actor property it reads (#171).
+  private let recorderSlot = RecorderSlot()
+  private var recorder: FrameRecorder? {
+    get { recorderSlot.value }
+    set { recorderSlot.value = newValue }
+  }
   /// Orientation the capture is rotated to; a rotation mid-recording restarts the capture into a new segment.
   private var cameraOrientation: AVCaptureVideoOrientation = .portrait
   /// Segments closed by a pause or a rotation, each still finishing its file; Done awaits them in order.
@@ -269,14 +279,21 @@ final class VideoPoseSession: NSObject, ObservableObject {
     cameraZoom = savedZoom > 0 ? savedZoom : 1
     log = SessionLog()
     models = ModelSet(log: log)
+    bugReporter = BugReporter(log: log)
     super.init()
-    pruneOldLogs()  // after the new session's log is open (#72)
+    bugReporter.pruneOldLogs()  // after the new session's log is open (#72)
     if case .fixed(let kind) = exerciseMode { exercise = kind }
     pipeline = AnalysisPipeline(exercise: exercise)
     watch.onEvent = { [weak self] type, fields in self?.log.event(type, fields) }
     WorkoutMirror.shared.onEvent = { [weak self] type, fields in self?.log.event(type, fields) }
+    // An index file with rows this build could not read (a downgrade, a hand edit): the rows that decoded are in
+    // use and the file as found sits beside it as .bad-<time>.
+    if let damage = recents.indexDamage { log.event("error", ["where": "recents_index", "message": "\(damage)"]) }
+    if let damage = WorkoutMirror.shared.indexDamage {
+      log.event("error", ["where": "workouts_index", "message": "\(damage)"])
+    }
     WorkoutLiveActivity.shared.onEvent = { [weak self] type, fields in self?.log.event(type, fields) }
-    WorkoutLiveActivity.shared.install()  // the workout on the lock screen and in the Dynamic Island (#161)
+    WorkoutLiveActivity.shared.install(mirror: .shared)  // the workout on the lock screen and in the Dynamic Island (#161)
     CrashReports.shared.onEvent = { [weak self] type, fields in self?.log.event(type, fields) }
     CrashReports.shared.reportSignalLogs { [weak self] type, fields in self?.log.event(type, fields) }
     watch.onCommand = { [weak self] command in self?.handleWatch(command) }
@@ -352,8 +369,6 @@ final class VideoPoseSession: NSObject, ObservableObject {
         self.isPlaying = false
       }
     }
-    models.onStatus = { [weak self] in self?.modelStatus = $0 }
-    modelStatus = models.status
     RecordPrompt.prepare(log: log)
     UIDevice.current.beginGeneratingDeviceOrientationNotifications()
     NotificationCenter.default.addObserver(forName: UIDevice.orientationDidChangeNotification, object: nil, queue: .main) {
@@ -402,8 +417,8 @@ final class VideoPoseSession: NSObject, ObservableObject {
     let predictor = await models.ready()
     log.event(
       "recents_refresh_wait",
-      ["predictor": predictor != nil, "waited_ms": Int(Date().timeIntervalSince(waitStarted) * 1000), "plans": plans])
-    log.event("recents_refresh_wait", ["plans": "done", "models": models.names])
+      ["predictor": predictor != nil, "waited_ms": Int(Date().timeIntervalSince(waitStarted) * 1000), "plans": plans,
+       "models": models.names])
     // A set typed on the wrist has no poses and no clip: nothing to re-read or re-run (059).
     let stale = recents.entries.filter {
       !$0.isByHand && (recents.isStale($0) || !Set(models.names).isSubset(of: storedModels($0)))
@@ -712,7 +727,7 @@ final class VideoPoseSession: NSObject, ObservableObject {
     untrimmed = nil
     canUndoTrim = false
     guard models.predictor != nil else {
-      // Model still loading: retry when ready, latest tap wins (replaces pendingLoadURL).
+      // Model still loading: retry when ready, latest tap wins.
       statusMessage = "Waiting for model…"
       loadRetry?.cancel()
       loadRetry = Task { [weak self, url, recordedAt] in
@@ -805,8 +820,8 @@ final class VideoPoseSession: NSObject, ObservableObject {
       if case .photos(let identifier) = entry.source {
         // An old set may live only in iCloud: show the download rather than a tap that seems to do nothing (#35).
         activity = .working("Loading from Photos", progress: nil)
-        let fetch = await RecentsStore.fetchPhotosClip(identifier: identifier) { [weak self] fraction in
-          guard let self, self.isCurrent(operation) else { return }
+        let fetch = await RecentsStore.fetchPhotosClip(identifier: identifier) { fraction in
+          guard self.isCurrent(operation) else { return }
           self.activity = .working("Downloading from iCloud", progress: fraction)
         }
         guard isCurrent(operation) else { return }
@@ -1014,8 +1029,6 @@ final class VideoPoseSession: NSObject, ObservableObject {
     var line: String
     /// Of the set under way, 0–1 (the pass's own progress).
     var progress = 0.0
-    /// Of the whole run: sets done plus the current set's fraction, over the total.
-    var overall: Double { total > 0 ? (Double(index - 1) + progress) / Double(total) : 0 }
   }
   @Published private(set) var instrumentedRun: InstrumentedRun?
   private var instrumentedRunCancelled = false
@@ -1397,7 +1410,7 @@ final class VideoPoseSession: NSObject, ObservableObject {
       fields["matrix"] = ext[kCMFormatDescriptionExtension_YCbCrMatrix as String] ?? "none"
       fields["bit_depth"] = ext[kCMFormatDescriptionExtension_BitsPerComponent as String] ?? "n/a"
     }
-    fields["hdr"] = track.hasMediaCharacteristic(.containsHDRVideo)
+    fields["hdr"] = (try? await track.load(.mediaCharacteristics))?.contains(.containsHDRVideo) ?? false
     if let t = try? await track.load(.preferredTransform) {
       // A negative determinant means the clip carries a mirror (a flipped edit), not just a rotation (#5).
       fields["transform"] = [t.a, t.b, t.c, t.d, t.tx, t.ty].map { Double($0) }
@@ -1432,7 +1445,7 @@ final class VideoPoseSession: NSObject, ObservableObject {
     lastQuality = pipeline.reps.last?.quality
     // Show the frame under the playhead, not frame 0: after a re-analysis the HUD must reflect the new result
     // where the lifter is looking, without waiting for playback to advance.
-    latestFrame = pipeline.track.nearest(to: currentTime, tolerance: 0.2) ?? pipeline.track.frames.first
+    latestFrame = (pipeline.track.nearest(to: currentTime, tolerance: 0.2) ?? pipeline.track.frames.first).map(pipeline.track.drawn)
     lastLoggedPhase = nil
     recentBoxes = []
     personCrop = pipeline.stableCrop
@@ -1541,15 +1554,6 @@ final class VideoPoseSession: NSObject, ObservableObject {
     if let target { seek(to: target, from: offset > 0 ? "next_checkpoint" : "previous_checkpoint") }
   }
 
-  func resetAnalysis() {
-    pipeline = AnalysisPipeline(exercise: exercise)
-    reps = []
-    lastQuality = nil
-    latestFrame = nil
-    statusMessage = nil
-    log.event("reset")
-  }
-
   private func startDisplayLink() {
     guard displayLink == nil else { return }
     let link = CADisplayLink(target: self, selector: #selector(displayLinkFired))
@@ -1584,6 +1588,9 @@ final class VideoPoseSession: NSObject, ObservableObject {
     guard liveInferenceEnabled, let predictor = models.predictor, !inferenceBusy,
       let sampleBuffer = Self.makeSampleBuffer(pixelBuffer, time: time)
     else { return }
+    // Core Video and Core Media buffers are not marked Sendable; this frame's are handed to the inference queues and
+    // only read there.
+    nonisolated(unsafe) let frameSample = sampleBuffer, framePixels = pixelBuffer
     // The models are one job's at a time (#147): while a cancelled pass finishes its last frame, live frames
     // skip, as they do while the previous live frame is in flight. Released once predict and the bell run end.
     let lease = models.lease
@@ -1625,7 +1632,7 @@ final class VideoPoseSession: NSObject, ObservableObject {
         guard let self else { return }
         // `predict` runs Vision synchronously and calls the listeners before returning, so the busy flag can be
         // cleared here whether or not a result was delivered.
-        predictor.predict(sampleBuffer: sampleBuffer, onResultsListener: self, onInferenceTime: self)
+        predictor.predict(sampleBuffer: frameSample, onResultsListener: self, onInferenceTime: self)
         Task { @MainActor in self.inferenceBusy = false }
       }
       return
@@ -1641,11 +1648,11 @@ final class VideoPoseSession: NSObject, ObservableObject {
       var found: [BellSighting] = []
       group.enter()
       DispatchQueue.global(qos: .userInitiated).async {
-        found = bellDetector.detect(in: pixelBuffer, wrists: wrists)
+        found = bellDetector.detect(in: framePixels, wrists: wrists)
         group.leave()
-        Task { @MainActor [weak self] in self?.bellBusy = false }
+        Task { @MainActor in self.bellBusy = false }
       }
-      predictor.predict(sampleBuffer: sampleBuffer, onResultsListener: catcher, onInferenceTime: self)
+      predictor.predict(sampleBuffer: frameSample, onResultsListener: catcher, onInferenceTime: self)
       // The lease covers the bell run too: a late detector still holds the models after this frame gives up on it.
       group.notify(queue: .global(qos: .userInitiated)) { lease.release() }
       // The detector started with pose, so by now it is usually done; a late one loses this frame
@@ -1774,9 +1781,10 @@ final class VideoPoseSession: NSObject, ObservableObject {
   private func sendPreviewIfDue(pixelBuffer: CVPixelBuffer) {
     // Previews stream only while the watch app is in front and reachable (#76): gating on reachability alone
     // sent ~1 fps into suspended watches (18 of 19 logged previews fired while watch_active=false). Safe from
-    // #38 (a scene-active message missed at launch starved the preview for the whole set): the watch resends
-    // .watchActive on every foreground and pings for a forced status on wake (PhoneLink.sceneActive), so a
-    // missed message only delays previews until the next wrist raise instead of starving them.
+    // #38 (a scene-active message missed at launch starved the preview for the whole set): the watch sends
+    // .watchActive on a scene change while reachable and again on the link's up-edge, and its heartbeat carries
+    // `front` (PhoneLink.sceneActive, WatchBridge.handle), so a missed message only delays previews until the
+    // next beat or wrist raise instead of starving them.
     if watch.watchActive, watch.reachable, Date().timeIntervalSince(lastPreviewSent) >= 1 {
       lastPreviewSent = Date()
       // Long side 320 (about 15–25 KB a frame at quality 0.45): the watch shows the picture full-screen
@@ -1929,7 +1937,7 @@ final class VideoPoseSession: NSObject, ObservableObject {
   }
 
   private func show(_ frame: FrameRecord) {
-    latestFrame = frame
+    latestFrame = pipeline.track.drawn(frame)  // the Bulgarian's latched legs (#131)
     if let phase = frame.analysis?.phase, phase != lastLoggedPhase {
       lastLoggedPhase = phase
       // The log numbers reps the way the screen does (#54): the gallery's 1-based rep while reviewing
@@ -2072,8 +2080,8 @@ final class VideoPoseSession: NSObject, ObservableObject {
       let orientation = orientation ?? currentVideoOrientation()
       cameraOrientation = orientation
       let camera = try CameraSource(position: position, orientation: orientation)
-      camera.onFrame = { [weak self] sampleBuffer in
-        self?.recorder?.append(sampleBuffer)
+      camera.onFrame = { [weak self, recorderSlot] sampleBuffer in
+        recorderSlot.value?.append(sampleBuffer)
         let pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer).seconds
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         Task { @MainActor in self?.cameraFrame(pixelBuffer: pixelBuffer, pts: pts) }
@@ -2342,7 +2350,7 @@ final class VideoPoseSession: NSObject, ObservableObject {
     let closing = segmentFinishes
     segmentFinishes = []
     let clipStartedAt = recordingStartedAt
-    let hadPause = pausedTotal != 0
+    let hadPause = pausedTime != 0  // pausedTotal is already zero: stopCamera() reset it above
     activity = .working("Finishing recording", progress: nil)
     log.event(
       "camera_done",
@@ -2379,9 +2387,9 @@ final class VideoPoseSession: NSObject, ObservableObject {
       var clipURL = segments[0]
       if segments.count > 1 {
         // Rotated mid-set (#22) or paused (#67): join the segments into one clip before trimming and analysis.
-        let progress: (@Sendable (Double) -> Void)? = { [weak self] progress in
+        let progress: (@Sendable (Double) -> Void)? = { progress in
           Task { @MainActor in
-            guard let self, self.isCurrent(operation) else { return }
+            guard self.isCurrent(operation) else { return }
             self.activity = .working("Joining segments", progress: progress)
           }
         }
@@ -2418,7 +2426,6 @@ final class VideoPoseSession: NSObject, ObservableObject {
     }
   }
 
-  /// Trim the current file to the detected rep span (file mode button).
   /// Seconds kept before the first rep and after the last: enough to see the setup and the finish.
   static let trimPadding = 5.0
 
@@ -2732,63 +2739,11 @@ final class VideoPoseSession: NSObject, ObservableObject {
     }
   #endif
 
-  // MARK: - Bug reports
+  // MARK: - Bug reports (the files are BugReporter's)
 
-  /// What the screen showed when the shake landed: a snapshot of the window (HUD, pills, gallery; video layers
-  /// may come out black) and, in playback, the clip's own frame at the playhead. Saved with the report (#24).
-  private var bugScreenshot: UIImage?
-  private var bugFrame: CGImage?
-
+  /// The shake landed: the screen now, and in playback the clip's frame at the playhead.
   func captureBugScreenshot() {
-    let windows = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.flatMap(\.windows)
-    if let window = windows.first(where: \.isKeyWindow) ?? windows.first {
-      bugScreenshot = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
-        window.drawHierarchy(in: window.bounds, afterScreenUpdates: false)
-      }
-    }
-    bugFrame = nil
-    guard source != .camera, let url = currentFileURL else { return }
-    let time = CMTime(seconds: currentTime, preferredTimescale: 600)
-    Task { [weak self] in
-      let generator = AVAssetImageGenerator(asset: AVURLAsset(url: url))
-      generator.appliesPreferredTrackTransform = true
-      generator.maximumSize = CGSize(width: 720, height: 720)
-      generator.requestedTimeToleranceBefore = .zero
-      generator.requestedTimeToleranceAfter = .zero
-      if let (image, _) = try? await generator.image(at: time) { self?.bugFrame = image }
-    }
-  }
-
-  private static let bugFolderFormatter: DateFormatter = {
-    let f = DateFormatter()
-    f.locale = Locale(identifier: "en_US_POSIX")
-    f.timeZone = TimeZone(identifier: "UTC")
-    f.dateFormat = "yyyyMMdd-HHmmss"
-    return f
-  }()
-
-  /// Writes the captured screenshot and frame under Documents/bugs/<stamp>/ and returns their relative paths.
-  private func saveBugImages(stamp: String) -> [String: String] {
-    var saved: [String: String] = [:]
-    let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-    let folder = documents.appendingPathComponent("bugs", isDirectory: true).appendingPathComponent(stamp, isDirectory: true)
-    let files: [(String, Data?, String)] = [
-      ("screen.png", bugScreenshot?.pngData(), "screenshot"),
-      ("frame.jpg", bugFrame.map { UIImage(cgImage: $0).jpegData(compressionQuality: 0.8) } ?? nil, "frame"),
-    ]
-    for (name, data, key) in files {
-      guard let data else { continue }
-      do {
-        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        try data.write(to: folder.appendingPathComponent(name))
-        saved[key] = "bugs/\(stamp)/\(name)"
-      } catch {
-        log.event("error", ["where": "bug_images", "message": "\(error)"])
-      }
-    }
-    bugScreenshot = nil
-    bugFrame = nil
-    return saved
+    bugReporter.capture(clip: source == .camera ? nil : currentFileURL.map { ($0, currentTime) })
   }
 
   /// What a report carries besides the note: enough to find the moment in the log and the clip in Recents.
@@ -2810,81 +2765,7 @@ final class VideoPoseSession: NSObject, ObservableObject {
 
   /// Writes the report into the session log and to Documents/bugs.jsonl (one line per report, newest last).
   func reportBug(note: String) {
-    let now = Date()
-    let images = saveBugImages(stamp: Self.bugFolderFormatter.string(from: now))
-    let context = bugContext().merging(images) { a, _ in a }
-    log.event("bug_report", context.merging(["note": note]) { a, _ in a })
-    var record: [String: Any] = context
-    record["note"] = note
-    record["reported_at"] = ISO8601DateFormatter().string(from: now)
-    record["session_t_ms"] = Int(Date().timeIntervalSince(log.startedAt) * 1000)
-    let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-      .appendingPathComponent("bugs.jsonl")
-    if let data = try? JSONSerialization.data(withJSONObject: record) {
-      if let handle = try? FileHandle(forWritingTo: url) {
-        handle.seekToEndOfFile()
-        handle.write(data)
-        handle.write(Data([0x0A]))
-        try? handle.close()
-      } else {
-        try? (data + Data([0x0A])).write(to: url)
-      }
-    }
-    statusMessage = "Problem logged. Thanks."
-  }
-
-  /// Deletes session logs older than 30 days, except any named by a report in bugs.jsonl (#72). Runs at launch,
-  /// after the new session's log is open, and logs one `logs_pruned` event even when zero. A file whose age
-  /// cannot be read is never deleted.
-  private func pruneOldLogs() {
-    let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-    let dir = docs.appendingPathComponent("logs", isDirectory: true)
-    let now = Date()
-    // A bugs.jsonl that exists but cannot be read means the reported logs are unknown: prune nothing rather
-    // than delete evidence (the 2026-09-15 review).
-    guard let referenced = Self.referencedLogs(at: docs.appendingPathComponent("bugs.jsonl")) else {
-      log.event("error", ["where": "logs_prune", "message": "bugs.jsonl unreadable; nothing pruned"])
-      return
-    }
-    let files = ((try? FileManager.default.contentsOfDirectory(
-      at: dir, includingPropertiesForKeys: [.contentModificationDateKey, .fileSizeKey])) ?? [])
-      .filter { $0.pathExtension == "jsonl" }
-      .compactMap { url -> (name: String, age: Double, size: Int)? in
-        guard let values = try? url.resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey]),
-          let modified = values.contentModificationDate
-        else { return nil }
-        return (url.lastPathComponent, now.timeIntervalSince(modified), values.fileSize ?? 0)
-      }
-    let victims = Set(LogRetention.prune(
-      files: files.map { (name: $0.name, age: $0.age) }, referenced: referenced))
-    var count = 0, freed = 0
-    for file in files where victims.contains(file.name) {
-      do {
-        try FileManager.default.removeItem(at: dir.appendingPathComponent(file.name))
-        count += 1
-        freed += file.size
-      } catch {
-        log.event("error", ["where": "logs_prune", "file": file.name, "message": "\(error)"])
-      }
-    }
-    let kept = files.filter { $0.age > LogRetention.retentionSeconds && referenced.contains($0.name) }.count
-    log.event("logs_pruned", ["count": count, "bytes": freed, "kept_for_reports": kept])
-  }
-
-  /// Log file names referenced by bugs.jsonl (each report names its log); malformed lines are skipped.
-  /// The session logs bug reports name; nil when bugs.jsonl exists but cannot be read (no file: empty set).
-  private static func referencedLogs(at url: URL) -> Set<String>? {
-    guard FileManager.default.fileExists(atPath: url.path) else { return [] }
-    guard let data = try? Data(contentsOf: url), let text = String(data: data, encoding: .utf8) else { return nil }
-    var names = Set<String>()
-    for line in text.split(separator: "\n") {
-      guard let lineData = line.data(using: .utf8),
-        let record = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any],
-        let name = record["log"] as? String
-      else { continue }
-      names.insert(name)
-    }
-    return names
+    statusMessage = bugReporter.report(note: note, context: bugContext())
   }
 
   private func currentVideoOrientation() -> AVCaptureVideoOrientation {

@@ -7,8 +7,8 @@
 
 import Foundation
 
-public struct RecentEntry: Codable, Identifiable {
-  public enum Source: Codable {
+public struct RecentEntry: Codable, Identifiable, Sendable {
+  public enum Source: Codable, Sendable {
     case photos(identifier: String)
     case file(name: String)
     /// Typed on the wrist (story 059): no clip anywhere. Rows from before it never carry it.
@@ -150,9 +150,51 @@ public struct AnalysisSnapshot: Codable {
   }
 }
 
+/// What `load` found wrong with an index file, for the session log; nil when it read clean. Either way the file
+/// as found is copied beside itself first, so the next save (which writes only what decoded) loses nothing for good.
+public enum IndexDamage: Equatable, Sendable {
+  /// Not a JSON list at all (truncated, hand-edited): the index starts empty.
+  case unreadableFile(keptAs: String)
+  /// Rows this build could not decode (an exercise it does not know: a downgrade past #158; a hand edit): the
+  /// other rows are kept.
+  case droppedRows(Int, keptAs: String)
+
+  /// Copies the file to `<name>.bad-<time>` and returns that name; "" when the copy failed. A file still damaged
+  /// the same way at the next launch is kept once: an identical earlier copy's name comes back instead.
+  static func keepAside(_ url: URL) -> String {
+    let fm = FileManager.default
+    let prefix = url.lastPathComponent + ".bad-"
+    if let data = try? Data(contentsOf: url),
+      let same = (try? fm.contentsOfDirectory(at: url.deletingLastPathComponent(), includingPropertiesForKeys: nil))?
+        .first(where: { $0.lastPathComponent.hasPrefix(prefix) && (try? Data(contentsOf: $0)) == data })
+    {
+      return same.lastPathComponent
+    }
+    let copy = url.appendingPathExtension("bad-" + stamp())
+    do {
+      try fm.copyItem(at: url, to: copy)
+      return copy.lastPathComponent
+    } catch {
+      return ""
+    }
+  }
+
+  static func stamp() -> String {
+    ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "")
+  }
+}
+
+/// Decodes `T`, or nil when the value cannot be decoded, so one row cannot fail a whole list.
+struct Lossy<T: Decodable>: Decodable {
+  let value: T?
+  init(from decoder: Decoder) throws { value = try? T(from: decoder) }
+}
+
 /// The index.json file over a recents root: newest entries first.
 public struct RecentsIndex {
   public var entries: [RecentEntry]
+  /// What was wrong with the file `load` read, if anything.
+  public var damage: IndexDamage? = nil
 
   public init(entries: [RecentEntry] = []) {
     self.entries = entries
@@ -164,12 +206,20 @@ public struct RecentsIndex {
     root.appendingPathComponent(id, isDirectory: true).appendingPathComponent("analysis.json")
   }
 
-  /// Newest first; empty when the index is missing or unreadable (same as RecentsStore before step 2).
+  /// Newest first; empty when the index is missing. A row this build cannot decode is dropped, not the list
+  /// (one bad row once emptied Workouts and the next save made it permanent); `damage` says what happened.
   public static func load(root: URL) -> RecentsIndex {
-    guard let data = try? Data(contentsOf: indexURL(root: root)),
-      let decoded = try? JSONDecoder().decode([RecentEntry].self, from: data)
-    else { return RecentsIndex() }
-    return RecentsIndex(entries: decoded.sorted { $0.analyzedAt > $1.analyzedAt })
+    let url = indexURL(root: root)
+    guard let data = try? Data(contentsOf: url) else { return RecentsIndex() }
+    guard let rows = try? JSONDecoder().decode([Lossy<RecentEntry>].self, from: data) else {
+      var index = RecentsIndex()
+      index.damage = .unreadableFile(keptAs: IndexDamage.keepAside(url))
+      return index
+    }
+    var index = RecentsIndex(entries: rows.compactMap(\.value).sorted { $0.analyzedAt > $1.analyzedAt })
+    let dropped = rows.count - index.entries.count
+    if dropped > 0 { index.damage = .droppedRows(dropped, keptAs: IndexDamage.keepAside(url)) }
+    return index
   }
 
   public func save(root: URL) throws {

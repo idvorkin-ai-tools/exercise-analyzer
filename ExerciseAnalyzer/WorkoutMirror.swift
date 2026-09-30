@@ -26,9 +26,14 @@ final class WorkoutMirror: NSObject, ObservableObject {
   private var lastDataLogged = Date.distantPast
   private var authorizationRequested = false
 
+  /// What was wrong with workouts.json at launch, if anything; the session logs it.
+  let indexDamage: IndexDamage?
+
   init(root: URL? = nil) {
     self.root = root ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-    index = WorkoutIndex.load(root: self.root)
+    let loaded = WorkoutIndex.load(root: self.root)
+    index = loaded
+    indexDamage = loaded.damage
     super.init()
     guard HKHealthStore.isHealthDataAvailable() else { return }
     store.workoutSessionMirroringStartHandler = { [weak self] session in
@@ -112,7 +117,7 @@ final class WorkoutMirror: NSObject, ObservableObject {
   }
 
   /// The id the page of 053 gives the running workout, shown as a span up to now.
-  static let liveID = WorkoutIdentity.liveID
+  nonisolated static let liveID = WorkoutIdentity.liveID
 
   /// The ended workouts as the phone shows them: those under 30 minutes apart are one session (#169). Health
   /// keeps its records; the list, the page and "‹ Workout" read these.
@@ -127,6 +132,50 @@ final class WorkoutMirror: NSObject, ObservableObject {
     StoredWorkout(
       id: liveID, start: live.startDate, end: Date(), heartRateAverage: live.heartRateAverage,
       heartRateMax: live.heartRateMax, sets: live.sets, reps: live.reps)
+  }
+
+  /// Deletes a workout line (065; Igor: "Delete it from Health too"): every workout inside it, their heart-rate
+  /// folders, and the wrist's Health records that start within a minute of each. The sets stay. Health lets an
+  /// app delete only what this app or its watch app wrote; when it refuses, the rows go anyway and the answer
+  /// says so, so the lifter can delete the record in Health.
+  func delete(_ session: StoredWorkout) async -> WorkoutDeletion {
+    let parts = index.removeSession(session)
+    var deletion = WorkoutDeletion(rows: parts.count)
+    for part in parts {
+      try? FileManager.default.removeItem(
+        at: root.appendingPathComponent("workouts", isDirectory: true).appendingPathComponent(part.id, isDirectory: true))
+    }
+    do {
+      try index.save(root: root)
+    } catch {
+      deletion.failure = "The list could not be saved: \(error.localizedDescription)"
+    }
+    // The simulator has no watch records, and its permission sheet would wait for a tap no run can give.
+    #if !targetEnvironment(simulator)
+    if HKHealthStore.isHealthDataAvailable(), !parts.isEmpty {
+      do {
+        // Finding the record needs reading workouts, which the mirror never asked for; Health prompts only for
+        // what was not asked yet.
+        try await store.requestAuthorization(toShare: [.workoutType()], read: [.workoutType(), HKQuantityType(.heartRate)])
+        let family = Bundle.main.bundleIdentifier ?? "com.idvorkin.exerciseanalyzer"
+        let query = HKSampleQueryDescriptor(
+          predicates: [.workout(HKQuery.predicateForSamples(withStart: session.start.addingTimeInterval(-60), end: session.end.addingTimeInterval(60)))],
+          sortDescriptors: [])
+        let records = try await query.result(for: store).filter { record in
+          record.sourceRevision.source.bundleIdentifier.hasPrefix(family)
+            && parts.contains { abs(record.startDate.timeIntervalSince($0.start)) < 60 }
+        }
+        if !records.isEmpty { try await store.delete(records) }
+        deletion.healthRecords = records.count
+      } catch {
+        deletion.failure = "Health kept its record: \(error.localizedDescription)"
+      }
+    }
+    #endif
+    onEvent?(
+      "workout_deleted",
+      ["id": session.id, "rows": deletion.rows, "health": deletion.healthRecords, "message": deletion.failure ?? ""])
+    return deletion
   }
 
   /// Test hook (#123): the simulator has no watch, so SWING_LIVE_WORKOUT=<minutes> pretends a workout began
@@ -170,6 +219,14 @@ final class WorkoutMirror: NSObject, ObservableObject {
   #if targetEnvironment(simulator)
   func endSeededWorkout() { ended(at: Date()) }
   #endif
+}
+
+/// What deleting a workout line did (065).
+struct WorkoutDeletion {
+  var rows: Int
+  var healthRecords = 0
+  /// Said to the lifter when set: the list or Health could not be changed.
+  var failure: String?
 }
 
 extension WorkoutMirror: HKWorkoutSessionDelegate {

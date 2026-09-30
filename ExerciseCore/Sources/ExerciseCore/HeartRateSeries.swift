@@ -62,8 +62,11 @@ public struct HeartRateSeries: Codable, Equatable, Sendable {
     return readings.isEmpty ? nil : Int((readings.reduce(0, +) / Double(readings.count)).rounded())
   }
 
+  /// The samples from `start` to `end`, either way round: a closed range traps on reversed ends, and a saved
+  /// workout's end comes from the watch's clock.
   public func slice(from start: Date, to end: Date) -> HeartRateSeries {
-    let range = start.timeIntervalSince1970...end.timeIntervalSince1970
+    let (a, b) = (start.timeIntervalSince1970, end.timeIntervalSince1970)
+    let range = min(a, b)...max(a, b)
     return HeartRateSeries(samples: samples.filter { range.contains($0.at) })
   }
 
@@ -91,6 +94,6 @@ public struct HeartRateSeries: Codable, Equatable, Sendable {
   }
 
   public func save(to folder: URL) throws {
-    try JSONEncoder().encode(self).write(to: folder.appendingPathComponent(Self.fileName))
+    try JSONEncoder().encode(self).write(to: folder.appendingPathComponent(Self.fileName), options: .atomic)
   }
 }

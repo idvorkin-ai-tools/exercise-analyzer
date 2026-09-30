@@ -17,17 +17,22 @@ struct Fixture {
   let expectedReps: Int
   let humanVerified: Bool
 
+  /// The fixture by name: tests that want one clip name it, so a reorder of `all` cannot change what they check.
+  static func named(_ name: String) throws -> Fixture {
+    try XCTUnwrap(all.first { $0.name == name }, "no fixture named \(name)")
+  }
+
   static let all: [Fixture] = [
     Fixture(name: "swing-4reps", expectedExercise: .kettlebellSwing, expectedReps: 4, humanVerified: true),
     // 9 top-to-top until #148. The clip opens with the lifter over the bell on the floor (0–2 s); the hike's top
     // at 2.85 s (arm 86°, wrists above the shoulders; bell at chest height in the video at 2.75–3.0 s) was merged
     // into the next swing, because the hip snap read as CONNECT. Ten tops, 2.85–16.5 s. Igor confirmed 9 under
     // the old convention, not 10.
-    Fixture(name: "swing-1h-9reps", expectedExercise: .kettlebellSwing, expectedReps: 10, humanVerified: false),
+    Fixture(name: "swing-1h-10reps", expectedExercise: .kettlebellSwing, expectedReps: 10, humanVerified: false),
     // 13 top-to-top until #148. Hand on the bell on the floor to 8.5 s, then the hike, and the bell at chest height
-    // at 9.5–9.75 s (arm 78°) in the video; that swing was merged into the next one as in swing-1h-9reps. Igor
+    // at 9.5–9.75 s (arm 78°) in the video; that swing was merged into the next one as in swing-1h-10reps. Igor
     // confirmed 13 under the old convention, not 14.
-    Fixture(name: "swing-phone-13reps", expectedExercise: .kettlebellSwing, expectedReps: 14, humanVerified: false),
+    Fixture(name: "swing-phone-14reps", expectedExercise: .kettlebellSwing, expectedReps: 14, humanVerified: false),
     // Issue #4: the lifter bends over to pick the bell up in the first second, then swings 10 reps from 25 s.
     // 11 counted originally: the setup (8–25 s) and the bell park at the end were both "reps". Igor: neither is.
     // 9 from 2026-09-12 to 09-26: the first swing (the hike off the floor into the top at 25.3 s) was dropped
@@ -73,7 +78,10 @@ struct Fixture {
     // ends on the fifth: five swings end in the clip since #148 (the first, out of a 1 s hinge, counts).
     // Not yet confirmed by Igor.
     Fixture(name: "swing-farcam-5tops", expectedExercise: .kettlebellSwing, expectedReps: 5, humanVerified: false),
-    Fixture(name: "pistol-6reps", expectedExercise: .pistolSquat, expectedReps: 6, humanVerified: false),
+    // 6 until 2026-09-28 (#171): the sixth was the walk-in (0–2.1 s, no head and no knee in view), counted only
+    // because an unmeasured knee started a descent and a missing head confirmed its bottom. The video has five
+    // pistols (bottoms near 6.5, 11, 15, 20, 27.5 s), read from its frames. Not yet confirmed by Igor.
+    Fixture(name: "pistol-5reps", expectedExercise: .pistolSquat, expectedReps: 5, humanVerified: false),
     // Head height drops 8 times at a steady ~4.2 s rhythm; the earlier front-knee analyzer counted 10.
     Fixture(name: "bulgarian-10reps", expectedExercise: .bulgarianSplitSquat, expectedReps: 8, humanVerified: false),
     // Igor's gym set (prod bug report 2026-09-12): 8 head drops at a ~4 s rhythm, setup crouches at both ends.
@@ -92,6 +100,9 @@ struct Fixture {
     // the first rep came back 0.06 L short of the standing height and waited to be merged into the second.
     // Not confirmed by Igor.
     Fixture(name: "bulgarian-599F988A-phone", expectedExercise: .bulgarianSplitSquat, expectedReps: 8, humanVerified: false),
+    // Igor's gym set (2026-09-22, #135, #172), set up near the camera: eight reps, then the dumbbells put down with
+    // the feet together (34.9 s), which counted as a ninth. 8 by Muse's strip and checked by eye; not Igor's count.
+    Fixture(name: "bulgarian-79271425-phone", expectedExercise: .bulgarianSplitSquat, expectedReps: 8, humanVerified: false),
     // Igor's TGU clip (2026-09-12, IMG_4342): two get-ups, one per side, with a rest lying between them.
     Fixture(name: "tgu-phone-2min", expectedExercise: .turkishGetUp, expectedReps: 2, humanVerified: false),
     // Igor's second TGU clip (IMG_4343, issue #14): one get-up per side; a pose glitch at 14 s once counted as a rep.

@@ -10,7 +10,7 @@ BOTTOM, the first qualifying frame for CONNECT and RELEASE.
 
 | Phase | Meaning | Condition (degrees, `SwingThresholds`) |
 |---|---|---|
-| TOP | lockout: arms at peak height, standing tall | spine < 25 (`topSpineMax`), hip > 160 (`topHipMin`), arm > 40 (`topArmMin`), or > 32 within 0.4 s of the release (`ballisticTopArmMin`, `ballisticReleaseMax`), or, within that same 0.4 s, > 20 with the wrists no more than 0.4 torso lengths below the shoulders (`wristTopArmMin`, `wristTopRiseMin`, #139); confirmed by the wrist-height peak; a top over 1 s after the deepest BOTTOM frame (`upswingMaxDuration`) counts only when a hinge follows within 2.5 s (`slowTopConfirmGap`, #149) |
+| TOP | lockout: arms at peak height, standing tall | spine < 25 (`topSpineMax`), hip > 160 (`topHipMin`), arm > 40 (`topArmMin`), or > 32 within 0.4 s of the release (`ballisticTopArmMin`, `ballisticReleaseMax`), or, within that same 0.4 s, > 20 with the wrists no more than 0.4 torso lengths below the shoulders (`wristTopArmMin`, `wristTopRiseMin`, #139); confirmed by the smoothed wrist height peaking at least 80 px under the shoulder line or higher, or, failing a peak, by `minFramesInPhase` + 2 frames spent in RELEASE (fast swings miss the exact peak); a top over 1 s after the deepest BOTTOM frame (`upswingMaxDuration`) counts only when a hinge follows within 2.5 s (`slowTopConfirmGap`, #149) |
 | CONNECT | arms vertical against the body before the hinge | arm < 25 (`connectArmMax`), spine < 25 (`connectSpineMax`) |
 | BOTTOM | deepest hinge, arms behind the body | arm < 75 + 15 (`bottomArmMax`, anything short of horizontal), spine > 35 (`bottomSpineMin`), hip < 140 (`bottomHipMax`) |
 | RELEASE | arms leaving the body after the hip snap | arm < 25 (`releaseArmMax`), spine < 25 (`releaseSpineMax`) |
@@ -52,7 +52,8 @@ BOTTOM, the first qualifying frame for CONNECT and RELEASE.
 
 ## Quality
 
-Scored per rep from the stored positions (lockout angles, hinge depth); mirrored clips must score the same
+Scored per rep from running maxima over the rep's frames (spine lean, arm height, knee flexion), not from the
+stored positions; mirrored clips must score the same
 (`RepCountTests.testSwingCountsMatchWhenMirrored`).
 
 ## Fixtures
@@ -60,8 +61,8 @@ Scored per rep from the stored positions (lockout angles, hinge depth); mirrored
 | Fixture | Reps | Verified | Why it exists |
 |---|---|---|---|
 | swing-4reps | 4 | yes | baseline |
-| swing-1h-9reps | 10 | no (9 was, top to top) | one-hand swing: the working arm is the raised one; opens over the bell, first top 2.85 s (#148) |
-| swing-phone-13reps | 14 | no (13 was, top to top) | phone recording; the first swing off the floor tops at 9.75 s (#148) |
+| swing-1h-10reps | 10 | no (9 was, top to top; was swing-1h-9reps until 2026-09-29) | one-hand swing: the working arm is the raised one; opens over the bell, first top 2.85 s (#148) |
+| swing-phone-14reps | 14 | no (13 was, top to top; was swing-phone-13reps until 2026-09-29) | phone recording; the first swing off the floor tops at 9.75 s (#148) |
 | swing-pickup-10reps | 10 | yes | #4: the bend to pick the bell up (first second) and the park at the end once counted; 9 until the first swing counted (#148) |
 | swing-walkin-9reps | 10 | no (the walk-in is Igor's) | #15 (IMG_4337): the walk-in and pick-up (0.5–6.6 s) counted as rep 1; the hike into the 6.64 s top counts since #148 |
 | swing-lowcam-10reps | 10 | no | #16 (IMG_4340): low, close camera; counted 0 before the arm thresholds were relaxed; 11 from #148 to #149 (the bell set down at the end, 29.22 s) |
@@ -188,3 +189,7 @@ SWING_FROM=12 SWING_TO=17`; a fixture name works too).
   (`~/tmp/agent/image/2026-09-26-parks/`); the lowcam source (66FAD1F2/9F8F947D) and F677269B have no local clip.
   Live, a slow top is counted at the next hinge, about a second after it: in practice the first swing of a set.
   Not yet confirmed by Igor.
+- **2026-09-28, review (no fixture; [#171](https://github.com/idvorkin/exercise-analyzer/issues/171))**: the knee is
+  not part of `measured`, so one frame with an unmeasured knee (0°) in a rep set `maxKneeFlexion` to 175 and the
+  score said "Hinge, don't squat" (−15); `testSwingRepTraces` shows kneeFlex ≤ 72 on every fixture rep, so it had
+  not fired there. 0 is now ignored. Counts unchanged. AnalysisVersion 2026-09-28.1.

@@ -125,9 +125,7 @@ public final class KettlebellSwingAnalyzer: ExerciseAnalyzer {
 
   private struct RepMetrics {
     var maxSpineAngle = 0.0
-    var minHipAngle = 180.0
     var maxArmAngle = 0.0
-    var minArmAngle = 90.0
     var maxKneeFlexion = 0.0
   }
   private var metrics = RepMetrics()
@@ -368,10 +366,9 @@ public final class KettlebellSwingAnalyzer: ExerciseAnalyzer {
 
   private func updateMetrics(_ a: Angles) {
     metrics.maxSpineAngle = max(metrics.maxSpineAngle, a.spine)
-    metrics.minHipAngle = min(metrics.minHipAngle, a.hip)
     metrics.maxArmAngle = max(metrics.maxArmAngle, a.arm)
-    metrics.minArmAngle = min(metrics.minArmAngle, a.arm)
-    metrics.maxKneeFlexion = max(metrics.maxKneeFlexion, 175 - a.knee)
+    // The knee is not part of `measured`: 0 is an unmeasured knee, not a 175° squat.
+    if a.knee > 0 { metrics.maxKneeFlexion = max(metrics.maxKneeFlexion, 175 - a.knee) }
   }
 
   private func calculateRepQuality() -> RepQuality {
