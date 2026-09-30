@@ -71,15 +71,13 @@ final class HandSetTests: XCTestCase {
     XCTAssertTrue(HandSet.start(mode: swing.rawValue, analyzed: analyzed, byHand: nil) == (swing, 3))
   }
 
-  func testTheNewerOfTheAnalyzedAndTheTypedSetIsTheLastSet() {
+  /// #183: the page reopens on the last set typed by hand, even after a filmed set of another exercise and
+  /// whatever the picker says: typed sets are the ones between filmed ones.
+  func testThePageReopensOnTheLastTypedSet() {
     let analyzed = LastSet(reps: 3, exercise: getUp.definition.name, seconds: 90, at: 1000)
-    let later = HandSet(exercise: swing, reps: 8, at: 1100)
-    let earlier = HandSet(exercise: swing, reps: 8, at: 900)
-    XCTAssertTrue(later.isNewer(than: analyzed))
-    XCTAssertFalse(earlier.isNewer(than: analyzed))
-    XCTAssertTrue(earlier.isNewer(than: nil))
-    XCTAssertTrue(HandSet.start(mode: "auto", analyzed: analyzed, byHand: later) == (swing, 8))
-    XCTAssertTrue(HandSet.start(mode: "auto", analyzed: analyzed, byHand: earlier) == (getUp, 3))
+    let earlier = HandSet(exercise: .pullUp, reps: 9, at: 900)
+    XCTAssertTrue(HandSet.start(mode: "auto", analyzed: analyzed, byHand: earlier) == (.pullUp, 9))
+    XCTAssertTrue(HandSet.start(mode: getUp.rawValue, analyzed: analyzed, byHand: earlier) == (.pullUp, 9))
   }
 
   func testAnAnalyzedCountOutsideTheRangeStartsClamped() {

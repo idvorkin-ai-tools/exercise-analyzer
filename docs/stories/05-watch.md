@@ -582,7 +582,12 @@ the first frame (story 001).
 - **Given:** a workout is running on the wrist (048), the camera is not live, and I just did 8 swings without recording them
 - **When:** I turn the Crown past Preview and tap "+ Set by hand", a full-width button under Preview and above
   the pickers (Record and Preview stay where they are; Igor's pick, 2026-09-26)
-- **Then:** a count page opens with the exercise on top (the exercise picker's choice, or the last set's exercise when the picker is on Auto, Kettlebell Swing with no set yet), one large number in the middle starting at the last set's count (10 when there is none), a − and a + either side of it, and Save (green) and Cancel under it
+- **Then:** a count page opens with the exercise on top (the last set I typed on the wrist; with none typed, the exercise picker's choice, or the last set's exercise when the picker is on Auto, Kettlebell Swing with no set yet), one large number in the middle starting at that set's count (10 when there is none), a − and a + either side of it, and Save (green) and Cancel under it
+
+- **Scenario:** Typed sets between filmed ones (#183)
+- **Given:** I typed 9 pull-ups by hand, then filmed a set of split squats, or the watch app relaunched since
+- **When:** I open the count page again
+- **Then:** it opens on Pull-Up and 9, not on the filmed exercise (Igor: "Watch remembers a last exercises by hand")
 
 - **Scenario:** Choosing the exercise on the count page (#154)
 - **Given:** the count page reads "Kettlebell Swing ⌄" over 8, and the set I did was split squats
