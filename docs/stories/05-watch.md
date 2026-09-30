@@ -613,7 +613,7 @@ the first frame (story 001).
 - **Scenario:** The set on the phone's workout page
 - **Given:** the set was saved on the wrist and the phone app is open on the running workout's page (053)
 - **When:** I read the page
-- **Then:** the set's row sits at the time of the save with "8 [swing]" and a "by hand" tag in place of the picture and the score capsule, and a thin mark at that time on the heart-rate chart; the heart numbers come from Health as for any set; tapping it opens nothing (there is no video), a long press offers "Set exercise and reps…" (062) and "Remove from Workouts…" (056); the green strip and the day header count it among the sets and reps
+- **Then:** the set's row sits at the time of the save with "8 [swing]" and a "by hand" tag in place of the picture and the score capsule, and a thin mark at that time on the heart-rate chart; the heart numbers come from Health as for any set; tapping its row opens nothing (there is no video), a tap on its mark opens "Set exercise and reps" (#178, story 053), a long press offers "Set exercise and reps…" (062) and "Remove from Workouts…" (056); the green strip and the day header count it among the sets and reps
 
 - **Scenario:** The set in the day list
 - **Given:** the same set
