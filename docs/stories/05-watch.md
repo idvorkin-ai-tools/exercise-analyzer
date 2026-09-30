@@ -569,7 +569,7 @@ the first frame (story 001).
 ### User Story 059:
 
 - **Summary:** Add a set I forgot to record to the workout, with its count typed on the wrist
-- **Status:** implemented in [0c07704](https://github.com/idvorkin/exercise-analyzer/commit/0c07704), [7a86049](https://github.com/idvorkin/exercise-analyzer/commit/7a86049) (#154, the exercise on the count page); verified on the host (`HandSetTests`), by build (the signed phone and watch apps) and on the watch simulator (`just watch-screens`: setByHand, setByHandExercise); on the phone and the watch since 2026-09-28, Igor's check pending
+- **Status:** implemented in [0c07704](https://github.com/idvorkin/exercise-analyzer/commit/0c07704), [7a86049](https://github.com/idvorkin/exercise-analyzer/commit/7a86049) (#154, the exercise on the count page); verified on the host (`HandSetTests`), by build (the signed phone and watch apps) and on the watch simulator (`just watch-screens`: setByHand, setByHandExercise); on the phone and the watch since 2026-09-28, Igor's check pending; the page reopens on the last set typed by hand (#183) in [83aa909](https://github.com/idvorkin/exercise-analyzer/commit/83aa909), verified on the host (`HandSetTests`) and by the watch build, not yet on the watch
 - **Why:** Igor, 2026-09-25, from the phone: "Let's add a watch button. Rep happened if I forgot to record." Decided 2026-09-26: a watch button adds one unrecorded set to the running workout, its count typed on the wrist, no video, no score, marked "by hand" in Workouts.
 
 #### Use Case:
