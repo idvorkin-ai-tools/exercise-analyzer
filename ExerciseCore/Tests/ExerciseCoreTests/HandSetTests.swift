@@ -156,4 +156,25 @@ final class HandSetTests: XCTestCase {
     XCTAssertEqual(timeline.row(near: Date(timeIntervalSince1970: 1140), slop: 20)?.id, "rec")
     XCTAssertNil(timeline.row(near: Date(timeIntervalSince1970: 1200), slop: 20))
   }
+
+  /// #178: a tap on the chart that hits no set adds one at that moment, starting from the set before it.
+  func testATapOnEmptyChartDraftsASetAtThatMomentLikeTheOneBefore() {
+    let workout = StoredWorkout(start: Date(timeIntervalSince1970: 1000), end: Date(timeIntervalSince1970: 2000))
+    let recorded = RecentEntry(
+      id: "rec", analyzedAt: Date(timeIntervalSince1970: 1130), recordedAt: nil, duration: 30, repCount: 12,
+      bestScore: 80, source: .file(name: "clip.mov"), thumbnail: nil, exercise: getUp, originalName: nil,
+      clipStartedAt: Date(timeIntervalSince1970: 1100))
+    let typed = HandSet(id: "hand", exercise: .pullUp, reps: 5, at: 1500).entry
+    let timeline = WorkoutTimeline(workout: workout, sets: [recorded, typed], heartRate: nil)
+    let draft = timeline.handSet(at: Date(timeIntervalSince1970: 1300))
+    XCTAssertEqual(draft.at, 1300)
+    XCTAssertEqual(draft.exercise, getUp)
+    XCTAssertEqual(draft.reps, 12)
+    XCTAssertEqual(timeline.handSet(at: Date(timeIntervalSince1970: 1600)).exercise, .pullUp)
+    // Before every set: the first set's; with no set: a swing set of 10.
+    XCTAssertEqual(timeline.handSet(at: Date(timeIntervalSince1970: 1050)).exercise, getUp)
+    let empty = WorkoutTimeline(workout: workout, sets: [], heartRate: nil).handSet(at: Date(timeIntervalSince1970: 1050))
+    XCTAssertEqual(empty.exercise, swing)
+    XCTAssertEqual(empty.reps, HandSet.defaultReps)
+  }
 }

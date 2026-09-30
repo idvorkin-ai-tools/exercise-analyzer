@@ -131,4 +131,14 @@ public struct WorkoutTimeline: Equatable, Sendable {
     }
     return rows.filter { !$0.byHand }.min { distance($0) < distance($1) }.flatMap { distance($0) <= slop ? $0 : nil }
   }
+
+  /// The set a tap on the chart's empty plot adds (#178; Igor: "put the time when it happened … closest to where my
+  /// finger"): at the tapped moment, with the exercise and count of the set before it (the first set's when the tap
+  /// is before them all, a swing set of 10 with none).
+  public func handSet(at time: Date) -> HandSet {
+    let before = rows.last { $0.start <= time } ?? rows.first
+    return HandSet(
+      exercise: before?.exercise ?? .kettlebellSwing, reps: HandSet.clamp(before?.reps ?? HandSet.defaultReps),
+      at: time.timeIntervalSince1970)
+  }
 }

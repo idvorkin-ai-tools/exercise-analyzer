@@ -596,13 +596,16 @@ struct ExerciseSetsRow: View {
 /// 60 pt buttons, and a line saying what happens to the video before Save makes the set a by-hand set.
 struct SetByHandSheet: View {
   let entry: RecentEntry
+  /// "Add a set at 10:42 AM" when the set is new, from a tap on the workout's chart (#178).
+  var title = "Set exercise and reps"
   let onSave: (ExerciseKind, Int) -> Void
   @State private var exercise: ExerciseKind
   @State private var reps: Int
   @Environment(\.dismiss) private var dismiss
 
-  init(entry: RecentEntry, onSave: @escaping (ExerciseKind, Int) -> Void) {
+  init(entry: RecentEntry, title: String = "Set exercise and reps", onSave: @escaping (ExerciseKind, Int) -> Void) {
     self.entry = entry
+    self.title = title
     self.onSave = onSave
     _exercise = State(initialValue: entry.exerciseKind)
     _reps = State(initialValue: HandSet.clamp(entry.repCount == 0 ? HandSet.defaultReps : entry.repCount))
@@ -657,7 +660,7 @@ struct SetByHandSheet: View {
         }
         .padding()
       }
-      .navigationTitle("Set exercise and reps")
+      .navigationTitle(title)
       .navigationBarTitleDisplayMode(.inline)
       .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
     }
