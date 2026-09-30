@@ -342,14 +342,21 @@ private struct WorkoutPageView: View {
         let plot = proxy.plotFrame.map { geo[$0] } ?? .zero
         let moment = { (x: CGFloat) -> Date? in proxy.value(atX: x - plot.minX) }
         let open = { (x: CGFloat) in
-          let row = moment(x).flatMap { timeline.row(near: $0, slop: 24 * visibleSeconds / max(plot.width, 1)) }
+          let slop = 24 * visibleSeconds / max(plot.width, 1)
+          let row = moment(x).flatMap { timeline.row(near: $0, slop: slop) }
+          // A typed set's mark opens its by-hand sheet to check or correct it (#178).
+          let typed = row == nil && onKeepByHand != nil
+            ? moment(x).flatMap { timeline.typedRow(near: $0, slop: slop) }
+              .flatMap { mark in sets.first { $0.id == mark.id } } : nil
           // A tap where no set is adds one there (#178), from the set before it, in the by-hand sheet.
-          let draft = row == nil && onAddByHand != nil
+          let draft = row == nil && typed == nil && onAddByHand != nil
             ? moment(x).map { timeline.handSet(at: min(max($0, workout.start), workout.end)).entry } : nil
           onEvent?(
             "ui",
-            ["action": "workout_bar_tap", "hit": row != nil, "window_s": Int(visibleSeconds), "adding": draft != nil])
+            ["action": "workout_bar_tap", "hit": row != nil, "window_s": Int(visibleSeconds),
+             "editing": typed != nil, "adding": draft != nil])
           if let row, let entry = sets.first(where: { $0.id == row.id }) { onOpen(entry) }
+          if let typed { editing = typed }
           adding = draft
         }
         Rectangle().fill(.clear).contentShape(Rectangle())

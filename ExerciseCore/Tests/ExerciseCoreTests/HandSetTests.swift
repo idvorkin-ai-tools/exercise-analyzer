@@ -177,4 +177,20 @@ final class HandSetTests: XCTestCase {
     XCTAssertEqual(empty.exercise, swing)
     XCTAssertEqual(empty.reps, HandSet.defaultReps)
   }
+
+  /// #178 (Igor, 2026-09-30, on review): a tap on a typed set's mark opens that set, not a second add; a recorded
+  /// set in reach still takes the tap first.
+  func testATapNearATypedSetsMarkFindsThatSet() {
+    let workout = StoredWorkout(start: Date(timeIntervalSince1970: 1000), end: Date(timeIntervalSince1970: 2000))
+    let recorded = RecentEntry(
+      id: "rec", analyzedAt: Date(timeIntervalSince1970: 1130), recordedAt: nil, duration: 30, repCount: 10,
+      bestScore: 80, source: .file(name: "clip.mov"), thumbnail: nil, exercise: swing, originalName: nil,
+      clipStartedAt: Date(timeIntervalSince1970: 1100))
+    let typed = HandSet(id: "hand", exercise: .pullUp, reps: 5, at: 1500).entry
+    let timeline = WorkoutTimeline(workout: workout, sets: [recorded, typed], heartRate: nil)
+    XCTAssertEqual(timeline.typedRow(near: Date(timeIntervalSince1970: 1510), slop: 20)?.id, "hand")
+    XCTAssertNil(timeline.row(near: Date(timeIntervalSince1970: 1510), slop: 20))
+    XCTAssertNil(timeline.typedRow(near: Date(timeIntervalSince1970: 1600), slop: 20))
+    XCTAssertNil(timeline.typedRow(near: Date(timeIntervalSince1970: 1120), slop: 20))
+  }
 }
