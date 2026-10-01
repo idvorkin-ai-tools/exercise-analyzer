@@ -147,14 +147,7 @@ final class RecentsStore: ObservableObject {
   /// The bell's weight the lifter set for a set (066); nil clears it. A re-analysis keeps it (`save` updates the
   /// entry in place).
   func setBellKg(id: String, kg: Int?) {
-    guard entry(id: id) != nil else { return }
-    entries = entries.map { entry in
-      guard entry.id == id else { return entry }
-      var weighed = entry
-      weighed.bellKg = kg
-      return weighed
-    }
-    try? persistIndex()
+    update(id: id) { $0.bellKg = kg }
   }
 
   func remove(id: String) {

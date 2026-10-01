@@ -8,12 +8,15 @@ import SwiftUI
 struct BellWeightSheet: View {
   /// What the set shows now, its own or carried from the set before; nil when nothing.
   let kg: Int?
+  /// The weight is the set before's, not this set's own: there is nothing of its own to clear.
+  let inherited: Bool
   let onSave: (Int?) -> Void
   @State private var other: Int?
   @Environment(\.dismiss) private var dismiss
 
-  init(kg: Int?, onSave: @escaping (Int?) -> Void) {
+  init(kg: Int?, inherited: Bool, onSave: @escaping (Int?) -> Void) {
     self.kg = kg
+    self.inherited = inherited
     self.onSave = onSave
     _other = State(initialValue: kg.flatMap { Self.code.map(\.kg).contains($0) ? nil : $0 })
   }
@@ -57,7 +60,7 @@ struct BellWeightSheet: View {
           }
           .buttonStyle(.borderedProminent).tint(.green)
         }
-        if kg != nil {
+        if kg != nil && !inherited {
           Button("No weight", role: .destructive) { save(nil) }
             .frame(minHeight: 44)
         }

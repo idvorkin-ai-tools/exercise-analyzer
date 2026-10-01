@@ -140,6 +140,7 @@ struct ContentView: View {
     .onAppear(perform: loadFromEnvironment)
     .onChange(of: pickerItem) { _, item in
       guard let item else { return }
+      path = []
       Task {
         await session.importPicked(item: item)
         pickerItem = nil
@@ -176,7 +177,7 @@ struct ContentView: View {
       try? FileManager.default.removeItem(at: dest)
       if (try? FileManager.default.copyItem(at: url, to: dest)) != nil {
         session.load(url: dest)
-        showPlayer()
+        showPlayer(fromLog: true)
       }
     }
     .fullScreenCover(isPresented: $showKeyframeViewer) {
@@ -219,10 +220,10 @@ struct ContentView: View {
 
   private var workoutLog: some View {
     WorkoutGalleryView(
-      store: session.recents, workouts: workouts, onOpen: openSet,
+      store: session.recents, workouts: workouts, onOpen: { openSet($0, fromLog: true) },
       onImport: { identifier, date in
         Task { await session.importPhotosAsset(identifier: identifier, recordedAt: date) }
-        showPlayer()
+        showPlayer(fromLog: true)
       },
       onEvent: { session.log.event($0, $1) }, session: session,
       onOpenWorkout: { path = [.workout(WorkoutIdentity(start: $0.start))] })
@@ -236,7 +237,7 @@ struct ContentView: View {
     switch route {
     case .workout(let workout):
       WorkoutDetailView(
-        identity: workout, store: session.recents, workouts: workouts, onOpen: openSet,
+        identity: workout, store: session.recents, workouts: workouts, onOpen: { openSet($0) },
         thumbnail: { session.recents.thumbnailImage(for: $0) }, onEvent: { session.log.event($0, $1) },
         onDelete: { session.delete(set: $0, from: "workout_page") },
         onKeepByHand: { session.keepByHand(set: $0, exercise: $1, reps: $2, from: "workout_page") },
@@ -251,15 +252,16 @@ struct ContentView: View {
     }
   }
 
-  /// Opens a stored set on the player, over whatever page it was tapped on.
-  private func openSet(_ entry: RecentEntry) {
+  /// Opens a stored set on the player, over the page it was tapped on; from the log, over the log, never over a
+  /// page the iPad's sidebar left open beside it (068).
+  private func openSet(_ entry: RecentEntry, fromLog: Bool = false) {
     guard !entry.isByHand else { return }  // typed on the wrist: no video to open (059)
     session.open(recent: entry)
-    showPlayer()
+    showPlayer(fromLog: fromLog)
   }
 
-  private func showPlayer() {
-    if path.last != .player { path.append(.player) }
+  private func showPlayer(fromLog: Bool = false) {
+    if fromLog { path = [.player] } else if path.last != .player { path.append(.player) }
   }
 
   /// "‹" on a set: the page under it, the log when it was opened from there. Playback stops; the set stays loaded.
@@ -399,7 +401,8 @@ struct ContentView: View {
       }
       hud
         .sheet(item: $weighingLoadedSet) { entry in
-          BellWeightSheet(kg: loadedSetKg(entry).kg) { session.setBellKg($0, for: entry, from: "playback") }
+          let weight = loadedSetKg(entry)
+          BellWeightSheet(kg: weight.kg, inherited: weight.inherited) { session.setBellKg($0, for: entry, from: "playback") }
         }
       if let run = session.instrumentedRun {
         instrumentedRunBanner(run)
@@ -432,9 +435,6 @@ struct ContentView: View {
 
   // MARK: - HUD
 
-  /// The stored workout the set on screen was done in: the page it was opened from, else the workout its first
-  /// frame falls inside, the running one included (#123). Nil for the camera, a clip that is not a stored set,
-  /// or a set outside every workout.
   /// The open set's bell weight (066): its own, else the one its workout carries from the exercise's set before.
   private func loadedSetKg(_ entry: RecentEntry) -> (kg: Int?, inherited: Bool) {
     if let kg = entry.bellKg { return (kg, false) }
@@ -444,6 +444,9 @@ struct ContentView: View {
     return (row.kg, row.kgInherited)
   }
 
+  /// The stored workout the set on screen was done in: the page it was opened from, else the workout its first
+  /// frame falls inside, the running one included (#123). Nil for the camera, a clip that is not a stored set,
+  /// or a set outside every workout.
   private var workoutOfLoadedSet: StoredWorkout? {
     guard session.source == .file else { return nil }
     if path.count > 1, case .workout(let under) = path[path.count - 2] {

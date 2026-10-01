@@ -684,7 +684,7 @@ the first frame (story 001).
 ### User Story 064:
 
 - **Summary:** The running wrist workout sits on the phone's lock screen and in the Dynamic Island, one tap back to the app
-- **Status:** implemented in [50388e1](https://github.com/idvorkin/exercise-analyzer/commit/50388e1); verified on the host (`WorkoutTests`) and the simulator (`SWING_LIVE_WORKOUT=30`: `live_activity` start, and chronod rendered the activity from the Controls extension); on the phone since 2026-09-28, Igor's check pending (the look of the activity in a real workout)
+- **Status:** implemented in [50388e1](https://github.com/idvorkin/exercise-analyzer/commit/50388e1); verified on the host (`WorkoutTests`) and the simulator (`SWING_LIVE_WORKOUT=30`: `live_activity` start, and chronod rendered the activity from the Controls extension); on the phone since 2026-09-28, Igor's check pending (the look of the activity in a real workout); rest first, the reps by exercise and the last set (#181, #182) in [f68618b](https://github.com/idvorkin/exercise-analyzer/commit/f68618b), verified on the host (`WorkoutTests`) and by build, not yet on the phone
 - **Why:** Igor, 2026-09-27, from the phone: "Can we leave an icon at the top so I can get back to the workout app if I switch out or want to come back?" Picked the same day: a Live Activity. Story 044's rejection of one stands for the recording phone only; between sets the phone does sit locked or in another app.
 
 #### Use Case:

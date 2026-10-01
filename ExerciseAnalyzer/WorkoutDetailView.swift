@@ -186,7 +186,8 @@ private struct WorkoutPageView: View {
         .setDeletionDialog($deleting) { onDelete?($0) }
         .setByHandSheet($editing) { onKeepByHand?($0, $1, $2) }
         .sheet(item: $weighing) { entry in
-          BellWeightSheet(kg: timeline.rows.first { $0.id == entry.id }?.kg) { onSetBellKg?(entry, $0) }
+          let row = timeline.rows.first { $0.id == entry.id }
+          BellWeightSheet(kg: row?.kg, inherited: row?.kgInherited ?? false) { onSetBellKg?(entry, $0) }
         }
         .sheet(item: $adding) { draft in
           SetByHandSheet(entry: draft, title: "Add a set at \(Self.clock.string(from: draft.analyzedAt))") {
