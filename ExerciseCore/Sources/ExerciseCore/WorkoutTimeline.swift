@@ -72,6 +72,10 @@ public struct WorkoutTimeline: Equatable, Sendable {
     public let dropOver: TimeInterval
     /// Typed on the wrist (story 059): a moment, not a span, with nothing to open.
     public let byHand: Bool
+    /// The bell's weight (066): the set's own, else the last set of its exercise before it in this workout
+    /// (`kgInherited`), so the weight is set once when the bell changes, not on every set.
+    public var kg: Int? = nil
+    public var kgInherited = false
   }
 
   public static let dropSeconds = 60.0
@@ -85,6 +89,7 @@ public struct WorkoutTimeline: Equatable, Sendable {
   /// The sets whose start falls inside the workout, in start order.
   public init(workout: StoredWorkout, sets: [RecentEntry], heartRate: HeartRateSeries?) {
     let inside = sets.filter { workout.contains($0.span.lowerBound) }.sorted { $0.span.lowerBound < $1.span.lowerBound }
+    var lastKg: [ExerciseKind: Int] = [:]
     rows = inside.enumerated().map { index, set in
       let span = set.span
       let next = index + 1 < inside.count ? inside[index + 1].span.lowerBound : nil
@@ -93,13 +98,22 @@ public struct WorkoutTimeline: Equatable, Sendable {
       let peakEnd = min(span.upperBound.addingTimeInterval(Self.peakLag), next ?? .distantFuture)
       let peak = heartRate?.peak(from: span.lowerBound, to: peakEnd)
       let later = dropOver > 0 ? heartRate?.bpm(at: span.upperBound.addingTimeInterval(dropOver)) : nil
+      let kg = set.bellKg ?? lastKg[set.exerciseKind]
+      if let own = set.bellKg { lastKg[set.exerciseKind] = own }
       return SetRow(
         id: set.id, start: span.lowerBound, end: span.upperBound, exercise: set.exerciseKind, reps: set.repCount,
         score: set.bestScore, peak: peak, average: heartRate?.average(from: span.lowerBound, to: peakEnd), restAfter: rest,
-        drop: peak.flatMap { peak in later.map { peak - $0 } }, dropOver: dropOver, byHand: set.isByHand)
+        drop: peak.flatMap { peak in later.map { peak - $0 } }, dropOver: dropOver, byHand: set.isByHand,
+        kg: kg, kgInherited: set.bellKg == nil && kg != nil)
     }
     workSeconds = rows.reduce(0) { $0 + $1.end.timeIntervalSince($1.start) }
     restSeconds = rows.compactMap(\.restAfter).reduce(0, +)
+  }
+
+  /// Reps × kg over the sets with a weight (066): the workout's load, nil when no set has one.
+  public var loadKg: Int? {
+    let weighed = rows.filter { $0.kg != nil }
+    return weighed.isEmpty ? nil : weighed.reduce(0) { $0 + $1.reps * ($1.kg ?? 0) }
   }
 
   /// The page's Grouped list (#164): one group per exercise in the order each first came, its sets keeping the

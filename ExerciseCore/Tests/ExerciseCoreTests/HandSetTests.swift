@@ -178,6 +178,36 @@ final class HandSetTests: XCTestCase {
     XCTAssertEqual(empty.reps, HandSet.defaultReps)
   }
 
+  /// Story 066 (#102): the weight is set when the bell changes; later sets of the exercise in the workout show it as
+  /// inherited, another exercise does not, the load counts reps × kg, and keeping a set by hand keeps its weight.
+  func testTheBellsWeightCarriesForwardWithinAnExerciseAndCountsTheLoad() {
+    let workout = StoredWorkout(start: Date(timeIntervalSince1970: 1000), end: Date(timeIntervalSince1970: 3000))
+    func set(_ id: String, _ kind: ExerciseKind, reps: Int, at: Double, kg: Int? = nil) -> RecentEntry {
+      var entry = RecentEntry(
+        id: id, analyzedAt: Date(timeIntervalSince1970: at + 40), recordedAt: nil, duration: 30, repCount: reps,
+        bestScore: 80, source: .file(name: "clip.mov"), thumbnail: nil, exercise: kind, originalName: nil,
+        clipStartedAt: Date(timeIntervalSince1970: at))
+      entry.bellKg = kg
+      return entry
+    }
+    let timeline = WorkoutTimeline(
+      workout: workout,
+      sets: [
+        set("s1", swing, reps: 10, at: 1100), set("s2", swing, reps: 10, at: 1200, kg: 24),
+        set("s3", swing, reps: 12, at: 1300), set("g1", getUp, reps: 2, at: 1400),
+        set("s4", swing, reps: 8, at: 1500, kg: 28), set("s5", swing, reps: 8, at: 1600),
+      ],
+      heartRate: nil)
+    XCTAssertEqual(timeline.rows.map(\.kg), [nil, 24, 24, nil, 28, 28])
+    XCTAssertEqual(timeline.rows.map(\.kgInherited), [false, false, true, false, false, true])
+    XCTAssertEqual(timeline.loadKg, 10 * 24 + 12 * 24 + 8 * 28 + 8 * 28)
+    XCTAssertNil(WorkoutTimeline(workout: workout, sets: [set("s1", swing, reps: 10, at: 1100)], heartRate: nil).loadKg)
+    XCTAssertEqual(set("k", swing, reps: 10, at: 1100, kg: 16).keptByHand(exercise: swing, reps: 9).bellKg, 16)
+    // An index from before 066 has no weight and still decodes.
+    let old = #"[{"id":"a","analyzedAt":0,"duration":30,"repCount":10,"bestScore":80,"source":{"file":{"name":"clip.mov"}}}]"#
+    XCTAssertNil(try JSONDecoder().decode([RecentEntry].self, from: Data(old.utf8))[0].bellKg)
+  }
+
   /// #178 (Igor, 2026-09-30, on review): a tap on a typed set's mark opens that set, not a second add; a recorded
   /// set in reach still takes the tap first.
   func testATapNearATypedSetsMarkFindsThatSet() {

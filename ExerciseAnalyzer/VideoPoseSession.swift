@@ -1220,6 +1220,16 @@ final class VideoPoseSession: NSObject, ObservableObject {
 
   /// The lifter's own exercise and count for a stored set (#156, #157): it stays in Workouts as a by-hand set and
   /// its in-app video goes (a Photos original stays in Photos). The sheet has said so before Save.
+  /// The bell's weight the lifter tapped for a set (066), with the detector's colour reading beside it when the set
+  /// is open, so the log can later say how often the two agree (the detector's guess is the next step, #102).
+  func setBellKg(_ kg: Int?, for entry: RecentEntry, from place: String) {
+    log.event(
+      "set_bell_kg",
+      ["id": entry.id, "kg": kg ?? 0, "was": entry.bellKg ?? 0, "exercise": entry.exerciseKind.rawValue,
+       "detector_kg": entry.id == currentEntryID ? (bellWeightKg ?? 0) : 0, "where": place])
+    recents.setBellKg(id: entry.id, kg: kg)
+  }
+
   func keepByHand(set entry: RecentEntry, exercise: ExerciseKind, reps: Int, from place: String) {
     log.event(
       "set_kept_by_hand",

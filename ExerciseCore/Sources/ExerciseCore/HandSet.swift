@@ -77,10 +77,12 @@ extension RecentEntry {
   /// and time, so it stays where it was in its workout; no clip, picture, score or analysis, so nothing re-reads
   /// it and a new AnalysisVersion leaves it alone.
   public func keptByHand(exercise: ExerciseKind, reps: Int) -> RecentEntry {
-    RecentEntry(
+    var kept = RecentEntry(
       id: id, analyzedAt: analyzedAt, recordedAt: recordedAt, duration: duration, repCount: HandSet.clamp(reps),
       bestScore: nil, source: .byHand, thumbnail: nil, exercise: exercise, originalName: nil,
       clipStartedAt: clipStartedAt)
+    kept.bellKg = bellKg  // the lifter's weight is not the camera's (066)
+    return kept
   }
 }
 

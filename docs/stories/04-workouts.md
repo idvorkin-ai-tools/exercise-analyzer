@@ -608,7 +608,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 066:
 
 - **Summary:** The bell's weight on each set of the workout page
-- **Status:** not implemented ([#102](https://github.com/idvorkin/exercise-analyzer/issues/102)); the proposal (A detector only, B Igor taps it, C both, C recommended and built as B first) is on the issue, waiting for Igor's pick
+- **Status:** Igor picked C on the 2026-10-01 decisions page, built as B first: the tap, the carried weight and the load are implemented in this branch's #102 commit (see the commit log), verified on the host (`HandSetTests`) and the simulator (`SWING_SET_BELL_KG=24` on the first of the seeded workout's two swing sets: the page read "24 kg" on set 1, a dimmer "24 kg" on set 2 and "480 kg moved"; `=sheet` showed the picker with 24 selected and the chip "24 kg" on the playback line); not yet on the phone. The detector's "28 kg?" guess (C's second half) is not built: `set_bell_kg` logs the detector's reading beside each tap so its accuracy can be judged first ([#179](https://github.com/idvorkin/exercise-analyzer/issues/179))
 - **Why:** Igor, by voice, 2026-09-18: "If I can figure out the weight, that would be great."
 
 #### Use Case:
@@ -618,14 +618,19 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 
 #### Acceptance Criteria:
 - **Scenario:** The weight on a set
-- **Given:** a set whose weight the phone knows (the detector's colour reading, or a tap of mine)
-- **When:** I read its row on the workout page
-- **Then:** the row says the weight, "28 kg", a detector guess with a question mark until I confirm it
+- **Given:** a workout of swing sets where I set 24 kg on the first and 28 kg on the fourth
+- **When:** I read its rows on the workout page
+- **Then:** sets 1 and 4 say "24 kg" and "28 kg"; sets 2–3 and 5 on carry the weight before them, dimmer; a get-up set in between carries nothing from the swings; the totals add "1,232 kg moved" (reps × kg over the sets with a weight); VoiceOver reads "10 swings, 24 kilograms, …"
 
 - **Scenario:** Setting the weight
-- **Given:** a set with no weight, or a wrong guess
-- **When:** I tap the weight on the playback screen
-- **Then:** a row of seven big buttons (8 … 32 kg) and "other" sets it, and the next set of the same workout starts from it
+- **Given:** a set with no weight, or the wrong one
+- **When:** I tap the weight on the playback screen's top line ("kg?" when nothing says, "24 kg" dimmer when carried), or long-press its row on the workout page (the only way for a set typed by hand)
+- **Then:** "The bell's weight" opens with eight big buttons, 8 … 32 kg in the competition bell's own colour and "Other" (±2 kg steps), the current weight marked; one tap saves it and closes; "No weight" clears it; a re-analysis or keeping the set by hand keeps it
+
+- **Scenario:** The detector's guess (not built yet)
+- **Given:** a set analyzed with the bell detector on
+- **When:** I read it with no weight of mine
+- **Then:** it says the detector's reading as "28 kg?", until my tap replaces it
 
 - **Notes:** `BellColor.palette` maps the bell's hue to the competition code (pink 8 … red 32) and the playback screen's status line already says "· 28 kg bell" for the open set, but the weight is not stored on the set and the detector is off by default (034), so a colour reading alone cannot fill the page. Gym light moves a dark red/orange bell between the 28 and 16 readings.
 

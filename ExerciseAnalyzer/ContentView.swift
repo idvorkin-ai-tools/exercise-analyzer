@@ -25,6 +25,8 @@ struct ContentView: View {
   /// The log is home; this is what is pushed over it (story 058). A set opened from a workout's page sits over
   /// that page, so "‹" goes back to it.
   @State private var path: [AppRoute] = []
+  /// The open set whose bell weight is being set from the playback screen's chip (066).
+  @State private var weighingLoadedSet: RecentEntry?
   /// Where the camera was opened from, and the stored set on screen then: what its Cancel goes back to (#146).
   @State private var cameraOrigin: (path: [AppRoute], set: RecentEntry?)?
   /// Middle-hold key stacks (stories 039, #60): up after a middle hold, staying up until a
@@ -122,7 +124,8 @@ struct ContentView: View {
               thumbnail: { session.recents.thumbnailImage(for: $0) }, onEvent: { session.log.event($0, $1) },
               onDelete: { session.delete(set: $0, from: "workout_page") },
               onKeepByHand: { session.keepByHand(set: $0, exercise: $1, reps: $2, from: "workout_page") },
-              onAddByHand: { session.addByHand($0, from: "workout_chart") })
+              onAddByHand: { session.addByHand($0, from: "workout_chart") },
+              onSetBellKg: { session.setBellKg($1, for: $0, from: "workout_page") })
           case .player:
             // Full screen, as the picture always was: the HUD's "‹" is the way back, and the edge swipe stays
             // the frame steppers' (story 030), so the system back and its swipe are off.
@@ -330,6 +333,9 @@ struct ContentView: View {
           .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 12))
         }
         hud
+          .sheet(item: $weighingLoadedSet) { entry in
+            BellWeightSheet(kg: loadedSetKg(entry).kg) { session.setBellKg($0, for: entry, from: "playback") }
+          }
         if let run = session.instrumentedRun {
           instrumentedRunBanner(run)
         }
@@ -381,6 +387,15 @@ struct ContentView: View {
   /// The stored workout the set on screen was done in: the page it was opened from, else the workout its first
   /// frame falls inside, the running one included (#123). Nil for the camera, a clip that is not a stored set,
   /// or a set outside every workout.
+  /// The open set's bell weight (066): its own, else the one its workout carries from the exercise's set before.
+  private func loadedSetKg(_ entry: RecentEntry) -> (kg: Int?, inherited: Bool) {
+    if let kg = entry.bellKg { return (kg, false) }
+    guard let workout = workoutOfLoadedSet,
+      let row = WorkoutTimeline(workout: workout, sets: session.recents.entries, heartRate: nil).rows.first(where: { $0.id == entry.id })
+    else { return (nil, false) }
+    return (row.kg, row.kgInherited)
+  }
+
   private var workoutOfLoadedSet: StoredWorkout? {
     guard session.source == .file else { return nil }
     if path.count > 1, case .workout(let under) = path[path.count - 2] {
@@ -473,6 +488,23 @@ struct ContentView: View {
         }
         exerciseMenu
           .alignmentGuide(.top, computeValue: Self.capTop(.preferredFont(forTextStyle: .subheadline)))
+        // The bell's weight on a stored set (066): one tap sets it; dimmer when carried from the exercise's set
+        // before in the workout, "kg?" when nothing says.
+        if session.source != .camera, let entry = session.currentEntry {
+          let weight = loadedSetKg(entry)
+          Button {
+            weighingLoadedSet = entry
+          } label: {
+            Text(weight.kg.map { "\($0) kg" } ?? "kg?").font(.subheadline.bold()).monospacedDigit()
+              .foregroundStyle(weight.kg == nil || weight.inherited ? .secondary : .primary)
+              .padding(.horizontal, 7).padding(.vertical, 2)
+              .background(Color.secondary.opacity(0.18), in: Capsule())
+              .contentShape(Rectangle().inset(by: -10))
+          }
+          .buttonStyle(.plain)
+          .accessibilityLabel(weight.kg.map { "Bell weight \($0) kilograms" } ?? "Set the bell's weight")
+          .alignmentGuide(.top, computeValue: Self.capTop(.preferredFont(forTextStyle: .subheadline)))
+        }
         if session.source == .camera, !session.viewfinder {
           Group {
             if session.paused {
@@ -1028,6 +1060,15 @@ struct ContentView: View {
             try? await Task.sleep(for: .seconds(4))
             guard let current = session.currentEntry else { return }
             if delete == "confirm" { session.delete(set: current, from: "hook") } else { deleting = current }
+          }
+        }
+        // Test hook (066): 4 s after the set opens, what a tap on a weight in its sheet does (a number: saved,
+        // `set_bell_kg` logs) or what a tap on the chip does ("sheet": the picker is up for a screenshot).
+        if let weight = env["SWING_SET_BELL_KG"] {
+          Task { @MainActor in
+            try? await Task.sleep(for: .seconds(4))
+            guard let current = session.currentEntry else { return }
+            if let kg = Int(weight) { session.setBellKg(kg, for: current, from: "hook") } else { weighingLoadedSet = current }
           }
         }
         return

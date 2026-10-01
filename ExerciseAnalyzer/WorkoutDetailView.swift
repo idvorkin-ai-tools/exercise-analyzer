@@ -22,6 +22,8 @@ struct WorkoutDetailView: View {
   var onKeepByHand: ((RecentEntry, ExerciseKind, Int) -> Void)? = nil
   /// A set the camera never saw, added from a tap on the chart where no set is (#178).
   var onAddByHand: ((HandSet) -> Void)? = nil
+  /// The bell's weight for a set, from a row's long-press (066); nil clears it.
+  var onSetBellKg: ((RecentEntry, Int?) -> Void)? = nil
   @Environment(\.scenePhase) private var scenePhase
   @State private var tick = Date()
   @State private var heartRate: HeartRateSeries?
@@ -37,7 +39,7 @@ struct WorkoutDetailView: View {
         WorkoutPageView(
           snapshot: snapshot, sets: store.entries, heartRate: heartRate, onOpen: onOpen,
           thumbnail: thumbnail, onEvent: onEvent, onDelete: onDelete, onKeepByHand: onKeepByHand,
-          onAddByHand: onAddByHand)
+          onAddByHand: onAddByHand, onSetBellKg: onSetBellKg)
           // Twenty seconds matches the set page's Health re-ask (#107). A saved id triggers one final read.
           .task(id: HeartRateRequest(workout: snapshot.workout, active: scenePhase == .active)) {
             guard scenePhase == .active else { return }
@@ -93,7 +95,10 @@ private struct WorkoutPageView: View {
   var onDelete: ((RecentEntry) -> Void)?
   var onKeepByHand: ((RecentEntry, ExerciseKind, Int) -> Void)?
   var onAddByHand: ((HandSet) -> Void)?
+  var onSetBellKg: ((RecentEntry, Int?) -> Void)?
   @State private var deleting: RecentEntry?
+  /// The set whose bell weight is being set (066).
+  @State private var weighing: RecentEntry?
   @State private var editing: RecentEntry?
   /// The set a tap on the chart's empty plot would add, until its sheet saves or cancels (#178).
   @State private var adding: RecentEntry?
@@ -180,6 +185,9 @@ private struct WorkoutPageView: View {
         }
         .setDeletionDialog($deleting) { onDelete?($0) }
         .setByHandSheet($editing) { onKeepByHand?($0, $1, $2) }
+        .sheet(item: $weighing) { entry in
+          BellWeightSheet(kg: timeline.rows.first { $0.id == entry.id }?.kg) { onSetBellKg?(entry, $0) }
+        }
         .sheet(item: $adding) { draft in
           SetByHandSheet(entry: draft, title: "Add a set at \(Self.clock.string(from: draft.analyzedAt))") {
             add(draft, exercise: $0, reps: $1)
@@ -232,6 +240,7 @@ private struct WorkoutPageView: View {
         .contextMenu {
           if let entry = sets.first(where: { $0.id == row.id }) {
             if onKeepByHand != nil { Button("Set exercise and reps…") { editing = entry } }
+            if onSetBellKg != nil { Button("Set the bell's weight…") { weighing = entry } }
             if onDelete != nil { Button("Remove from Workouts…", role: .destructive) { deleting = entry } }
           }
         }
@@ -244,8 +253,9 @@ private struct WorkoutPageView: View {
       .buttonStyle(.plain)
       .contextMenu {
         // A count the camera got wrong becomes the lifter's own, the video going (#157).
-        if onKeepByHand != nil, let entry = sets.first(where: { $0.id == row.id }) {
-          Button("Set exercise and reps…") { editing = entry }
+        if let entry = sets.first(where: { $0.id == row.id }) {
+          if onKeepByHand != nil { Button("Set exercise and reps…") { editing = entry } }
+          if onSetBellKg != nil { Button("Set the bell's weight…") { weighing = entry } }
         }
       }
     }
@@ -275,6 +285,10 @@ private struct WorkoutPageView: View {
         "\(timeline.rows.count) set\(timeline.rows.count == 1 ? "" : "s") · \(timeline.rows.reduce(0) { $0 + $1.reps }) reps · work \(Self.minutes(timeline.workSeconds)) · rest \(Self.minutes(timeline.restSeconds))"
       )
       .font(.subheadline).monospacedDigit().foregroundStyle(.secondary)
+      // Reps × kg over the sets with a weight (066).
+      if let load = timeline.loadKg {
+        Text("\(load.formatted()) kg moved").font(.subheadline).monospacedDigit().foregroundStyle(.secondary)
+      }
       if let average = workout.heartRateAverage, let max = workout.heartRateMax {
         Label("\(average) avg · \(max) max", systemImage: "heart.fill")
           .font(.subheadline).monospacedDigit().foregroundStyle(.red)
@@ -532,6 +546,11 @@ private struct SetTimelineRow: View {
           // for VoiceOver.
           ExerciseGlyph(kind: row.exercise, size: 22)
             .alignmentGuide(.firstTextBaseline) { $0[.bottom] - 2 }
+          // The bell (066): the set's own weight, or dimmer the one carried from its exercise's last set.
+          if let kg = row.kg {
+            Text("\(kg) kg").font(.subheadline.bold()).monospacedDigit()
+              .foregroundStyle(row.kgInherited ? .secondary : .primary)
+          }
           if let score = row.score {
             Text("\(score)").font(.caption.bold()).monospacedDigit()
               .padding(.horizontal, 6).padding(.vertical, 1)
@@ -543,7 +562,7 @@ private struct SetTimelineRow: View {
       .accessibilityElement(children: .combine)
       .accessibilityLabel(
         "\(row.reps) \(row.exercise.repWord(row.reps))" + (row.byHand ? ", by hand" : "")
-          + (row.score.map { ", score \($0)" } ?? "") + ", set \(number) at \(Self.clock.string(from: row.start))")
+          + (row.kg.map { ", \($0) kilograms" } ?? "") + (row.score.map { ", score \($0)" } ?? "") + ", set \(number) at \(Self.clock.string(from: row.start))")
       Spacer(minLength: 8)
       VStack(alignment: .trailing, spacing: 2) {
         if let peak = row.peak {
