@@ -394,7 +394,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Scenario:** Workouts under half an hour apart are one (#169)
 - **Given:** a workout 7:48–7:50 AM and another 7:51–7:54 AM (ended by mistake and started again)
 - **When:** I look at the day in Workouts or open the workout
-- **Then:** one green line reads "Workout 7:48 AM–7:54 AM", with the sets and reps of both, the higher max and the time-weighted average heart rate; its page spans 7:48 to 7:54 with every set and the heart rate between; a workout that starts 30 minutes or more after the last one ended stays its own line; Health keeps both records. A workout still running joins the one before it only once it ends. Rules: `WorkoutIndex.sessions` (ExerciseCore, `WorkoutTests`) (Igor, 2026-09-28: "if I have multiple workouts with a diff of less than 30 minutes, let's just merge them into one")
+- **Then:** one green line reads "7:48 AM · 6 min" (#185), with the sets and reps of both, the higher max and the time-weighted average heart rate; its page spans 7:48 to 7:54 with every set and the heart rate between; a workout that starts 30 minutes or more after the last one ended stays its own line; Health keeps both records. A workout still running joins the one before it only once it ends. Rules: `WorkoutIndex.sessions` (ExerciseCore, `WorkoutTests`) (Igor, 2026-09-28: "if I have multiple workouts with a diff of less than 30 minutes, let's just merge them into one")
 
 - **Scenario:** A workout that is still running
 - **Given:** a workout running on the wrist
