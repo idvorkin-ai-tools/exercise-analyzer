@@ -372,21 +372,6 @@ extension RecentEntry {
   var start: Date { span.lowerBound }
 }
 
-extension ExerciseKind {
-  var tint: Color {
-    switch self {
-    case .kettlebellSwing: return .orange
-    case .pistolSquat: return .teal
-    case .bulgarianSplitSquat: return .purple
-    case .turkishGetUp: return .green
-    case .pullUp: return .blue
-    case .splitSquat: return .pink
-    case .sitUp: return .mint
-    case .halfKneelingRotation: return .indigo
-    }
-  }
-}
-
 // MARK: - Rows
 
 struct DayHeader: View {

@@ -293,7 +293,8 @@ final class VideoPoseSession: NSObject, ObservableObject {
       log.event("error", ["where": "workouts_index", "message": "\(damage)"])
     }
     WorkoutLiveActivity.shared.onEvent = { [weak self] type, fields in self?.log.event(type, fields) }
-    WorkoutLiveActivity.shared.install(mirror: .shared)  // the workout on the lock screen and in the Dynamic Island (#161)
+    // The workout on the lock screen and in the Dynamic Island (#161), its sets by exercise from this store (#181).
+    WorkoutLiveActivity.shared.install(mirror: .shared, recents: recents)
     CrashReports.shared.onEvent = { [weak self] type, fields in self?.log.event(type, fields) }
     CrashReports.shared.reportSignalLogs { [weak self] type, fields in self?.log.event(type, fields) }
     watch.onCommand = { [weak self] command in self?.handleWatch(command) }

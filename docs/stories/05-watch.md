@@ -703,6 +703,11 @@ the first frame (story 001).
 - **When:** I wake it
 - **Then:** the lock screen carries WORKOUT with the clock large, ♥ and sets · reps; a new set shows at once, heart rate refreshes at most every 30 s
 
+- **Scenario:** Between sets, the rest first (#181, #182)
+- **Given:** the workout is 24 minutes in, with 45 swings, 4 get-ups and 8 pull-ups, the last set 15 swings whose recording stopped a minute ago
+- **When:** I wake the phone, or look at the Dynamic Island
+- **Then:** the lock screen carries REST with the rest clock large, counting up from the end of that recording, and ♥ 142 with the workout clock "24:10" small beside it; under them "[swing] 45 [get-up] 4 [pull-up] 8" by each exercise's drawing, and "last 15 [swing]"; a set typed by hand ends at its save; before the first set it shows WORKOUT and the workout clock as above. The Dynamic Island shows the last exercise's drawing and the rest clock, and pressed, the same lines (Igor, 2026-09-30: "the current sets and reps I've done, like I have in the workout summary with a little [icons], and … my last thing"; "restoration to work out times in smaller"; he picked B, rest first, and "the end of the recording" on the 2026-10-01 decisions page)
+
 - **Scenario:** The workout ends
 - **Given:** the activity is up
 - **When:** I end or discard the workout on the wrist
@@ -717,12 +722,14 @@ the first frame (story 001).
   once otherwise), update per `WorkoutGlance.shouldShow` (ExerciseCore, host tests: sets or reps at once, heart rate
   every 30 s), end on `ending` or nil. The clock is `Text(timerInterval:)` from the start, so it needs no update.
   `WorkoutActivityAttributes` is declared in the app and in the Controls extension with the same name and shape
-  (ActivityKit matches by name; the extension links neither the app nor ExerciseCore); the view is
+  (ActivityKit matches by name; the extension cannot link the app). Since #181 the extension links ExerciseCore and
+  compiles `Shared/` (the exercise drawings and colours) with the app; the reps by exercise and the last set come
+  from the phone's own sets since the start (`WorkoutGlance.with(sets:since:)`), not the wrist; the view is
   `WorkoutActivityWidget` in `ControlsBundle`. `NSSupportsLiveActivities` in Info.plist. Launch leaves an
   activity from a previous run alone until the mirror hears of the workout (its first nil is not an end). Log:
   `live_activity` (action: start, end with reason ended / discarded / replaced, deferred, disabled, failed).
 
-- **Issues:** [#161](https://github.com/idvorkin/exercise-analyzer/issues/161), [#153](https://github.com/idvorkin/exercise-analyzer/issues/153) (the report it was split from)
+- **Issues:** [#161](https://github.com/idvorkin/exercise-analyzer/issues/161), [#153](https://github.com/idvorkin/exercise-analyzer/issues/153) (the report it was split from), [#181](https://github.com/idvorkin/exercise-analyzer/issues/181) and [#182](https://github.com/idvorkin/exercise-analyzer/issues/182) the rest-first layout
 
 ---
 
