@@ -38,6 +38,7 @@ struct ContentView: View {
   /// The set the trash button was tapped on, while its "delete?" dialog is up (#111).
   @State private var deleting: RecentEntry?
   @Environment(\.openURL) private var openURL
+  @Environment(\.horizontalSizeClass) private var sizeClass
   @State private var lastClockLog = Date.distantPast
   @State private var showBugReport = false
   @State private var showGallery = false
@@ -285,79 +286,102 @@ struct ContentView: View {
     .background(.bar)
   }
 
-  /// The picture, the HUD, the rep gallery and the transport bar: a set or the camera.
+  /// The picture, the HUD, the rep gallery and the transport bar: a set or the camera. On a wide screen held
+  /// sideways (an iPad in landscape, #53) the gallery stands to the right of the picture, full height, instead of
+  /// under it; the picture keeps its place in the tree, so turning the screen does not rebuild the player.
   private var playerScreen: some View {
-    VStack(spacing: 0) {
-      ZStack {
-        Color.black
-        // The lifter in the middle of the picture (#98): zoomed, head at the top with the eyes below the header,
-        // feet above the angle text. Zoom off is the whole frame where it always was.
-        MeViewZoom(
-          crop: meView ? session.personCrop : nil, eyeLine: session.personEyeLine,
-          imageSize: session.latestFrame?.imageSize, freeTop: hudHeaderBottom, freeBottom: hudAngleLineTop
-        ) { zoom in
-          ZStack {
-            if session.source == .camera {
-              CameraPreviewView(previewLayer: session.cameraPreviewLayer, zoom: zoom)
-            } else {
-              PlayerView(player: session.player, zoom: zoom, onReady: session.logPlayerLayer)
-            }
-            if overlayMode != .video {
-              PoseOverlayView(frame: session.latestFrame)
-                .scaleEffect(zoom.scale)
-                .offset(zoom.offset)
-                .animation(.easeOut(duration: 0.3), value: zoom)
-                .clipped()  // clip the vector overlay only; a clip on the video's ancestors can drop HDR
+    GeometryReader { geo in
+      let hasGallery = !session.reps.isEmpty && session.source != .camera
+      // An iPad only: a Pro Max phone held sideways is regular width too, and the phone stays as it is.
+      let beside = hasGallery && UIDevice.current.userInterfaceIdiom == .pad && sizeClass == .regular
+        && geo.size.width > geo.size.height
+      HStack(spacing: 0) {
+        VStack(spacing: 0) {
+          picture
+          if hasGallery && !beside {
+            galleryHandle
+            if galleryHeight >= 40 {
+              repGallery.frame(height: galleryHeight)
             }
           }
-          .contentShape(Rectangle())
-          .onTapGesture {
-            // A tap on the picture plays or pauses (#28); the HUD's own buttons sit above and win.
-            if session.source == .file { session.togglePlayback() }
-          }
+          controls
         }
-        if session.source == .file, session.duration > 0 {
-          edgeControls
-        }
-        if case .working(let label, let progress) = session.activity, session.source != .camera {
-          VStack(spacing: 8) {
-            ProgressView(value: progress).frame(width: 160)
-            Text(progress.map { "\(label) \(Int($0 * 100))%" } ?? "\(label)…")
-              .font(.footnote).foregroundStyle(.white)
-            if session.canCancelAnalysis {
-              Button("Cancel") { session.cancelAnalysis() }
-                .buttonStyle(.bordered).tint(.white).font(.footnote)
-            }
-          }
-          .padding(16)
-          .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 12))
-        }
-        hud
-          .sheet(item: $weighingLoadedSet) { entry in
-            BellWeightSheet(kg: loadedSetKg(entry).kg) { session.setBellKg($0, for: entry, from: "playback") }
-          }
-        if let run = session.instrumentedRun {
-          instrumentedRunBanner(run)
+        if beside {
+          Divider()
+          repGallery
+            .padding(.top, 8)
+            .frame(width: min(geo.size.width * 0.4, GalleryLayout.maxWidth))
         }
       }
-      .frame(maxWidth: .infinity, maxHeight: .infinity)
-      if !session.reps.isEmpty && session.source != .camera {
-        galleryHandle
-        if galleryHeight >= 40 {
-          RepGalleryWidget(
-            reps: session.reps, columns: session.exercise.definition.galleryOrder,
-            currentRep: session.currentRep?.number, playhead: session.currentTime, focusedPhase: $focusedPhase,
-            focusedRep: $focusedRep,
-            onSeek: { chromeSeek(to: $0.time, from: "gallery") },
-            onOpen: { _ in showKeyframeViewer = true }
-          )
-          .frame(height: galleryHeight)
-          .padding(.horizontal, 8)
-        }
-      }
-      controls
     }
     .background(Color(.systemBackground))
+  }
+
+  private var repGallery: some View {
+    RepGalleryWidget(
+      reps: session.reps, columns: session.exercise.definition.galleryOrder,
+      currentRep: session.currentRep?.number, playhead: session.currentTime, focusedPhase: $focusedPhase,
+      focusedRep: $focusedRep,
+      onSeek: { chromeSeek(to: $0.time, from: "gallery") },
+      onOpen: { _ in showKeyframeViewer = true }
+    )
+    .padding(.horizontal, 8)
+  }
+
+  private var picture: some View {
+    ZStack {
+      Color.black
+      // The lifter in the middle of the picture (#98): zoomed, head at the top with the eyes below the header,
+      // feet above the angle text. Zoom off is the whole frame where it always was.
+      MeViewZoom(
+        crop: meView ? session.personCrop : nil, eyeLine: session.personEyeLine,
+        imageSize: session.latestFrame?.imageSize, freeTop: hudHeaderBottom, freeBottom: hudAngleLineTop
+      ) { zoom in
+        ZStack {
+          if session.source == .camera {
+            CameraPreviewView(previewLayer: session.cameraPreviewLayer, zoom: zoom)
+          } else {
+            PlayerView(player: session.player, zoom: zoom, onReady: session.logPlayerLayer)
+          }
+          if overlayMode != .video {
+            PoseOverlayView(frame: session.latestFrame)
+              .scaleEffect(zoom.scale)
+              .offset(zoom.offset)
+              .animation(.easeOut(duration: 0.3), value: zoom)
+              .clipped()  // clip the vector overlay only; a clip on the video's ancestors can drop HDR
+          }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+          // A tap on the picture plays or pauses (#28); the HUD's own buttons sit above and win.
+          if session.source == .file { session.togglePlayback() }
+        }
+      }
+      if session.source == .file, session.duration > 0 {
+        edgeControls
+      }
+      if case .working(let label, let progress) = session.activity, session.source != .camera {
+        VStack(spacing: 8) {
+          ProgressView(value: progress).frame(width: 160)
+          Text(progress.map { "\(label) \(Int($0 * 100))%" } ?? "\(label)…")
+            .font(.footnote).foregroundStyle(.white)
+          if session.canCancelAnalysis {
+            Button("Cancel") { session.cancelAnalysis() }
+              .buttonStyle(.bordered).tint(.white).font(.footnote)
+          }
+        }
+        .padding(16)
+        .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 12))
+      }
+      hud
+        .sheet(item: $weighingLoadedSet) { entry in
+          BellWeightSheet(kg: loadedSetKg(entry).kg) { session.setBellKg($0, for: entry, from: "playback") }
+        }
+      if let run = session.instrumentedRun {
+        instrumentedRunBanner(run)
+      }
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 
   /// Drag to give the gallery more or less of the screen; double-tap to collapse or restore it.
@@ -1032,6 +1056,14 @@ struct ContentView: View {
         session.captureBugScreenshot()
         try? await Task.sleep(for: .seconds(1))
         session.reportBug(note: note)
+      }
+    }
+    // Test hook (#53): turn the screen sideways, as the simulator's Rotate would (an iPad in landscape).
+    if env["SWING_LANDSCAPE"] == "1",
+      let scene = UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene
+    {
+      scene.requestGeometryUpdate(.iOS(interfaceOrientations: .landscapeRight)) {
+        session.log.event("ui", ["action": "landscape_failed", "error": $0.localizedDescription])
       }
     }
     if env["SWING_SHOW_GALLERY"] == "1" { showGallery = true }

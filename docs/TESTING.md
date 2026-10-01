@@ -167,6 +167,7 @@ read from the environment (pass them through `simctl` as `SIMCTL_CHILD_<name>`):
 | `SWING_OPEN_RECENT=1` | reopen the newest Recents entry |
 | `SWING_BUG=text` | file a bug report on launch |
 | `SWING_SHOW_GALLERY=1` | open the rep gallery sheet on launch (gallery screenshots, #61) |
+| `SWING_LANDSCAPE=1` | turn the screen to landscape on launch (the iPad split, #53; there is no Simulator.app to rotate it). iPadOS's windowed mode refuses it (`ui landscape_failed`): build with `INFOPLIST_KEY_UIRequiresFullScreen=YES` on the `xcodebuild` line for the check, never in the project. The screenshot comes out sideways |
 | `SWING_SHOW_SEEK_CONTROLS=1` | raise the frame-step stacks 4 s after launch, as a middle hold would, for a screenshot (030) |
 | `SWING_BELLS=1` | run the bell detector in the offline pass (off by default since 2026-09-12; the `bellDetector` default does the same) |
 | `SWING_LIVE_BELLS=1` | with `SWING_BELLS=1`: bells while recording too (#69; the `liveBells` default does the same) |
