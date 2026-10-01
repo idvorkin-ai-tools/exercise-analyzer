@@ -520,12 +520,12 @@ the first frame (story 001).
 - **Scenario:** The phone shows the workout too
 - **Given:** a workout running on the wrist and the phone app open
 - **When:** I look at the phone
-- **Then:** a green strip under the count reads "Workout 42:10 · ♥ 128 · 6 sets" (the sets recorded since Start), and Workouts' Today header carries "Workout since 9:02 AM · ♥ 128 · on the watch"
+- **Then:** a green strip under the count reads "Workout 42:10 · ♥ 128 · 6 sets" (the sets recorded since Start), and Workouts' Today header carries "Since 9:02 AM · ♥ 128 · on the watch" by the lifter sign (#185)
 
 - **Scenario:** Ending the workout
 - **Given:** a workout with sets in it
 - **When:** I scroll to the bottom of the workout page and tap End workout
-- **Then:** the workout is written to Health once (functional strength training, its duration and heart rate, one activity per recorded set), the wrist returns to the idle page, and Workouts' day header reads "Workout 9:02 AM–10:00 AM · 58 min · ♥ 128 avg · 156 max · in Health"; Discard asks first and writes nothing anywhere, and the sets recorded inside it stay in Workouts either way
+- **Then:** the workout is written to Health once (functional strength training, its duration and heart rate, one activity per recorded set), the wrist returns to the idle page, and Workouts' day header carries "9:02 AM · 58 min · ♥ 128" by the lifter sign (#185); Discard asks first and writes nothing anywhere, and the sets recorded inside it stay in Workouts either way
 
 - **Notes:** The four decisions, taken 2026-09-16 (design canvas "Workout on the Wrist"): the workout starts by hand on the watch, not with the first Record, so the warm-up counts; the workout page is what the wrist shows whenever the camera is not live, including while the phone reviews a set, and Done returns to it; Pause (040) freezes the camera only, the workout clock runs through rests like a run's; the watch carries the session on its own (that is what `HKWorkoutSession` buys), so a killed or unreachable phone ends nothing and the phone picks the mirrored session up again when it returns. The build: `WorkoutController` on the watch owns the `HKWorkoutSession` + `HKLiveWorkoutBuilder`, mirrors it to the phone (`startMirroringToCompanionDevice`) and sends `WorkoutWire` through the mirrored session; `WorkoutMirror` on the phone adopts the session (`workoutSessionMirroringStartHandler`, installed at launch so a background launch gets it too) and keeps ended workouts in `Documents/workouts.json` (`WorkoutIndex`). The wrist counts sets from the pass's final counts (045) that arrive after Start; the phone counts the sets recorded since Start from its own store, so the two can differ by a set still analyzing. The 2026-09-13 research on the cost of a workout session (permission prompt, a workout in Health per session, battery, chrome, the lifecycle) still holds and is below.
 

@@ -30,7 +30,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Scenario:** A day that was a workout on the wrist
 - **Given:** a workout started and ended on the watch that day ([048](05-watch.md))
 - **When:** I open Workouts
-- **Then:** the day's header carries a green line per workout, "Workout 9:02 AM–10:00 AM · 58 min · ♥ 128 avg · 156 max · in Health", above the rows of the sets that fall outside every workout (the rest are on the workout's page, 053, #163); a day with a workout and no set on camera is still listed, with the line and no rows
+- **Then:** the day's header reads like any other day's, "8×8 [swing] · 5×2 [get-up]" beside the title, and under it a green line per workout, "[lifter] 9:02 AM · 58 min · ♥ 128 ›" (the start, the length, the average heart rate; #185), above the rows of the sets that fall outside every workout (the rest are on the workout's page, 053, #163); a day with a workout and no set on camera is still listed, with the line and no rows
 
 - **Scenario:** A set's picture shows the lift
 - **Given:** a set of swings filmed upright, and a set that counted no reps
@@ -56,6 +56,11 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Given:** a day with a workout from the wrist
 - **When:** I read its green line
 - **Then:** it begins with the lifter figure the playback screen's "‹" uses, not a watch; the words are unchanged (Igor, 2026-09-22: "don't show watch … whatever we use for workout", [#130](https://github.com/idvorkin/exercise-analyzer/issues/130))
+
+- **Scenario:** A workout day reads like the other days (#185)
+- **Given:** Monday's workout of nine swing sets of 9–11 and five get-up sets of two, and Sunday with no workout, folded
+- **When:** I read the day list
+- **Then:** Monday's header says "9×9–11 [swing] · 5×2 [get-up]" beside its title, as folded Sunday does, in place of "14 sets · 100 reps · 38 min"; the green line under it is "[lifter] 8:37 AM · 45 min · ♥ 135 ›", without the word "Workout" (the lifter says it), the max or "in Health", and a tap on it still opens the workout; VoiceOver still reads "Workout 8:37 AM …" (Igor, 2026-10-01, picked C on the design canvas: "this one build and deploy, maybe drop word workout and put the things on the second line, drop max")
 
 - **Notes:** Where the history lives ([#159](https://github.com/idvorkin/exercise-analyzer/issues/159), decided 2026-09-27, nothing to build): every set, its analysis and pictures, and `workouts.json` sit in the app's Documents folder with nothing excluded from backup, so iCloud Backup and Quick Start carry the whole list to a new phone; Photos clips travel with iCloud Photos, workouts and heart rate with Health. The issue stays open until Igor confirms iCloud Backup is on.
 
@@ -393,7 +398,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 
 - **Scenario:** A workout that is still running
 - **Given:** a workout running on the wrist
-- **When:** I tap "Workout since 8:43 AM · ♥ 128 · on the watch" (048)
+- **When:** I tap "Since 8:43 AM · ♥ 128 · on the watch" (048)
 - **Then:** the same page shows the workout up to now, and nothing is kept until it ends
 
 - **Scenario:** No heart rate
