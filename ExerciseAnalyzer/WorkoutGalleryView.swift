@@ -467,6 +467,23 @@ struct DayHeader: View {
   }
 
   private var dayLine: some View {
+    // The day's drawings beside its title when they fit, else on their own line under it: never cut to "…"
+    // (#186; three exercises with a range, "1×8 · 3×0–21 · 1×5", did not fit beside "Yesterday").
+    ViewThatFits(in: .horizontal) {
+      HStack(alignment: .firstTextBaseline) {
+        titleBlock
+        Spacer()
+        tally
+      }
+      VStack(alignment: .leading, spacing: 4) {
+        titleBlock
+        tally.padding(.leading, onToggle != nil ? 20 : 0)
+      }
+    }
+    .contentShape(Rectangle())
+  }
+
+  private var titleBlock: some View {
     HStack(alignment: .firstTextBaseline) {
       // No arrow where the day does not fold (a workout day, #163).
       if onToggle != nil {
@@ -475,29 +492,34 @@ struct DayHeader: View {
           .rotationEffect(.degrees(collapsed ? 0 : 90))
           .foregroundStyle(.secondary)
       }
-      Text(title).font(.title3.bold())
-      if title == "Today" || title == "Yesterday" {
-        Text(dateLine).font(.subheadline).foregroundStyle(.secondary)
-      }
-      Spacer()
-      if collapsed || day.hasWorkout {
-        // A folded day says what was done (#129; Igor: "show an icon like 8x8 swings, 3xTGUs"): sets ×
-        // reps per exercise with its drawing, "8×8 [swing] · 5×2 [get-up]", a range when the sets differ. A
-        // workout day reads the same (#185; Igor: "look like days … with little icons").
-        HStack(spacing: 6) {
-          ForEach(day.exercises) { exercise in
-            HStack(spacing: 3) {
-              Text(exercise.setsByReps).font(.subheadline).monospacedDigit().foregroundStyle(.secondary)
-              ExerciseGlyph(kind: exercise.kind, size: 18)
-            }
-          }
+      // "Today" and "Yesterday" carry their date under the word, not beside it, where it squeezed the day's
+      // drawings (#186).
+      VStack(alignment: .leading, spacing: 0) {
+        Text(title).font(.title3.bold())
+        if title == "Today" || title == "Yesterday" {
+          Text(dateLine).font(.caption).foregroundStyle(.secondary).lineLimit(1)
         }
-        .lineLimit(1)
-      } else {
-        Text(summary).font(.subheadline).foregroundStyle(.secondary)
       }
     }
-    .contentShape(Rectangle())
+  }
+
+  @ViewBuilder private var tally: some View {
+    if collapsed || day.hasWorkout {
+      // A folded day says what was done (#129; Igor: "show an icon like 8x8 swings, 3xTGUs"): sets ×
+      // reps per exercise with its drawing, "8×8 [swing] · 5×2 [get-up]", a range when the sets differ. A
+      // workout day reads the same (#185; Igor: "look like days … with little icons").
+      HStack(spacing: 6) {
+        ForEach(day.exercises) { exercise in
+          HStack(spacing: 3) {
+            Text(exercise.setsByReps).font(.subheadline).monospacedDigit().foregroundStyle(.secondary)
+            ExerciseGlyph(kind: exercise.kind, size: 18)
+          }
+        }
+      }
+      .fixedSize()
+    } else {
+      Text(summary).font(.subheadline).foregroundStyle(.secondary)
+    }
   }
 
   private var summary: String {
