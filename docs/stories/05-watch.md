@@ -498,7 +498,7 @@ the first frame (story 001).
 ### User Story 048:
 
 - **Summary:** The whole gym session is one workout on the wrist, with heart rate and a clock, across every set
-- **Status:** implemented in [b2df153](https://github.com/idvorkin/exercise-analyzer/commit/b2df153); verified on the host (`WorkoutTests`), the watch simulator (`just watch-screens`: workout, workoutEnd, workoutRecording) and the phone simulator; on the phone and the watch since 2026-09-16, Igor's check pending (the Health permission, heart rate, the mirrored session, the workout in Health)
+- **Status:** implemented in [b2df153](https://github.com/idvorkin/exercise-analyzer/commit/b2df153); verified on the host (`WorkoutTests`), the watch simulator (`just watch-screens`: workout, workoutEnd, workoutRecording) and the phone simulator; on the phone and the watch since 2026-09-16, Igor's check pending (the Health permission, heart rate, the mirrored session, the workout in Health); the shortened workout line on Workouts (#185) in [6d7b5db](https://github.com/idvorkin/exercise-analyzer/commit/6d7b5db), verified on the simulator (`SWING_WORKOUTS_FOLDED=1` screenshot), on the phone since 2026-10-01
 - **Why:** Igor, 2026-09-16, from the gym: "Let's figure out how to do this with the workout mode and this will be the workout. We need to think through keeping the workout alive across many analysis sessions. I'm doing multiple exercises and warming up and stuff but let's figure out how to make this workout and record the whole workout. Need to think about what my workout UI looks like on the watch. Should probably have heart rate on there and a timer. Those are probably the big ones before the control."
 
 #### Use Case:
