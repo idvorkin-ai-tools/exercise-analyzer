@@ -458,11 +458,11 @@ struct DayHeader: View {
       HStack(alignment: .firstTextBaseline) {
         titleBlock
         Spacer()
-        tally
+        tally(wrapping: false)
       }
       VStack(alignment: .leading, spacing: 4) {
         titleBlock
-        tally.padding(.leading, onToggle != nil ? 20 : 0)
+        tally(wrapping: true).padding(.leading, onToggle != nil ? 20 : 0)
       }
     }
     .contentShape(Rectangle())
@@ -488,20 +488,25 @@ struct DayHeader: View {
     }
   }
 
-  @ViewBuilder private var tally: some View {
+  /// On its own line the drawings wrap at the edge: the iPad's sidebar is narrower than a phone, and six
+  /// exercises ran past it there, the last ones cut off (#186).
+  @ViewBuilder private func tally(wrapping: Bool) -> some View {
     if collapsed || day.hasWorkout {
       // A folded day says what was done (#129; Igor: "show an icon like 8x8 swings, 3xTGUs"): sets ×
       // reps per exercise with its drawing, "8×8 [swing] · 5×2 [get-up]", a range when the sets differ. A
       // workout day reads the same (#185; Igor: "look like days … with little icons").
-      HStack(spacing: 6) {
-        ForEach(day.exercises) { exercise in
-          HStack(spacing: 3) {
-            Text(exercise.setsByReps).font(.subheadline).monospacedDigit().foregroundStyle(.secondary)
-            ExerciseGlyph(kind: exercise.kind, size: 18)
-          }
+      let items = ForEach(day.exercises) { exercise in
+        HStack(spacing: 3) {
+          Text(exercise.setsByReps).font(.subheadline).monospacedDigit().foregroundStyle(.secondary)
+          ExerciseGlyph(kind: exercise.kind, size: 18)
         }
+        .fixedSize()
       }
-      .fixedSize()
+      if wrapping {
+        WrappingHStack(spacing: 6) { items }
+      } else {
+        HStack(spacing: 6) { items }.fixedSize()
+      }
     } else {
       Text(summary).font(.subheadline).foregroundStyle(.secondary)
     }
@@ -541,6 +546,40 @@ struct DayHeader: View {
       lines.append((parts.joined(separator: " · "), WorkoutMirror.soFar(live)))
     }
     return lines
+  }
+}
+
+/// Its views left to right, a new line where the next would pass the edge (#186).
+struct WrappingHStack: Layout {
+  var spacing: CGFloat
+  var lineSpacing: CGFloat = 4
+
+  func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+    arrange(width: proposal.width ?? .infinity, subviews).size
+  }
+
+  func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+    for (subview, frame) in zip(subviews, arrange(width: bounds.width, subviews).frames) {
+      subview.place(at: CGPoint(x: bounds.minX + frame.minX, y: bounds.minY + frame.minY), proposal: ProposedViewSize(frame.size))
+    }
+  }
+
+  private func arrange(width: CGFloat, _ subviews: Subviews) -> (frames: [CGRect], size: CGSize) {
+    var frames: [CGRect] = []
+    var x: CGFloat = 0, y: CGFloat = 0, lineHeight: CGFloat = 0, widest: CGFloat = 0
+    for subview in subviews {
+      let size = subview.sizeThatFits(.unspecified)
+      if x > 0, x + size.width > width {
+        x = 0
+        y += lineHeight + lineSpacing
+        lineHeight = 0
+      }
+      frames.append(CGRect(origin: CGPoint(x: x, y: y), size: size))
+      widest = max(widest, x + size.width)
+      x += size.width + spacing
+      lineHeight = max(lineHeight, size.height)
+    }
+    return (frames, CGSize(width: widest, height: y + lineHeight))
   }
 }
 
