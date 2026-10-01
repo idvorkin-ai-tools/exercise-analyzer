@@ -637,3 +637,40 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Issues:** [#102](https://github.com/idvorkin/exercise-analyzer/issues/102)
 
 ---
+
+### User Story 068:
+
+- **Summary:** On an iPad, Workouts stays beside what I opened
+- **Status:** implemented in this commit; verified by iPad Pro 13-inch simulator screenshots (landscape, the log alone and with a set open; portrait, the log); no real iPad yet
+
+#### Use Case:
+- **As a** lifter looking back over my workouts on an iPad
+- **I want to** keep the day list on screen while a workout's page or a set is open
+- **so that** I go from one workout or set to the next with one tap, not back and in again
+
+#### Acceptance Criteria:
+- **Scenario:** Nothing open yet
+- **Given:** the app opens on an iPad in landscape
+- **When:** I look at the screen
+- **Then:** Workouts, with its "…" menu and the red Live button, is a sidebar on the left; the right says "Pick a
+  workout" until I tap something
+
+- **Scenario:** Opening from the sidebar
+- **Given:** the sidebar is up
+- **When:** I tap a workout's line or a set
+- **Then:** its page or the set opens on the right, the sidebar stays, and "‹" on the set goes back to the page it
+  was opened from, as on the phone (058)
+
+- **Scenario:** The phone, and a narrow iPad window
+- **Given:** an iPhone, or the app in a narrow split-view window on an iPad
+- **When:** I use it
+- **Then:** it is the phone's stack as before: the log at the root and pages pushed over it
+
+- **Notes:** Viewing only (Igor, 2026-10-01). The sidebar and the pages share the one navigation path, so the
+  camera, the hooks and "‹ Workout" (#99) behave as on the phone. The system decides when the sidebar shows (the
+  13-inch keeps it in portrait too) and its toggle sits in the log's bar; the player hides the navigation bar (the
+  edge swipe is the frame steppers', 030), so a set has no toggle of its own.
+
+- **Issues:** [#53](https://github.com/idvorkin/exercise-analyzer/issues/53)
+
+---

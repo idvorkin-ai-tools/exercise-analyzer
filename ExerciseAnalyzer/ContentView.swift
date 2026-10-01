@@ -104,38 +104,7 @@ struct ContentView: View {
   /// The log at the root, a workout's page and the player pushed over it (story 058; Igor, 2026-09-22: "build
   /// the flow for B"). The app-wide dialogs, pickers and hooks hang here, so they work on every screen.
   private var mainBody: some View {
-    NavigationStack(path: $path) {
-      WorkoutGalleryView(
-        store: session.recents, workouts: workouts, onOpen: openSet,
-        onImport: { identifier, date in
-          Task { await session.importPhotosAsset(identifier: identifier, recordedAt: date) }
-          showPlayer()
-        },
-        onEvent: { session.log.event($0, $1) }, session: session,
-        onOpenWorkout: { path = [.workout(WorkoutIdentity(start: $0.start))] })
-        .toolbar {
-          ToolbarItem(placement: .topBarTrailing) { moreMenu }
-        }
-        .safeAreaInset(edge: .bottom) { liveButton }
-        .navigationDestination(for: AppRoute.self) { route in
-          switch route {
-          case .workout(let workout):
-            WorkoutDetailView(
-              identity: workout, store: session.recents, workouts: workouts, onOpen: openSet,
-              thumbnail: { session.recents.thumbnailImage(for: $0) }, onEvent: { session.log.event($0, $1) },
-              onDelete: { session.delete(set: $0, from: "workout_page") },
-              onKeepByHand: { session.keepByHand(set: $0, exercise: $1, reps: $2, from: "workout_page") },
-              onAddByHand: { session.addByHand($0, from: "workout_chart") },
-              onSetBellKg: { session.setBellKg($1, for: $0, from: "workout_page") })
-          case .player:
-            // Full screen, as the picture always was: the HUD's "‹" is the way back, and the edge swipe stays
-            // the frame steppers' (story 030), so the system back and its swipe are off.
-            playerScreen
-              .toolbar(.hidden, for: .navigationBar)
-              .navigationBarBackButtonHidden(true)
-          }
-        }
-    }
+    navigation
     .background(
       ShakeDetector {
         guard session.instrumentedRun == nil else { return }  // a shake mid-run is the phone being carried, not a report
@@ -224,6 +193,61 @@ struct ContentView: View {
     .sheet(item: $sharing) { clip in
       ShareSheet(items: [clip.url]) { session.sharedClip(activity: $0, completed: $1) }
         .presentationDetents([.medium, .large])
+    }
+  }
+
+  /// The phone: the log at the root with pages pushed over it. The iPad (#53, story 068): the log stays in a
+  /// sidebar and its pages open beside it, on the same path; a narrow iPad window collapses to the phone's stack.
+  @ViewBuilder private var navigation: some View {
+    if UIDevice.current.userInterfaceIdiom == .pad {
+      NavigationSplitView {
+        workoutLog
+      } detail: {
+        NavigationStack(path: $path) {
+          ContentUnavailableView(
+            "Pick a workout", systemImage: "figure.strengthtraining.traditional",
+            description: Text("Its page and its sets open here."))
+            .navigationDestination(for: AppRoute.self, destination: page)
+        }
+      }
+    } else {
+      NavigationStack(path: $path) {
+        workoutLog.navigationDestination(for: AppRoute.self, destination: page)
+      }
+    }
+  }
+
+  private var workoutLog: some View {
+    WorkoutGalleryView(
+      store: session.recents, workouts: workouts, onOpen: openSet,
+      onImport: { identifier, date in
+        Task { await session.importPhotosAsset(identifier: identifier, recordedAt: date) }
+        showPlayer()
+      },
+      onEvent: { session.log.event($0, $1) }, session: session,
+      onOpenWorkout: { path = [.workout(WorkoutIdentity(start: $0.start))] })
+      .toolbar {
+        ToolbarItem(placement: .topBarTrailing) { moreMenu }
+      }
+      .safeAreaInset(edge: .bottom) { liveButton }
+  }
+
+  @ViewBuilder private func page(_ route: AppRoute) -> some View {
+    switch route {
+    case .workout(let workout):
+      WorkoutDetailView(
+        identity: workout, store: session.recents, workouts: workouts, onOpen: openSet,
+        thumbnail: { session.recents.thumbnailImage(for: $0) }, onEvent: { session.log.event($0, $1) },
+        onDelete: { session.delete(set: $0, from: "workout_page") },
+        onKeepByHand: { session.keepByHand(set: $0, exercise: $1, reps: $2, from: "workout_page") },
+        onAddByHand: { session.addByHand($0, from: "workout_chart") },
+        onSetBellKg: { session.setBellKg($1, for: $0, from: "workout_page") })
+    case .player:
+      // Full screen, as the picture always was: the HUD's "‹" is the way back, and the edge swipe stays
+      // the frame steppers' (story 030), so the system back and its swipe are off.
+      playerScreen
+        .toolbar(.hidden, for: .navigationBar)
+        .navigationBarBackButtonHidden(true)
     }
   }
 
