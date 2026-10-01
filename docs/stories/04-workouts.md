@@ -641,7 +641,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 068:
 
 - **Summary:** On an iPad, Workouts stays beside what I opened
-- **Status:** implemented in this commit; verified by iPad Pro 13-inch simulator screenshots (landscape, the log alone and with a set open; portrait, the log); no real iPad yet
+- **Status:** implemented in [adb4576](https://github.com/idvorkin/exercise-analyzer/commit/adb4576); verified by iPad Pro 13-inch simulator screenshots (landscape, the log alone and with a set open; portrait, the log); no real iPad yet
 
 #### Use Case:
 - **As a** lifter looking back over my workouts on an iPad

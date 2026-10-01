@@ -34,7 +34,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 006:
 
 - **Summary:** Line up the same moment of every rep to compare form
-- **Status:** implemented in [49c6529](https://github.com/idvorkin/exercise-analyzer/commit/49c6529), [44030f5](https://github.com/idvorkin/exercise-analyzer/commit/44030f5), [70976ae](https://github.com/idvorkin/exercise-analyzer/commit/70976ae); verified on the simulator and the phone; the me-view stills (#61) in [369f3cb](https://github.com/idvorkin/exercise-analyzer/commit/369f3cb), on the phone since 2026-09-13; the eye toggle (#113) in [c30e384](https://github.com/idvorkin/exercise-analyzer/commit/c30e384), verified by simulator screenshots, on the phone since 2026-09-20, Igor's check pending; the Bulgarian Standing column (#132) in [77c6731](https://github.com/idvorkin/exercise-analyzer/commit/77c6731), verified on the host (`BulgarianStandingTests`), on the phone since 2026-09-22; the gallery following the playhead (#152) in [39b9c99](https://github.com/idvorkin/exercise-analyzer/commit/39b9c99), verified on the host (`RepGalleryFollowTests`) and the simulator (`SWING_VIDEO` swing sample: rep 4's Release zoomed at the end); the iPad fit (#53), verified by an iPad Pro 13-inch simulator screenshot
+- **Status:** implemented in [49c6529](https://github.com/idvorkin/exercise-analyzer/commit/49c6529), [44030f5](https://github.com/idvorkin/exercise-analyzer/commit/44030f5), [70976ae](https://github.com/idvorkin/exercise-analyzer/commit/70976ae); verified on the simulator and the phone; the me-view stills (#61) in [369f3cb](https://github.com/idvorkin/exercise-analyzer/commit/369f3cb), on the phone since 2026-09-13; the eye toggle (#113) in [c30e384](https://github.com/idvorkin/exercise-analyzer/commit/c30e384), verified by simulator screenshots, on the phone since 2026-09-20, Igor's check pending; the Bulgarian Standing column (#132) in [77c6731](https://github.com/idvorkin/exercise-analyzer/commit/77c6731), verified on the host (`BulgarianStandingTests`), on the phone since 2026-09-22; the gallery following the playhead (#152) in [39b9c99](https://github.com/idvorkin/exercise-analyzer/commit/39b9c99), verified on the host (`RepGalleryFollowTests`) and the simulator (`SWING_VIDEO` swing sample: rep 4's Release zoomed at the end); the iPad fit (#53) in [6560872](https://github.com/idvorkin/exercise-analyzer/commit/6560872), verified by an iPad Pro 13-inch simulator screenshot
 
 #### Use Case:
 - **As a** lifter looking for the rep where form slipped
@@ -375,7 +375,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 067:
 
 - **Summary:** On an iPad held sideways, the reps stand beside the picture
-- **Status:** implemented in this commit; verified by an iPad Pro 13-inch simulator screenshot (`SWING_LANDSCAPE=1`, a full-screen build); no real iPad yet
+- **Status:** implemented in [2bba572](https://github.com/idvorkin/exercise-analyzer/commit/2bba572); verified by an iPad Pro 13-inch simulator screenshot (`SWING_LANDSCAPE=1`, a full-screen build); no real iPad yet
 
 #### Use Case:
 - **As a** lifter looking back over a set on an iPad
