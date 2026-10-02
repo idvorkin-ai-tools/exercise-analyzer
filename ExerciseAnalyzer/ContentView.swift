@@ -236,9 +236,11 @@ struct ContentView: View {
       onEvent: { session.log.event($0, $1) }, session: session,
       onOpenWorkout: { workout in fromLog { path = [.workout(WorkoutIdentity(start: workout.start))] } })
       .toolbar {
-        ToolbarItem(placement: .topBarTrailing) { moreMenu }
+        ToolbarItem(placement: .topBarTrailing) { moreMenu.disabled(session.source == .camera) }
       }
-      .safeAreaInset(edge: .bottom) { liveButton }
+      // On the iPad the log can be swiped back in over the camera: a second Live would drop the recording, and an
+      // import would replace it (Codex's recheck of PR #187).
+      .safeAreaInset(edge: .bottom) { liveButton.disabled(session.source == .camera) }
   }
 
   @ViewBuilder private func page(_ route: AppRoute) -> some View {
