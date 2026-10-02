@@ -641,7 +641,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 068:
 
 - **Summary:** On an iPad, Workouts stays beside what I opened
-- **Status:** implemented in [adb4576](https://github.com/idvorkin/exercise-analyzer/commit/adb4576), [31c8683](https://github.com/idvorkin/exercise-analyzer/commit/31c8683) (a sidebar set replaces the page), [5bd29ee](https://github.com/idvorkin/exercise-analyzer/commit/5bd29ee) (a tap pauses the set, the camera hides the log); verified by iPad Pro 13-inch simulator screenshots (landscape, the log alone and with a set open; portrait, the log) and the phone's navigation checks (`ONLY=live_workout`, `ONLY=cancel_reopen`); the camera case is traced in the code only, the simulator has no camera; no real iPad yet
+- **Status:** implemented in [adb4576](https://github.com/idvorkin/exercise-analyzer/commit/adb4576), [31c8683](https://github.com/idvorkin/exercise-analyzer/commit/31c8683) (a sidebar set replaces the page), [5bd29ee](https://github.com/idvorkin/exercise-analyzer/commit/5bd29ee) (a tap pauses the set, the camera hides the log), [0511fbe](https://github.com/idvorkin/exercise-analyzer/commit/0511fbe) (Live and "…" dimmed under the camera); verified by iPad Pro 13-inch simulator screenshots (landscape, the log alone and with a set open; portrait, the log) and the phone's navigation checks (`ONLY=live_workout`, `ONLY=cancel_reopen`); the camera case is traced in the code only, the simulator has no camera; no real iPad yet
 
 #### Use Case:
 - **As a** lifter looking back over my workouts on an iPad
