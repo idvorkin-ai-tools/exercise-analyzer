@@ -140,7 +140,9 @@ struct ContentView: View {
     .onAppear(perform: loadFromEnvironment)
     .onChange(of: pickerItem) { _, item in
       guard let item else { return }
-      path = []
+      // The player comes up here, as for Files: with a set already loaded the source stays `.file`, so the
+      // source change that opens the player never fires (Codex's review of PR #187).
+      showPlayer(fromLog: true)
       Task {
         await session.importPicked(item: item)
         pickerItem = nil
