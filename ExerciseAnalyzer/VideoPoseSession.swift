@@ -2355,6 +2355,9 @@ final class VideoPoseSession: NSObject, ObservableObject {
     // A pause open at Done ends here: its tail counts as paused time (#67).
     var pausedTime = pausedTotal
     if paused, let at = pausedAt, let last = lastCameraPts { pausedTime += last - at }
+    // The set's recordedAt, the rest clock's start (#182): the tap, not the end of finishing and joining below,
+    // which can take seconds (Codex's recheck of PR #187).
+    let stoppedAt = Date()
     stopCamera()
     // The offline pass runs next: the watch shows "Analyzing…" until `analyzed` lands it the final count (045).
     guard let recorder else { return }
@@ -2432,7 +2435,7 @@ final class VideoPoseSession: NSObject, ObservableObject {
       currentFileURL = clipURL
       currentOrigin = .recording
       currentEntryID = operation.entryID
-      currentRecordedAt = Date()
+      currentRecordedAt = stoppedAt
       // ponytail: a paused or rotated set has wall-clock time missing between its segments, so clip time is
       // not first frame + playhead any more and it gets no heart rate. Upgrade: keep each segment's start.
       currentClipStartedAt = segments.count == 1 && !hadPause ? clipStartedAt : nil
