@@ -25,6 +25,8 @@ struct ContentView: View {
   /// The log is home; this is what is pushed over it (story 058). A set opened from a workout's page sits over
   /// that page, so "‹" goes back to it.
   @State private var path: [AppRoute] = []
+  /// The iPad's log column (068): hidden while the camera is up.
+  @State private var sidebar = NavigationSplitViewVisibility.all
   /// The open set whose bell weight is being set from the playback screen's chip (066).
   @State private var weighingLoadedSet: RecentEntry?
   /// Where the camera was opened from, and the stored set on screen then: what its Cancel goes back to (#146).
@@ -78,6 +80,7 @@ struct ContentView: View {
     // was started (the wrist's Record, a picker, a hook); the camera ended or the set deleted takes it away. Here,
     // not on mainBody: a wrist start or Cancel switches watch mode in the same change, where mainBody sees none.
     .onChange(of: session.source) { old, source in
+      if source == .camera { sidebar = .detailOnly } else if old == .camera { sidebar = .all }
       switch source {
       case .camera:
         guard old != .camera else { return }
@@ -203,7 +206,8 @@ struct ContentView: View {
   /// sidebar and its pages open beside it, on the same path; a narrow iPad window collapses to the phone's stack.
   @ViewBuilder private var navigation: some View {
     if UIDevice.current.userInterfaceIdiom == .pad {
-      NavigationSplitView {
+      // The camera takes the whole screen, as on the phone: the log comes back when it closes.
+      NavigationSplitView(columnVisibility: $sidebar) {
         workoutLog
       } detail: {
         NavigationStack(path: $path) {
@@ -222,13 +226,15 @@ struct ContentView: View {
 
   private var workoutLog: some View {
     WorkoutGalleryView(
-      store: session.recents, workouts: workouts, onOpen: { openSet($0, fromLog: true) },
+      store: session.recents, workouts: workouts, onOpen: { entry in fromLog { openSet(entry, fromLog: true) } },
       onImport: { identifier, date in
-        Task { await session.importPhotosAsset(identifier: identifier, recordedAt: date) }
-        showPlayer(fromLog: true)
+        fromLog {
+          Task { await session.importPhotosAsset(identifier: identifier, recordedAt: date) }
+          showPlayer(fromLog: true)
+        }
       },
       onEvent: { session.log.event($0, $1) }, session: session,
-      onOpenWorkout: { path = [.workout(WorkoutIdentity(start: $0.start))] })
+      onOpenWorkout: { workout in fromLog { path = [.workout(WorkoutIdentity(start: workout.start))] } })
       .toolbar {
         ToolbarItem(placement: .topBarTrailing) { moreMenu }
       }
@@ -260,6 +266,15 @@ struct ContentView: View {
     guard !entry.isByHand else { return }  // typed on the wrist: no video to open (059)
     session.open(recent: entry)
     showPlayer(fromLog: fromLog)
+  }
+
+  /// A tap in the log. On the iPad the log stays beside the player (068), so a tap there must leave the set as
+  /// "‹" does, paused, and does nothing while the camera is up: the recording keeps its screen and its workout
+  /// (Codex's review of PR #187). On the phone the log only shows with nothing over it.
+  private func fromLog(_ go: () -> Void) {
+    guard session.source != .camera else { return }
+    session.pause()
+    go()
   }
 
   private func showPlayer(fromLog: Bool = false) {
