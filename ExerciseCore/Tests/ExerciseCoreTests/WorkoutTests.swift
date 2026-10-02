@@ -81,6 +81,25 @@ final class WorkoutTests: XCTestCase {
     XCTAssertTrue(WorkoutGlance(heartRate: 140, sets: 3, reps: 24).with(sets: [], since: start).exercises.isEmpty)
   }
 
+  /// Rest starts when Done stopped the recording, not where the kept clip ends (Codex's review of PR #187): a
+  /// trim keeps less than was recorded, and a paused set has no first frame, so its clip span is the stop plus
+  /// its length, in the future.
+  func testRestStartsWhenTheRecordingStoppedWhateverTheClipKept() {
+    let start = Date(timeIntervalSince1970: 1_000)
+    let stopped = start.addingTimeInterval(160)
+    func recorded(clipStartedAt: Date?) -> RecentEntry {
+      RecentEntry(
+        id: "r", analyzedAt: stopped.addingTimeInterval(5), recordedAt: stopped, duration: 30, repCount: 10,
+        bestScore: 80, source: .photos(identifier: "p"), thumbnail: nil, exercise: .kettlebellSwing,
+        originalName: nil, clipStartedAt: clipStartedAt)
+    }
+    let glance = WorkoutGlance(heartRate: 140, sets: 1, reps: 10)
+    let trimmed = recorded(clipStartedAt: start.addingTimeInterval(110))  // kept 1110–1140 of 1100–1160
+    XCTAssertEqual(glance.with(sets: [trimmed], since: start).last?.endedAt, stopped)
+    let paused = recorded(clipStartedAt: nil)
+    XCTAssertEqual(glance.with(sets: [paused], since: start).last?.endedAt, stopped)
+  }
+
   private func date(_ day: Int, _ hour: Int, _ minute: Int = 0) -> Date {
     calendar.date(from: DateComponents(year: 2026, month: 9, day: day, hour: hour, minute: minute))!
   }

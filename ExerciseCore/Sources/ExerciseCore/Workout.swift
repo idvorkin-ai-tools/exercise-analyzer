@@ -72,11 +72,18 @@ public struct WorkoutGlance: Equatable, Sendable {
         glance.exercises.append(ExerciseTally(exercise: entry.exerciseKind, sets: 1, reps: entry.repCount))
       }
     }
-    glance.last = inside.max { $0.span.upperBound < $1.span.upperBound }.map {
-      LastSetTally(exercise: $0.exerciseKind, reps: $0.repCount, endedAt: $0.span.upperBound)
+    glance.last = inside.max { Self.ended($0) < Self.ended($1) }.map {
+      LastSetTally(exercise: $0.exerciseKind, reps: $0.repCount, endedAt: Self.ended($0))
     }
     return glance
   }
+
+  /// When a set ended, the rest clock's start (#182): a recording's `recordedAt` is the moment Done stopped it,
+  /// whatever the trim kept or a pause dropped, and a typed set's is its save. The clip's span is only for a set
+  /// without one.
+  /// ponytail: an imported clip's `recordedAt` is the asset's date, its start, so a clip imported mid-workout
+  /// rests from its start, one clip length early; store the stop time on the set if imports during a workout matter.
+  private static func ended(_ entry: RecentEntry) -> Date { entry.recordedAt ?? entry.span.upperBound }
 
   /// Whether the activity should take `next`, shown `shown` since `shownAt`.
   public static func shouldShow(_ next: WorkoutGlance, over shown: WorkoutGlance?, shownAt: Date, now: Date) -> Bool {
