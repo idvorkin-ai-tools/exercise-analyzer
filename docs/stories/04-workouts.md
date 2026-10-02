@@ -666,7 +666,8 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Given:** a set is playing beside the sidebar, or the camera is up
 - **When:** I tap a workout or a set in the log
 - **Then:** the playing set pauses first, as "‹" pauses it; while the camera is up the log is hidden and, swiped
-  back in, its taps do nothing and its Live button and "…" menu are dimmed, so the recording keeps its screen and Done's set lands under its own workout
+  back in, its taps do nothing and its Live button and "…" menu are dimmed, so the recording keeps its screen
+  and Done's set lands under its own workout
 
 - **Scenario:** The phone, and a narrow iPad window
 - **Given:** an iPhone, or the app in a narrow split-view window on an iPad
