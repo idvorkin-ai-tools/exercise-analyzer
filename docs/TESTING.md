@@ -226,10 +226,20 @@ shipped on green builds and nobody saw a watch screen.
 The Retry button (#189) has its own hook, because nothing can tap the watch simulator: `WATCH_RETRY=<seconds>`
 (`SIMCTL_CHILD_WATCH_RETRY=3 xcrun simctl launch <watch> com.idvorkin.exerciseanalyzer.watchkitapp`, without
 `WATCH_STATE`) calls `PhoneLink.retry()` that many seconds after launch, as a tap on Retry would. This one
-needs the paired simulators, with both apps installed: WatchConnectivity runs between them, so the phone
-simulator's session log shows `watch_retry` and, for a retry that came queued, `watch_retry_answered`. A lost
-phone is staged with `xcrun simctl terminate` on the phone app or `simctl shutdown` on the phone simulator.
-The workout road is not reachable this way (the simulator has no watch workout).
+needs the paired simulators, with both apps installed: WatchConnectivity carries messages between them, so the
+phone simulator's session log shows the retry's `watch_scene` and `ui action:status from:watch` lines about a
+second apart, and a watch screenshot shows the button reading "Trying…", then "Retry" again and the watch live.
+A lost phone is staged only with `simctl shutdown` on the phone simulator: `simctl terminate` on the phone app
+does not lose it, because the watch's messages relaunch the app in the background (`app_state: 2`), it
+answers, and the watch shows the backgrounded page. With the phone simulator down, the watch's own system log
+(`xcrun simctl spawn <watch> log show`, the app's `com.apple.wcd` lines) shows the queued `transferUserInfo`
+and the once-a-second sends failing as not reachable.
+
+The queued road is phone-only: no `transferUserInfo` payload from the watch reaches the phone app between the
+simulators (no `watch_retry`, no `watch_retry_answered`, no `watch_<log>` line of any kind, measured 2026-10-04
+with the phone app in front, terminated, and brought back). `watch_retry` and `watch_retry_answered` via
+`queued` need the real phone and watch (`just run-device`, Retry on the wrist with the phone out of range, then
+`just pull-logs`). The workout road is not reachable either (the simulator has no watch workout).
 
 ## Rung 3: phone
 
