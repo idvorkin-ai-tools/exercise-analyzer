@@ -53,14 +53,7 @@ struct WorkoutActivityWidget: Widget {
             }
           }
         }
-        if let exercises = context.state.exercises, !exercises.isEmpty {
-          HStack(spacing: 12) {
-            ForEach(exercises, id: \.exercise) { reps($0) }
-            Spacer(minLength: 4)
-            if let last = context.state.last { lastSet(last) }
-          }
-          .font(.subheadline.bold())
-        }
+        tallies(context.state)
       }
       .padding(16)
       .activityBackgroundTint(Color.black.opacity(0.75))
@@ -85,19 +78,13 @@ struct WorkoutActivityWidget: Widget {
                 Text(tally(context.state)).font(.headline)
               }
             }
-            if let exercises = context.state.exercises, !exercises.isEmpty {
-              HStack(spacing: 12) {
-                ForEach(exercises, id: \.exercise) { reps($0) }
-                Spacer(minLength: 4)
-                if let last = context.state.last { lastSet(last) }
-              }
-              .font(.subheadline.bold())
-            }
+            tallies(context.state)
           }
         }
       } compactLeading: {
         if let kind = context.state.last.flatMap({ ExerciseKind(rawValue: $0.exercise) }) {
           ExerciseGlyph(kind: kind, size: 20)
+            .accessibilityElement().accessibilityLabel("Last set, \(kind.repWord(2))")
         } else {
           Image(systemName: "figure.strengthtraining.traditional").foregroundStyle(.green)
         }
@@ -127,20 +114,53 @@ struct WorkoutActivityWidget: Widget {
     }
   }
 
+  /// The reps of each exercise and the last set, on one line when they fit; a workout of many exercises (there
+  /// are eight kinds) takes two, so no count is squeezed or cut.
+  @ViewBuilder private func tallies(_ state: WorkoutActivityAttributes.ContentState) -> some View {
+    if let exercises = state.exercises, !exercises.isEmpty {
+      let half = (exercises.count + 1) / 2
+      ViewThatFits(in: .horizontal) {
+        HStack(spacing: 12) {
+          ForEach(exercises, id: \.exercise) { reps($0) }
+          Spacer(minLength: 4)
+          if let last = state.last { lastSet(last) }
+        }
+        VStack(alignment: .leading, spacing: 4) {
+          HStack(spacing: 10) { ForEach(exercises.prefix(half), id: \.exercise) { reps($0) } }
+          HStack(spacing: 10) {
+            ForEach(exercises.dropFirst(half), id: \.exercise) { reps($0) }
+            Spacer(minLength: 4)
+            if let last = state.last { lastSet(last) }
+          }
+        }
+      }
+      .font(.subheadline.bold())
+    }
+  }
+
   /// "[swing] 45": an exercise's reps in the workout by its drawing.
   @ViewBuilder private func reps(_ count: WorkoutActivityAttributes.ExerciseCount) -> some View {
+    let kind = ExerciseKind(rawValue: count.exercise)
     HStack(spacing: 3) {
-      if let kind = ExerciseKind(rawValue: count.exercise) { ExerciseGlyph(kind: kind, size: 20) }
+      if let kind { ExerciseGlyph(kind: kind, size: 20) }
       Text("\(count.reps)").monospacedDigit()
     }
+    .fixedSize()
+    // The drawing is the only thing that names the exercise, and it is hidden from VoiceOver.
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel("\(count.reps) \(kind?.repWord(count.reps) ?? "reps")")
   }
 
   /// "last 15 [swing]".
   @ViewBuilder private func lastSet(_ last: WorkoutActivityAttributes.ExerciseCount) -> some View {
+    let kind = ExerciseKind(rawValue: last.exercise)
     HStack(spacing: 3) {
       Text("last \(last.reps)").monospacedDigit().foregroundStyle(.secondary)
-      if let kind = ExerciseKind(rawValue: last.exercise) { ExerciseGlyph(kind: kind, size: 18) }
+      if let kind { ExerciseGlyph(kind: kind, size: 18) }
     }
+    .fixedSize()
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel("Last set, \(last.reps) \(kind?.repWord(last.reps) ?? "reps")")
   }
 
   private func tally(_ state: WorkoutActivityAttributes.ContentState) -> String {
