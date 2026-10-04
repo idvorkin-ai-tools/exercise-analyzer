@@ -185,6 +185,16 @@ final class PhoneLink: NSObject, ObservableObject {
     heartbeatTimer = Timer.scheduledTimer(withTimeInterval: Self.heartbeatInterval, repeats: true) { [weak self] _ in
       Task { @MainActor in self?.beat() }
     }
+    // WATCH_RETRY=<seconds> (simulator only, docs/TESTING.md): Retry that long after launch, as a tap on the
+    // button would; nothing can tap the watch simulator, and a lost phone can be staged there.
+    #if targetEnvironment(simulator)
+      if let delay = ProcessInfo.processInfo.environment["WATCH_RETRY"].flatMap(Double.init) {
+        Task { [weak self] in
+          try? await Task.sleep(for: .seconds(delay))
+          self?.retry()
+        }
+      }
+    #endif
   }
 
   /// Called from the view's scene phase: tells the phone whether to stream previews, and pings on wake.

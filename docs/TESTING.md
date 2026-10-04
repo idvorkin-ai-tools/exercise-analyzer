@@ -223,6 +223,14 @@ control inventory at the top of [`05-watch.md`](stories/05-watch.md); a missing 
 is the rung that would have caught #74 (the picture page gated on the phone being active): three watch changes
 shipped on green builds and nobody saw a watch screen.
 
+The Retry button (#189) has its own hook, because nothing can tap the watch simulator: `WATCH_RETRY=<seconds>`
+(`SIMCTL_CHILD_WATCH_RETRY=3 xcrun simctl launch <watch> com.idvorkin.exerciseanalyzer.watchkitapp`, without
+`WATCH_STATE`) calls `PhoneLink.retry()` that many seconds after launch, as a tap on Retry would. This one
+needs the paired simulators, with both apps installed: WatchConnectivity runs between them, so the phone
+simulator's session log shows `watch_retry` and, for a retry that came queued, `watch_retry_answered`. A lost
+phone is staged with `xcrun simctl terminate` on the phone app or `simctl shutdown` on the phone simulator.
+The workout road is not reachable this way (the simulator has no watch workout).
+
 ## Rung 3: phone
 
 `just run-device` builds with automatic signing (the sandbox must be off for provisioning), installs with
