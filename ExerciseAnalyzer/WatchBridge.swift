@@ -23,6 +23,8 @@ final class WatchBridge: NSObject, ObservableObject {
   /// arrive every second.
   private(set) var lastContact: Date?
   var onContact: (() -> Void)?
+  /// A second road for a forced status: the running workout's mirrored session (#189).
+  var viaWorkout: ((Data) -> Void)?
 
   private var lastSent: WatchStatus?
   private var lastSentAt = Date.distantPast
@@ -52,7 +54,15 @@ final class WatchBridge: NSObject, ObservableObject {
     if !force, status == lastSent || now.timeIntervalSince(lastSentAt) < minInterval { return }
     lastSent = status
     lastSentAt = now
-    guard let data = try? JSONEncoder().encode(status) else { return }
+    // Stamped as it goes out, after the changed-or-not check above: the wrist keeps the newest by this time,
+    // whichever road a copy comes by (`WatchStatus.replaces`).
+    var stamped = status
+    stamped.sentAt = now.timeIntervalSince1970
+    guard let data = try? JSONEncoder().encode(stamped) else { return }
+    // The forced ones (a change the wrist asked for, the 3 s tick) also go through the workout session while a
+    // workout runs: WatchConnectivity's phone-to-watch direction has died twice mid-workout with the other
+    // direction alive (#137, #189).
+    if force { viaWorkout?(data) }
     // Application context always (at most once a second, unless forced by the 3 s tick or a command): it is
     // delivered when the watch wakes, so a raised wrist shows the right state within a second even after a long
     // unreachable spell.

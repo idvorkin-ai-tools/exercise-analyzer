@@ -90,5 +90,29 @@ final class FrameStatusTests: XCTestCase {
     XCTAssertFalse(status.viewfinder)
     XCTAssertTrue(status.phoneActive)
     XCTAssertEqual(status.mode, "auto")
+    XCTAssertNil(status.sentAt)
+  }
+
+  /// A status reaches the wrist by more than one road (message, application context, the workout session, #189)
+  /// and they do not arrive in the order they were sent: the wrist keeps the newest by the phone's send time, so a
+  /// late copy of an older status cannot put "1×" back over "0.5×" (#188).
+  func testTheWristKeepsTheNewestStatusWhicheverRoadItCameBy() throws {
+    func status(zoom: Double, sentAt: Double?) -> WatchStatus {
+      var status = WatchStatus(
+        recording: true, frame: FrameStatus(personSeen: true, clippedEdges: [], coverage: 0.9), reps: 0, phase: "",
+        elapsed: 5, camera: "back", exercise: "Kettlebell Swing")
+      status.zoom = zoom
+      status.sentAt = sentAt
+      return status
+    }
+    let shown = status(zoom: 0.5, sentAt: 100.002)
+    XCTAssertFalse(status(zoom: 1, sentAt: 100.000).replaces(shown))  // the older one, delivered late
+    XCTAssertFalse(status(zoom: 0.5, sentAt: 100.002).replaces(shown))  // the same one by a second road
+    XCTAssertTrue(status(zoom: 1, sentAt: 103).replaces(shown))
+    // An old phone app sends no time, and a wrist that has heard nothing dated has nothing to compare: taken.
+    XCTAssertTrue(status(zoom: 1, sentAt: nil).replaces(shown))
+    XCTAssertTrue(status(zoom: 1, sentAt: 50).replaces(status(zoom: 0.5, sentAt: nil)))
+    let data = try JSONEncoder().encode(shown)
+    XCTAssertEqual(try JSONDecoder().decode(WatchStatus.self, from: data).sentAt, 100.002)
   }
 }

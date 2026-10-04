@@ -41,6 +41,8 @@ final class WorkoutController: NSObject, ObservableObject {
   private var activityOpen = false
   private var lastWireAt = Date.distantPast
   private let log: (String, [String: Any]) -> Void
+  /// What the phone sent through the mirrored session: its status, when WatchConnectivity may not carry it (#189).
+  var onPhoneData: ((Data) -> Void)?
   /// Screenshot rung: the state is fixed and HealthKit is never touched.
   private let fixed: Bool
 
@@ -277,6 +279,10 @@ extension WorkoutController: HKWorkoutSessionDelegate {
       // the state change above.
       if phase == .starting { reset() }
     }
+  }
+
+  nonisolated func workoutSession(_ workoutSession: HKWorkoutSession, didReceiveDataFromRemoteWorkoutSession data: [Data]) {
+    Task { @MainActor in data.forEach { onPhoneData?($0) } }
   }
 }
 

@@ -117,6 +117,9 @@ public struct WatchStatus: Codable, Equatable, Sendable {
   /// The camera is up for framing only: the pipeline runs but the recorder does not (story 047, #73).
   /// `recording && !viewfinder` is "the recorder rolls". Old payloads decode as false.
   public var viewfinder: Bool = false
+  /// When the phone sent this (seconds since 1970, the phone's clock), stamped as it goes out; nil from an old
+  /// phone app. The wrist orders what it hears by it (`replaces`).
+  public var sentAt: Double? = nil
   /// The recorder rolls: a set is being written. The face and the rest count key off this, never off
   /// `recording` alone, so a Preview (camera live, nothing written) is not a set (043, 046, 047).
   public var rolling: Bool { recording && !viewfinder }
@@ -137,7 +140,17 @@ public struct WatchStatus: Codable, Equatable, Sendable {
 
   enum CodingKeys: String, CodingKey {
     case recording, frame, reps, phase, elapsed, camera, exercise, phoneActive, mode, zoom, zoomPresets, watchMode,
-      paused, lastSet, viewfinder
+      paused, lastSet, viewfinder, sentAt
+  }
+
+  /// Whether the wrist should show this in place of `shown`: only when the phone sent it later. The same status
+  /// comes by several roads (message, application context, the workout session, #189) in no fixed order, and a
+  /// late copy of an older one must not undo a newer one (#188). Undated statuses are always taken.
+  /// ponytail: the phone's clock stepping back hides its statuses until it passes the last one shown; a
+  /// sequence number that restarts with the app is the upgrade if that ever shows in a log.
+  public func replaces(_ shown: WatchStatus) -> Bool {
+    guard let sentAt, let shownAt = shown.sentAt else { return true }
+    return sentAt > shownAt
   }
 
   public init(from decoder: Decoder) throws {
@@ -157,6 +170,7 @@ public struct WatchStatus: Codable, Equatable, Sendable {
     paused = try c.decodeIfPresent(Bool.self, forKey: .paused) ?? false
     lastSet = try c.decodeIfPresent(LastSet.self, forKey: .lastSet)
     viewfinder = try c.decodeIfPresent(Bool.self, forKey: .viewfinder) ?? false
+    sentAt = try c.decodeIfPresent(Double.self, forKey: .sentAt)
   }
 
   public static let idle = WatchStatus(

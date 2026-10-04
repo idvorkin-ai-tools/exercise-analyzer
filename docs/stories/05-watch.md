@@ -151,7 +151,20 @@ the first frame (story 001).
   (`watch_context_failed`) (Igor, 2026-09-25: "when the app failed, I couldn't get out of that broken state",
   [#137](https://github.com/idvorkin/exercise-analyzer/issues/137))
 
-- **Notes:** Outside a workout, with the wrist down the watch app is suspended and the status stops
+- **Scenario:** In a workout the phone's status has a second road (#189)
+- **Given:** a workout is running on the wrist, and the phone's messages stop reaching the watch while the watch's
+  still reach the phone (2026-10-03: seven minutes of WatchConnectivity 7001 / IDS 47, through two restarts of
+  the phone app and a new workout)
+- **When:** the phone has something to say: the 3 s tick while the camera is up, or the answer to a tap or a ping
+- **Then:** the same status also goes through the workout's mirrored Health session, the watch takes whichever
+  copy comes and keeps the newest by the phone's send time, so a late copy never undoes a newer one; the
+  wrist's minute tally says how many statuses came by each road (`status_message`, `status_context`,
+  `status_workout`), and the phone logs a failing workout road once per spell (`workout_status_failed`).
+  Whether the workout road survives such an outage is not known until the next one: the tally will say
+
+- **Notes:** Restarting the app cannot mend the one-way outage: on 2026-10-03 the phone app was started fresh
+  twice inside it and its first send failed the same way each time, so the fault is under the app, in the
+  system's link. Outside a workout, with the wrist down the watch app is suspended and the status stops
   ([#32](https://github.com/idvorkin/exercise-analyzer/issues/32), see the end of this file). Inside a workout (048)
   the app keeps running wrist-down, but the link still drops most of the time
   ([#76](https://github.com/idvorkin/exercise-analyzer/issues/76)). The state arrives through the application
@@ -161,7 +174,7 @@ the first frame (story 001).
   is both radios and both apps awake per message; faster is a one-line change once the 1 s pattern asks for it.
   How to read a session: [DEBUGGING.md](../DEBUGGING.md#the-session-log), `docs/analysis/lab/2026-09-22-watch-heartbeat.md`.
 
-- **Issues:** [#32](https://github.com/idvorkin/exercise-analyzer/issues/32); [#122](https://github.com/idvorkin/exercise-analyzer/issues/122) the heartbeat, after [#76](https://github.com/idvorkin/exercise-analyzer/issues/76)'s reachability edges alone could not say what the link did between them; [#137](https://github.com/idvorkin/exercise-analyzer/issues/137) the phone→watch direction died for five minutes mid-set and the wrist lost its Stop
+- **Issues:** [#32](https://github.com/idvorkin/exercise-analyzer/issues/32); [#122](https://github.com/idvorkin/exercise-analyzer/issues/122) the heartbeat, after [#76](https://github.com/idvorkin/exercise-analyzer/issues/76)'s reachability edges alone could not say what the link did between them; [#137](https://github.com/idvorkin/exercise-analyzer/issues/137) the phone→watch direction died for five minutes mid-set and the wrist lost its Stop; [#189](https://github.com/idvorkin/exercise-analyzer/issues/189) Igor: "Watch can't reconnect." (the same outage again, seven minutes, not mended by restarting the app)
 
 ---
 

@@ -25,6 +25,7 @@ final class WorkoutMirror: NSObject, ObservableObject {
   private let root: URL
   private var lastDataLogged = Date.distantPast
   private var authorizationRequested = false
+  private var statusFailedLogged = false
 
   /// What was wrong with workouts.json at launch, if anything; the session logs it.
   let indexDamage: IndexDamage?
@@ -186,6 +187,24 @@ final class WorkoutMirror: NSObject, ObservableObject {
       startedAt: Date().addingTimeInterval(-minutes * 60).timeIntervalSince1970, heartRate: 128, heartRateAverage: 126,
       heartRateMax: 151, sets: 2, reps: 17)
     onEvent?("workout_mirror", ["state": -1, "seeded": true, "started_at": live?.startedAt ?? 0])
+  }
+
+  /// The phone's status to the wrist through the mirrored session (#189): a road that is not WatchConnectivity,
+  /// whose phone-to-watch direction has died mid-workout with the watch still heard (#137). Only while a workout
+  /// runs; a failure is logged once per spell.
+  func sendToWatch(_ status: Data) {
+    guard let session else { return }
+    session.sendToRemoteWorkoutSession(data: status) { [weak self] ok, error in
+      Task { @MainActor in
+        guard let self else { return }
+        if ok {
+          self.statusFailedLogged = false
+        } else if !self.statusFailedLogged {
+          self.statusFailedLogged = true
+          self.onEvent?("workout_status_failed", ["message": error.map { "\($0)" } ?? ""])
+        }
+      }
+    }
   }
 
   private func ended(at date: Date) {

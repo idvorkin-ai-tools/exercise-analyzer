@@ -300,6 +300,7 @@ final class VideoPoseSession: NSObject, ObservableObject {
     watch.onCommand = { [weak self] command in self?.handleWatch(command) }
     watch.onReachable = { [weak self] in self?.pushWatchStatus(force: true) }
     watch.onContact = { [weak self] in self?.updateKeepAwake() }
+    watch.viaWorkout = { WorkoutMirror.shared.sendToWatch($0) }
     // A set typed on the wrist (059): a Workouts entry with no clip, once per id however often it arrives.
     watch.onHandSet = { [weak self] set in self?.addByHand(set, from: "watch") }
     WorkoutMirror.shared.$live.map { $0 != nil }.removeDuplicates().dropFirst().receive(on: DispatchQueue.main)

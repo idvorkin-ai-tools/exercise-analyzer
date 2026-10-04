@@ -52,6 +52,8 @@ final class PhoneLink: NSObject, ObservableObject {
   private var heartbeatTimer: Timer?
   private var heartbeat = HeartbeatStats()
   private var heartbeatFailedLogged = false
+  /// Statuses heard since the last heartbeat summary, by the road they came (message, context, workout).
+  private var statusArrivals: [String: Int] = [:]
 
   /// A minute of beats, summarized to the phone's log as `watch_heartbeat_minute` (a line per beat from here
   /// would be a queued transfer each; the phone logs the beats it gets itself).
@@ -121,6 +123,8 @@ final class PhoneLink: NSObject, ObservableObject {
     workout = WorkoutController(log: { [weak self] type, fields in self?.logEvent(type, fields) }, screenshot: WatchScreenshotState.launch)
     // The view observes the link; the workout's changes (heart rate, sets) redraw through it.
     workout.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+    // The phone's status also comes through the workout session while one runs (#189).
+    workout.onPhoneData = { [weak self] data in self?.apply(["status": data], via: "workout") }
     if let state = WatchScreenshotState.launch {
       screenshot = state
       let fixed = state.fixed
@@ -201,7 +205,12 @@ final class PhoneLink: NSObject, ObservableObject {
         "seq": s.seq, "sent": s.sent, "replied": s.replied, "failed": s.failed, "skipped": s.skipped,
         "rtt_avg_ms": s.replied > 0 ? s.rttTotalMs / s.replied : -1, "rtt_max_ms": s.rttMaxMs,
         "seconds": Int(Date().timeIntervalSince(s.since)), "front": inFront, "workout": workout.running,
+        // Statuses that arrived by each road this minute, copies included (#189): whether the workout session
+        // delivers at all, and whether it still does when the messages stop.
+        "status_message": statusArrivals["message", default: 0], "status_context": statusArrivals["context", default: 0],
+        "status_workout": statusArrivals["workout", default: 0],
       ])
+    statusArrivals = [:]
     heartbeat = HeartbeatStats(seq: s.seq)
   }
 
@@ -290,6 +299,10 @@ final class PhoneLink: NSObject, ObservableObject {
   private func apply(_ message: [String: Any], via channel: String) {
     guard let data = message["status"] as? Data, let next = try? JSONDecoder().decode(WatchStatus.self, from: data)
     else { return }
+    statusArrivals[channel, default: 0] += 1
+    // The newest by the phone's send time wins: a copy by a slower road, or an older status delivered late,
+    // changes nothing (#188, #189).
+    guard next.replaces(status) else { return }
     let previous = status
     status = next
     // Which channel ends a silence, and how long it was (#137): says whether the application context still
