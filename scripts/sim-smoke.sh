@@ -197,9 +197,10 @@ check_live_workout() {
   f=$(newest_log)
   if jq -se '
     ([.[] | select(.type=="ui" and .action=="workout_bar_tap")][-1] | .hit == false and .adding == true) and
-    ([.[] | select(.type=="set_by_hand")][-1] | .where == "workout_chart" and .duplicate == false)
+    ([.[] | select(.type=="set_by_hand")][-1] | .where == "workout_chart" and .duplicate == false and .at > 0) and
+    ([.[] | select(.type=="workout_page")] | length >= 2 and .[-1].sets == .[0].sets + 1 and .[-1].reps > .[0].reps)
   ' "$f" >/dev/null; then
-    echo "ok    add_from_chart: an empty tap on the chart added a set by hand"
+    echo "ok    add_from_chart: an empty tap on the chart added a set by hand, and the page counts it"
   else echo "FAIL  add_from_chart: $f"; fail=1; fi
   xcrun simctl terminate "$SIM" "$BUNDLE" 2>/dev/null || true
   # 065: delete the workout just saved, as a confirmed long-press would. Its sets were the pretend watch's (no

@@ -363,9 +363,12 @@ private struct WorkoutPageView: View {
           let typed = row == nil && onKeepByHand != nil
             ? moment(x).flatMap { timeline.typedRow(near: $0, slop: slop) }
               .flatMap { mark in sets.first { $0.id == mark.id } } : nil
-          // A tap where no set is adds one there (#178), from the set before it, in the by-hand sheet.
+          // A tap where no set is adds one there (#178), from the set before it, in the by-hand sheet. Only
+          // inside the workout: a workout under a minute still draws a minute, and a tap past its end has no
+          // time to give the set (it used to land at the end, wherever the finger was).
           let draft = row == nil && typed == nil && onAddByHand != nil
-            ? moment(x).map { timeline.handSet(at: min(max($0, workout.start), workout.end)).entry } : nil
+            ? moment(x).flatMap { (workout.start...workout.end).contains($0) ? timeline.handSet(at: $0).entry : nil }
+            : nil
           onEvent?(
             "ui",
             ["action": "workout_bar_tap", "hit": row != nil, "window_s": Int(visibleSeconds),
