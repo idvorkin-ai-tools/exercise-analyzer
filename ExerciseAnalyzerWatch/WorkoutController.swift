@@ -46,6 +46,8 @@ final class WorkoutController: NSObject, ObservableObject {
   private let log: (String, [String: Any]) -> Void
   /// What the phone sent through the mirrored session: its status, when WatchConnectivity may not carry it (#189).
   var onPhoneData: ((Data) -> Void)?
+  /// A running workout was taken up again after a restart (#190): the link tells it the phone's last set again.
+  var onRecovered: (() -> Void)?
   /// Screenshot rung: the state is fixed and HealthKit is never touched.
   private let fixed: Bool
 
@@ -188,6 +190,7 @@ final class WorkoutController: NSObject, ObservableObject {
           "workout_recovered",
           ["state": session.state.rawValue, "seconds": Int(Date().timeIntervalSince(start)), "sets": tally.sets,
            "reps": tally.reps])
+        self.onRecovered?()
         self.sendWire()
       }
     }
