@@ -129,6 +129,7 @@ final class WorkoutController: NSObject, ObservableObject {
       discarding = false
       activityOpen = false
       phase = .running
+      saveTally()
       log("workout_start", [:])
       sendWire()
     } catch {
@@ -137,6 +138,69 @@ final class WorkoutController: NSObject, ObservableObject {
       builder = nil
       fail("\(error)", event: "workout_failed")
     }
+  }
+
+  // MARK: - After a restart
+
+  /// Picks the running workout back up when the watch app comes back mid-workout (killed, crashed, or relaunched
+  /// by the system): Health keeps the session going without us, and without this the app showed no workout, sent
+  /// the phone nothing and had no End (#190). Called once at launch; no session to recover is the usual answer.
+  func recover() {
+    guard phase == .none, !fixed, HKHealthStore.isHealthDataAvailable() else { return }
+    store.recoverActiveWorkoutSession { [weak self] session, error in
+      Task { @MainActor in
+        guard let self, self.phase == .none else { return }
+        guard let session, session.state == .running || session.state == .paused else {
+          // "No active session" also arrives as an error on some systems: logged, never shown.
+          if let error { self.log("workout_recover_none", ["message": "\(error)"]) }
+          return
+        }
+        let builder = session.associatedWorkoutBuilder()
+        if builder.dataSource == nil {
+          builder.dataSource = HKLiveWorkoutDataSource(
+            healthStore: self.store, workoutConfiguration: session.workoutConfiguration)
+        }
+        session.delegate = self
+        builder.delegate = self
+        self.session = session
+        self.builder = builder
+        let start = session.startDate ?? builder.startDate ?? Date()
+        self.startedAt = start
+        // The count of sets is ours, not Health's: kept on disk per workout (`saveTally`).
+        let tally = Self.savedTally(startedAt: start)
+        self.sets = tally.sets
+        self.reps = tally.reps
+        self.discarding = false
+        self.activityOpen = false
+        self.phase = .running
+        session.startMirroringToCompanionDevice { [weak self] ok, error in
+          Task { @MainActor in
+            self?.log("workout_mirror", ["ok": ok, "message": error.map { "\($0)" } ?? "", "recovered": true])
+          }
+        }
+        self.log(
+          "workout_recovered",
+          ["state": session.state.rawValue, "seconds": Int(Date().timeIntervalSince(start)), "sets": tally.sets,
+           "reps": tally.reps])
+        self.sendWire()
+      }
+    }
+  }
+
+  private static let tallyKey = "workoutTally"
+
+  /// The workout's sets and reps so far, by its start: what a restarted app counts on from (#190).
+  private func saveTally() {
+    guard let startedAt, !fixed else { return }
+    UserDefaults.standard.set(
+      ["startedAt": startedAt.timeIntervalSince1970, "sets": sets, "reps": reps], forKey: Self.tallyKey)
+  }
+
+  private static func savedTally(startedAt: Date) -> (sets: Int, reps: Int) {
+    guard let saved = UserDefaults.standard.dictionary(forKey: tallyKey),
+      let at = saved["startedAt"] as? Double, abs(at - startedAt.timeIntervalSince1970) < 2
+    else { return (0, 0) }
+    return (saved["sets"] as? Int ?? 0, saved["reps"] as? Int ?? 0)
   }
 
   /// End writes one HKWorkout; Discard writes nothing. Both end the session; the delegate finishes the job.
@@ -177,6 +241,7 @@ final class WorkoutController: NSObject, ObservableObject {
     guard phase == .running else { return }
     sets += 1
     reps += count
+    saveTally()
     sendWire()
   }
 

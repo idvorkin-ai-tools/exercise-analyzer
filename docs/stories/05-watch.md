@@ -546,6 +546,14 @@ the first frame (story 001).
 - **When:** I scroll to the bottom of the workout page and tap End workout
 - **Then:** the workout is written to Health once (functional strength training, its duration and heart rate, one activity per recorded set), the wrist returns to the idle page, and Workouts' day header carries "9:02 AM · 58 min · ♥ 128" by the lifter sign (#185); Discard asks first and writes nothing anywhere, and the sets recorded inside it stay in Workouts either way
 
+- **Scenario:** The watch app comes back mid-workout (#190)
+- **Given:** a workout is running and the watch app is closed, crashes, or the watch restarts it
+- **When:** the watch app opens again
+- **Then:** it picks the running workout back up from Health: the workout page with its clock from the real
+  start, its sets and reps so far (kept on the watch per workout), the heart rate again, the phone mirrored
+  again, and End workout where it was (`watch_workout_recovered` in the log); with no workout running it
+  opens idle as before
+
 - **Notes:** The four decisions, taken 2026-09-16 (design canvas "Workout on the Wrist"): the workout starts by hand on the watch, not with the first Record, so the warm-up counts; the workout page is what the wrist shows whenever the camera is not live, including while the phone reviews a set, and Done returns to it; Pause (040) freezes the camera only, the workout clock runs through rests like a run's; the watch carries the session on its own (that is what `HKWorkoutSession` buys), so a killed or unreachable phone ends nothing and the phone picks the mirrored session up again when it returns. The build: `WorkoutController` on the watch owns the `HKWorkoutSession` + `HKLiveWorkoutBuilder`, mirrors it to the phone (`startMirroringToCompanionDevice`) and sends `WorkoutWire` through the mirrored session; `WorkoutMirror` on the phone adopts the session (`workoutSessionMirroringStartHandler`, installed at launch so a background launch gets it too) and keeps ended workouts in `Documents/workouts.json` (`WorkoutIndex`). The wrist counts sets from the pass's final counts (045) that arrive after Start; the phone counts the sets recorded since Start from its own store, so the two can differ by a set still analyzing. The 2026-09-13 research on the cost of a workout session (permission prompt, a workout in Health per session, battery, chrome, the lifecycle) still holds and is below.
 
 - **Issues:** [#82](https://github.com/idvorkin/exercise-analyzer/issues/82); [#81](https://github.com/idvorkin/exercise-analyzer/issues/81) (reviewing a paused set on the phone without ending it) was Igor's first ask the same morning and is folded into this

@@ -125,6 +125,7 @@ final class PhoneLink: NSObject, ObservableObject {
     workout.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
     // The phone's status also comes through the workout session while one runs (#189).
     workout.onPhoneData = { [weak self] data in self?.apply(["status": data], via: "workout") }
+    workout.recover()  // a workout still running from before this launch (#190)
     if let state = WatchScreenshotState.launch {
       screenshot = state
       let fixed = state.fixed
