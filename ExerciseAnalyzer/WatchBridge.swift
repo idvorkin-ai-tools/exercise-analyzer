@@ -23,6 +23,8 @@ final class WatchBridge: NSObject, ObservableObject {
   /// arrive every second.
   private(set) var lastContact: Date?
   var onContact: (() -> Void)?
+  /// The wrist's Retry, by queued user info (#189).
+  var onRetry: (() -> Void)?
   /// A second road for a forced status: the running workout's mirrored session (#189).
   var viaWorkout: ((Data) -> Void)?
 
@@ -211,6 +213,12 @@ extension WatchBridge: WCSessionDelegate {
   nonisolated func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
     if let set = HandSet(userInfo: userInfo) {
       Task { @MainActor in self.onHandSet?(set) }
+      return
+    }
+    // The wrist's Retry, queued (#189): it gets here when a message could not. Not through `handle`, which
+    // takes a command as proof the watch app is in front, and this one may be minutes old.
+    if userInfo["retry"] != nil {
+      Task { @MainActor in self.onRetry?() }
       return
     }
     guard let type = userInfo["watch_log"] as? String else { return }

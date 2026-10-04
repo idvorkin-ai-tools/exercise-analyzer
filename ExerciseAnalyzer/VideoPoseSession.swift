@@ -301,6 +301,9 @@ final class VideoPoseSession: NSObject, ObservableObject {
     watch.onReachable = { [weak self] in self?.pushWatchStatus(force: true) }
     watch.onContact = { [weak self] in self?.updateKeepAwake() }
     watch.viaWorkout = { WorkoutMirror.shared.sendToWatch($0) }
+    // The wrist's Retry by its other two roads (queued user info, the workout session): answer as to a ping.
+    watch.onRetry = { [weak self] in self?.answerRetry(via: "queued") }
+    WorkoutMirror.shared.onStatusWanted = { [weak self] in self?.answerRetry(via: "workout") }
     // A set typed on the wrist (059): a Workouts entry with no clip, once per id however often it arrives.
     watch.onHandSet = { [weak self] set in self?.addByHand(set, from: "watch") }
     WorkoutMirror.shared.$live.map { $0 != nil }.removeDuplicates().dropFirst().receive(on: DispatchQueue.main)
@@ -1880,6 +1883,13 @@ final class VideoPoseSession: NSObject, ObservableObject {
     // No new field: phase is free when not recording, and the old watch app never reads it (045).
     if analyzingLastSet { status.phase = "analyzing" }
     watch.send(status, force: force || heartbeat)
+  }
+
+  /// The wrist's Retry arrived by a road other than a message (#189): the status goes out again by all of them.
+  /// A queued one can arrive minutes late; saying the status once more then costs nothing.
+  private func answerRetry(via road: String) {
+    log.event("watch_retry_answered", ["via": road, "source": "\(source)"])  // the wrist's own line is `watch_retry`
+    pushWatchStatus(force: true)
   }
 
   private func handleWatch(_ command: WatchCommand) {

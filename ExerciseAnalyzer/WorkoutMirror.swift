@@ -19,6 +19,8 @@ final class WorkoutMirror: NSObject, ObservableObject {
   @Published private(set) var live: WorkoutWire?
   @Published private(set) var index: WorkoutIndex
   var onEvent: ((String, [String: Any]) -> Void)?
+  /// The wrist's Retry came through the workout session (#189): say the status again.
+  var onStatusWanted: (() -> Void)?
 
   private let store = HKHealthStore()
   private var session: HKWorkoutSession?
@@ -265,8 +267,11 @@ extension WorkoutMirror: HKWorkoutSessionDelegate {
 
   nonisolated func workoutSession(_ workoutSession: HKWorkoutSession, didReceiveDataFromRemoteWorkoutSession data: [Data]) {
     let wires = data.compactMap { try? JSONDecoder().decode(WorkoutWire.self, from: $0) }
-    guard let last = wires.last else { return }
-    Task { @MainActor in
+    guard var last = wires.last else { return }
+    let wantsStatus = wires.contains { $0.wantsStatus == true }
+    last.wantsStatus = nil
+    Task { @MainActor [last] in
+      if wantsStatus { onStatusWanted?() }
       live = last
       // Heart rate arrives every few seconds: one line a minute keeps the log readable, transitions always.
       let now = Date()

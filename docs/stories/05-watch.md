@@ -162,6 +162,16 @@ the first frame (story 001).
   `status_workout`), and the phone logs a failing workout road once per spell (`workout_status_failed`).
   Whether the workout road survives such an outage is not known until the next one: the tally will say
 
+- **Scenario:** Retry asks by every road (#189)
+- **Given:** the watch shows "Not connected to the phone" or "Waiting for the phone…"
+- **When:** I tap Retry
+- **Then:** the button reads "Trying…" and the watch asks the phone for its status three ways at once: a queued
+  note that gets through when a message cannot and wakes the phone app, the workout's Health session when a
+  workout runs, and a message a second for five seconds whether or not the phone reads as reachable; the phone
+  answers each by every road it has, and the first answer ends the trying. Before, Retry sent one message, and
+  nothing at all while the phone read as unreachable (Igor, 2026-10-04: "can we make that more aggressive, I
+  think phone was there but the retries failed")
+
 - **Notes:** Restarting the app cannot mend the one-way outage: on 2026-10-03 the phone app was started fresh
   twice inside it and its first send failed the same way each time, so the fault is under the app, in the
   system's link. Outside a workout, with the wrist down the watch app is suspended and the status stops

@@ -117,6 +117,45 @@ final class PhoneLink: NSObject, ObservableObject {
     send(.status)
   }
 
+  /// Retry is at work: the button says so.
+  @Published private(set) var retrying = false
+  private var retryTask: Task<Void, Never>?
+  /// How many times Retry sends its message, a second apart, unless the phone answers first.
+  static let retryAttempts = 5
+
+  /// The Retry button (#189; Igor: "can we make that more aggressive, I think phone was there but the retries
+  /// failed"). The old one sent a single message, and nothing at all while the phone read as unreachable. This
+  /// asks by every road at once: a queued user info (delivered when a message cannot be, and it wakes the phone
+  /// app), the workout's Health session while a workout runs, and a message a second for five seconds whatever
+  /// reachability says. The phone answers each by every road it has. Stops at the first status heard.
+  func retry() {
+    guard screenshot == nil else { return }
+    let session = WCSession.default
+    logEvent(
+      "retry",
+      ["reachable": session.isReachable, "activation": session.activationState.rawValue, "workout": workout.running,
+       "silent_s": receivedAt.map { Int(Date().timeIntervalSince($0)) } ?? -1])
+    WKInterfaceDevice.current().play(.click)
+    guard session.activationState == .activated else {
+      session.activate()
+      return
+    }
+    session.transferUserInfo(["retry": Date().timeIntervalSince1970])
+    workout.askPhoneForStatus()
+    retryTask?.cancel()
+    retrying = true
+    retryTask = Task { [weak self] in
+      for _ in 0..<Self.retryAttempts {
+        guard let self, !Task.isCancelled, !self.isLive else { break }
+        self.sendScene(true)
+        self.send(.status)
+        try? await Task.sleep(for: .seconds(1))
+      }
+      guard !Task.isCancelled else { return }
+      self?.retrying = false
+    }
+  }
+
   override init() {
     super.init()
     rest = RestTimer { [weak self] type, fields in self?.logEvent(type, fields) }

@@ -100,6 +100,16 @@ final class WorkoutTests: XCTestCase {
     XCTAssertEqual(glance.with(sets: [paused], since: start).last?.endedAt, stopped)
   }
 
+  /// The wrist's Retry rides the workout's wire (#189): an old watch app's wire has no such key and asks nothing.
+  func testAWireFromAnOldWatchAsksForNoStatus() throws {
+    let old = #"{"startedAt":1000,"sets":2,"reps":17,"ending":false,"discarded":false}"#
+    XCTAssertNil(try JSONDecoder().decode(WorkoutWire.self, from: Data(old.utf8)).wantsStatus)
+    var asking = WorkoutWire(startedAt: 1000)
+    asking.wantsStatus = true
+    let data = try JSONEncoder().encode(asking)
+    XCTAssertEqual(try JSONDecoder().decode(WorkoutWire.self, from: data).wantsStatus, true)
+  }
+
   private func date(_ day: Int, _ hour: Int, _ minute: Int = 0) -> Date {
     calendar.date(from: DateComponents(year: 2026, month: 9, day: day, hour: hour, minute: minute))!
   }

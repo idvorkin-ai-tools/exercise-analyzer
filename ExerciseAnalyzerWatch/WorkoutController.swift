@@ -272,7 +272,13 @@ final class WorkoutController: NSObject, ObservableObject {
 
   /// Sends the workout's state to the phone through the mirrored session; heart-rate samples are throttled to
   /// one send every 5 s, transitions always go.
-  private func sendWire(ending: Bool = false, throttled: Bool = false) {
+  /// The wrist's Retry, by the workout's road (#189): asks the phone to say its status again.
+  func askPhoneForStatus() {
+    guard phase == .running else { return }
+    sendWire(wantsStatus: true)
+  }
+
+  private func sendWire(ending: Bool = false, throttled: Bool = false, wantsStatus: Bool = false) {
     guard let session, !fixed else { return }
     let now = Date()
     if throttled, now.timeIntervalSince(lastWireAt) < 5 { return }
@@ -280,6 +286,7 @@ final class WorkoutController: NSObject, ObservableObject {
     var message = wire
     message.ending = ending
     message.discarded = ending && discarding
+    if wantsStatus { message.wantsStatus = true }
     guard let data = try? JSONEncoder().encode(message) else { return }
     session.sendToRemoteWorkoutSession(data: data) { [weak self] ok, error in
       guard !ok else { return }

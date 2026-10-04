@@ -19,6 +19,9 @@ public struct WorkoutWire: Codable, Equatable, Sendable {
   public var ending: Bool
   /// With `ending`: Discard, not End. Nothing is written to Health and the phone keeps no row.
   public var discarded: Bool
+  /// The wrist's Retry (#189): the phone should say its status again, by every road. Only on that one message;
+  /// the phone does not keep it.
+  public var wantsStatus: Bool? = nil
 
   public init(
     startedAt: Double, heartRate: Int? = nil, heartRateAverage: Int? = nil, heartRateMax: Int? = nil, sets: Int = 0,

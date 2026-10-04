@@ -62,7 +62,9 @@ struct WatchContentView: View {
               Text("Last heard \(Int(max(0, now.timeIntervalSince(since)))) s ago").font(.caption2).foregroundStyle(.tertiary)
             }
             startWorkoutButton
-            Button { phone.ping() } label: { Label("Retry", systemImage: "arrow.clockwise").frame(maxWidth: .infinity) }
+            Button { phone.retry() } label: {
+              Label(phone.retrying ? "Trying…" : "Retry", systemImage: "arrow.clockwise").frame(maxWidth: .infinity)
+            }
             setByHandButton  // the set waits for the phone (059)
           } else if !status.phoneActive {
             if !workout.running {
