@@ -413,7 +413,9 @@ struct DayHeader: View {
           .buttonStyle(.plain)
           .accessibilityLabel("\(title), \(collapsed ? spokenExercises : summary), \(collapsed ? "collapsed" : "expanded")")
       } else {
-        dayLine.accessibilityElement(children: .combine).accessibilityLabel("\(title), \(summary)")
+        // A workout day shows its exercises' drawings, so it says them (as a folded day does).
+        dayLine.accessibilityElement(children: .combine)
+          .accessibilityLabel("\(title), \(day.hasWorkout ? spokenExercises : summary)")
       }
       // The day's workouts from the wrist (048): its start, length and average heart rate (#185). Each line
       // is its own target and opens the workout's page (053); a workout day has no fold of its own (#163).
