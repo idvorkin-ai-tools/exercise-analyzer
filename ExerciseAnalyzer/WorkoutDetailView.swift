@@ -566,7 +566,7 @@ private struct SetTimelineRow: View {
       .accessibilityElement(children: .combine)
       .accessibilityLabel(
         "\(row.reps) \(row.exercise.repWord(row.reps))" + (row.byHand ? ", by hand" : "")
-          + (row.kg.map { ", \($0) kilograms" } ?? "") + (row.score.map { ", score \($0)" } ?? "") + ", set \(number) at \(Self.clock.string(from: row.start))")
+          + (row.kg.map { ", \($0) kilograms" + (row.kgInherited ? " carried from the set before" : "") } ?? "") + (row.score.map { ", score \($0)" } ?? "") + ", set \(number) at \(Self.clock.string(from: row.start))")
       Spacer(minLength: 8)
       VStack(alignment: .trailing, spacing: 2) {
         if let peak = row.peak {

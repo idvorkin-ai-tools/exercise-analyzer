@@ -572,7 +572,9 @@ struct ContentView: View {
               .contentShape(Rectangle().inset(by: -10))
           }
           .buttonStyle(.plain)
-          .accessibilityLabel(weight.kg.map { "Bell weight \($0) kilograms" } ?? "Set the bell's weight")
+          .accessibilityLabel(
+            weight.kg.map { "Bell weight \($0) kilograms" + (weight.inherited ? ", carried from the set before" : "") }
+              ?? "Set the bell's weight")
           .alignmentGuide(.top, computeValue: Self.capTop(.preferredFont(forTextStyle: .subheadline)))
         }
         if session.source == .camera, !session.viewfinder {
