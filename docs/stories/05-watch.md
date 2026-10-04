@@ -87,6 +87,12 @@ the first frame (story 001).
 - **When:** I tap the camera button on the watch
 - **Then:** the phone switches to Front, the watch shows "Front", and the recording and rep count continue
 
+- **Scenario:** The button says the camera the phone is on (#188)
+- **Given:** the phone is recording on the front camera
+- **When:** I tap the camera button on the watch
+- **Then:** the phone goes to the back camera at 0.5× and the first thing the watch hears is "0.5×": it is never
+  told "1×" on the way, so the button cannot read "1×" while the picture is the wide one
+
 - **Notes:** The idle page has two buttons: Record, which records from the camera's first frame, and Preview
   (story 047), which opens the camera without recording.
 

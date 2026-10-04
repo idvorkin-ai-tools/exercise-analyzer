@@ -232,7 +232,13 @@ final class PhoneLink: NSObject, ObservableObject {
   func send(_ command: WatchCommand) {
     guard screenshot == nil else { return }
     let session = WCSession.default
-    logEvent("command", ["command": command.rawValue, "reachable": session.isReachable, "activation": session.activationState.rawValue, "live": isLive])
+    var fields: [String: Any] = ["command": command.rawValue, "reachable": session.isReachable, "activation": session.activationState.rawValue, "live": isLive]
+    // What the camera button read when it was tapped (#188): whether the wrist showed the level the phone was at.
+    if command == .switchCamera {
+      fields["shown_camera"] = status.camera
+      fields["shown_zoom"] = status.zoom
+    }
+    logEvent("command", fields)
     guard session.activationState == .activated else { return }
     // A new set owns the idle screen: Record clears the rest count; a Preview is not a set, so the count
     // survives a look at the tripod and a Cancel (046, 047). Record from the preview clears it in `apply`

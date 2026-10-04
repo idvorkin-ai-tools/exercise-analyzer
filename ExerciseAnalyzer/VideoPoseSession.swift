@@ -2227,11 +2227,11 @@ final class VideoPoseSession: NSObject, ObservableObject {
       return
     }
     if cameraPosition == .front {
-      flipCamera()  // to the back camera, which starts at 1×
-      if let back = self.camera, back.zoomPresets.contains(0.5) {
-        back.setZoom(0.5)
-        cameraZoom = back.zoom
-      }
+      // The back camera comes up at 0.5× (attachCamera re-applies the zoom it finds, 1× when the camera has no
+      // 0.5×), so the status flipCamera sends the watch already says 0.5×: zoomed after the flip, the watch was
+      // first told "back, 1×" and could show it until the next status (#188).
+      cameraZoom = 0.5
+      flipCamera()
     } else if camera.zoom < 1, camera.zoomPresets.contains(1) {
       camera.setZoom(1)
       cameraZoom = camera.zoom
