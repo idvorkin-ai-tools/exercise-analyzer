@@ -267,7 +267,9 @@ final class PhoneLink: NSObject, ObservableObject {
         "seconds": Int(Date().timeIntervalSince(s.since)), "front": inFront, "workout": workout.running,
         // Statuses that arrived by each road this minute, copies included (#189): whether the workout session
         // delivers at all, and whether it still does when the messages stop.
-        "status_message": statusArrivals["message", default: 0], "status_context": statusArrivals["context", default: 0],
+        // The context stored at activation is the same road as a context delivered live.
+        "status_message": statusArrivals["message", default: 0],
+        "status_context": statusArrivals["context", default: 0] + statusArrivals["stored_context", default: 0],
         "status_workout": statusArrivals["workout", default: 0],
       ])
     statusArrivals = [:]
