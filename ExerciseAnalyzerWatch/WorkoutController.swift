@@ -30,6 +30,9 @@ final class WorkoutController: NSObject, ObservableObject {
   /// sets typed by hand (059).
   @Published private(set) var sets = 0
   @Published private(set) var reps = 0
+  /// The phone's `LastSet.at` of the newest filmed set counted above: a set counts once, also when the phone
+  /// says it again to an app that restarted and no longer knows what it had heard (#190).
+  private var countedSetAt = 0.0
   @Published private(set) var lastError: String?
 
   var running: Bool { phase == .running || phase == .ending }
@@ -126,6 +129,7 @@ final class WorkoutController: NSObject, ObservableObject {
       heartRateMax = nil
       sets = 0
       reps = 0
+      countedSetAt = 0
       discarding = false
       activityOpen = false
       phase = .running
@@ -144,7 +148,8 @@ final class WorkoutController: NSObject, ObservableObject {
 
   /// Picks the running workout back up when the watch app comes back mid-workout (killed, crashed, or relaunched
   /// by the system): Health keeps the session going without us, and without this the app showed no workout, sent
-  /// the phone nothing and had no End (#190). Called once at launch; no session to recover is the usual answer.
+  /// the phone nothing and had no End (#190). Called once at launch, after the link to the phone is up so its
+  /// log lines get there; no session to recover is the usual answer.
   func recover() {
     guard phase == .none, !fixed, HKHealthStore.isHealthDataAvailable() else { return }
     store.recoverActiveWorkoutSession { [weak self] session, error in
@@ -170,6 +175,7 @@ final class WorkoutController: NSObject, ObservableObject {
         let tally = Self.savedTally(startedAt: start)
         self.sets = tally.sets
         self.reps = tally.reps
+        self.countedSetAt = tally.countedSetAt
         self.discarding = false
         self.activityOpen = false
         self.phase = .running
@@ -189,18 +195,20 @@ final class WorkoutController: NSObject, ObservableObject {
 
   private static let tallyKey = "workoutTally"
 
-  /// The workout's sets and reps so far, by its start: what a restarted app counts on from (#190).
+  /// The workout's sets and reps so far and the last filmed set in them, by its start: what a restarted app
+  /// counts on from (#190).
   private func saveTally() {
     guard let startedAt, !fixed else { return }
     UserDefaults.standard.set(
-      ["startedAt": startedAt.timeIntervalSince1970, "sets": sets, "reps": reps], forKey: Self.tallyKey)
+      ["startedAt": startedAt.timeIntervalSince1970, "sets": sets, "reps": reps, "countedSetAt": countedSetAt],
+      forKey: Self.tallyKey)
   }
 
-  private static func savedTally(startedAt: Date) -> (sets: Int, reps: Int) {
+  private static func savedTally(startedAt: Date) -> (sets: Int, reps: Int, countedSetAt: Double) {
     guard let saved = UserDefaults.standard.dictionary(forKey: tallyKey),
       let at = saved["startedAt"] as? Double, abs(at - startedAt.timeIntervalSince1970) < 2
-    else { return (0, 0) }
-    return (saved["sets"] as? Int ?? 0, saved["reps"] as? Int ?? 0)
+    else { return (0, 0, 0) }
+    return (saved["sets"] as? Int ?? 0, saved["reps"] as? Int ?? 0, saved["countedSetAt"] as? Double ?? 0)
   }
 
   /// End writes one HKWorkout; Discard writes nothing. Both end the session; the delegate finishes the job.
@@ -235,8 +243,17 @@ final class WorkoutController: NSObject, ObservableObject {
     log("workout_activity", ["begin": false])
   }
 
-  /// The phone's final count for a set recorded inside this workout (story 045's LastSet), or a set typed by hand
-  /// on the wrist (059).
+  /// The phone's final count for a set (story 045's LastSet), as often as the phone says it: it counts once, and
+  /// only when it was analyzed after Start. `at` decides both, so a stored context's old last set does not count,
+  /// nor does the last set told again to an app that restarted mid-workout (#190).
+  func setAnalyzed(_ last: LastSet) {
+    guard let startedAt, last.at >= startedAt.timeIntervalSince1970, last.at > countedSetAt else { return }
+    guard phase == .running else { return }
+    countedSetAt = last.at
+    setAnalyzed(reps: last.reps)
+  }
+
+  /// A set typed by hand on the wrist (059), or the phone's count from above.
   func setAnalyzed(reps count: Int) {
     guard phase == .running else { return }
     sets += 1

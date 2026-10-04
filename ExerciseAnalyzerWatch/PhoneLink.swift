@@ -125,7 +125,6 @@ final class PhoneLink: NSObject, ObservableObject {
     workout.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
     // The phone's status also comes through the workout session while one runs (#189).
     workout.onPhoneData = { [weak self] data in self?.apply(["status": data], via: "workout") }
-    workout.recover()  // a workout still running from before this launch (#190)
     if let state = WatchScreenshotState.launch {
       screenshot = state
       let fixed = state.fixed
@@ -136,7 +135,12 @@ final class PhoneLink: NSObject, ObservableObject {
       if let endedAt = state.restEndedAt { rest.fixEnded(at: endedAt) }
       return
     }
-    guard WCSession.isSupported() else { return }
+    // A workout still running from before this launch (#190) is picked up once the session is activated:
+    // `logEvent` drops what comes before, and the recovery's lines are the only proof it ran.
+    guard WCSession.isSupported() else {
+      workout.recover()
+      return
+    }
     WCSession.default.delegate = self
     WCSession.default.activate()
     heartbeatTimer = Timer.scheduledTimer(withTimeInterval: Self.heartbeatInterval, repeats: true) { [weak self] _ in
@@ -337,15 +341,11 @@ final class PhoneLink: NSObject, ObservableObject {
       handSet = nil  // the phone drops its last set here too (045)
     }
     // The workout (048): a rolling recorder is an activity inside it, and the pass's final count is a set of
-    // it. `at` keeps a stored context's old last set (a relaunch) from counting: only sets analyzed after
-    // Start belong to the workout.
+    // it. The workout takes each last set once, by its `at`; this link's own memory of what it heard is gone
+    // after a relaunch, the workout's is not (#190).
     if next.rolling, !previous.rolling { workout.setBegan(exercise: next.exercise) }
     if previous.rolling, !next.rolling { workout.setEnded() }
-    if let last = next.lastSet, last != previous.lastSet, let startedAt = workout.startedAt,
-      last.at >= startedAt.timeIntervalSince1970
-    {
-      workout.setAnalyzed(reps: last.reps)
-    }
+    if let last = next.lastSet { workout.setAnalyzed(last) }
   }
 
   /// Mirrors the set into the shared container for the face complication (story 043); what changes and when
@@ -409,6 +409,7 @@ extension PhoneLink: WCSessionDelegate {
       self.reachable = session.isReachable
       self.apply(context, via: "stored_context")
       self.logEvent("session", fields)
+      self.workout.recover()
     }
   }
 
