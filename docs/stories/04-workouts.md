@@ -688,7 +688,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 069:
 
 - **Summary:** Another app can open Exercise Analyzer
-- **Status:** not implemented
+- **Status:** implemented in 80c2fcd; verified on the simulator that iOS routes `exerciseanalyzer://` to this app (the built Info.plist declares it; `simctl openurl` offers *Open in "Exercise Analyzer"*); the `open_url` line and the tap from Grabber Native still to be checked on the phone
 - **Issues:** context-grabber [#142](https://github.com/idvorkin/context-grabber/issues/142)
 
 #### Use Case:
