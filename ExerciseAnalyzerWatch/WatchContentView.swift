@@ -62,7 +62,9 @@ struct WatchContentView: View {
               Text("Last heard \(Int(max(0, now.timeIntervalSince(since)))) s ago").font(.caption2).foregroundStyle(.tertiary)
             }
             startWorkoutButton
-            Button { phone.ping() } label: { Label("Retry", systemImage: "arrow.clockwise").frame(maxWidth: .infinity) }
+            Button { phone.retry() } label: {
+              Label(phone.retrying ? "Trying…" : "Retry", systemImage: "arrow.clockwise").frame(maxWidth: .infinity)
+            }
             setByHandButton  // the set waits for the phone (059)
           } else if !status.phoneActive {
             if !workout.running {
@@ -127,7 +129,7 @@ struct WatchContentView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { proxy.scrollTo("workout-end", anchor: .bottom) }
       }
       .sheet(isPresented: $countingSet) {
-        let start = HandSet.start(mode: status.mode, analyzed: status.lastSet, byHand: phone.handSet)
+        let start = HandSet.start(mode: status.mode, analyzed: status.lastSet, byHand: phone.lastTyped)
         SetByHandPage(
           exercise: start.exercise, start: start.reps, choosing: phone.screenshotOpensExerciseList
         ) { exercise, reps in

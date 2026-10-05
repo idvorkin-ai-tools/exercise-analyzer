@@ -20,6 +20,13 @@ final class PhoneLink: NSObject, ObservableObject {
   /// The last set typed here (story 059): the last-set line shows it while it is newer than the phone's
   /// `lastSet`; the next set that rolls clears it, as the phone clears its own.
   @Published private(set) var handSet: HandSet?
+  /// The last set typed here, kept through filmed sets and relaunches: the count page reopens on it (#183).
+  private(set) var lastTyped: HandSet? = UserDefaults.standard.data(forKey: PhoneLink.lastTypedKey)
+    .flatMap { try? JSONDecoder().decode(HandSet.self, from: $0) }
+  {
+    didSet { UserDefaults.standard.set(try? JSONEncoder().encode(lastTyped), forKey: Self.lastTypedKey) }
+  }
+  private static let lastTypedKey = "lastTypedSet"
   /// Last face.json write, and whether its failure is already logged (once per spell, story 043).
   private var lastFaceWrite = Date.distantPast
   private var faceWriteFailedLogged = false
@@ -45,6 +52,8 @@ final class PhoneLink: NSObject, ObservableObject {
   private var heartbeatTimer: Timer?
   private var heartbeat = HeartbeatStats()
   private var heartbeatFailedLogged = false
+  /// Statuses heard since the last heartbeat summary, by the road they came (message, context, workout).
+  private var statusArrivals: [String: Int] = [:]
 
   /// A minute of beats, summarized to the phone's log as `watch_heartbeat_minute` (a line per beat from here
   /// would be a queued transfer each; the phone logs the beats it gets itself).
@@ -108,12 +117,59 @@ final class PhoneLink: NSObject, ObservableObject {
     send(.status)
   }
 
+  /// Retry is at work: the button says so.
+  @Published private(set) var retrying = false
+  private var retryTask: Task<Void, Never>?
+  /// How many times Retry sends its message, a second apart, unless the phone answers first.
+  static let retryAttempts = 5
+
+  /// The Retry button (#189; Igor: "can we make that more aggressive, I think phone was there but the retries
+  /// failed"). The old one sent a single message, and nothing at all while the phone read as unreachable. This
+  /// asks by every road at once: a queued user info (delivered when a message cannot be, and it wakes the phone
+  /// app), the workout's Health session while a workout runs, and a message a second for five seconds whatever
+  /// reachability says. The phone answers each by every road it has. Stops at the first status heard.
+  func retry() {
+    guard screenshot == nil else { return }
+    let session = WCSession.default
+    logEvent(
+      "retry",
+      ["reachable": session.isReachable, "activation": session.activationState.rawValue, "workout": workout.running,
+       "silent_s": receivedAt.map { Int(Date().timeIntervalSince($0)) } ?? -1])
+    WKInterfaceDevice.current().play(.click)
+    guard session.activationState == .activated else {
+      session.activate()
+      return
+    }
+    session.transferUserInfo(["retry": Date().timeIntervalSince1970])
+    workout.askPhoneForStatus()
+    retryTask?.cancel()
+    retrying = true
+    retryTask = Task { [weak self] in
+      for _ in 0..<Self.retryAttempts {
+        guard let self, !Task.isCancelled, !self.isLive else { break }
+        self.sendScene(true)
+        self.send(.status)
+        try? await Task.sleep(for: .seconds(1))
+      }
+      guard !Task.isCancelled else { return }
+      self?.retrying = false
+    }
+  }
+
   override init() {
     super.init()
     rest = RestTimer { [weak self] type, fields in self?.logEvent(type, fields) }
     workout = WorkoutController(log: { [weak self] type, fields in self?.logEvent(type, fields) }, screenshot: WatchScreenshotState.launch)
     // The view observes the link; the workout's changes (heart rate, sets) redraw through it.
     workout.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+    // The phone's status also comes through the workout session while one runs (#189).
+    workout.onPhoneData = { [weak self] data in self?.apply(["status": data], via: "workout") }
+    // A set that finished analyzing while the app was down arrived before the workout was back, and was not
+    // counted: tell it again (it counts once, by its time).
+    workout.onRecovered = { [weak self] in
+      guard let self, let last = self.status.lastSet else { return }
+      self.workout.setAnalyzed(last)
+    }
     if let state = WatchScreenshotState.launch {
       screenshot = state
       let fixed = state.fixed
@@ -124,12 +180,27 @@ final class PhoneLink: NSObject, ObservableObject {
       if let endedAt = state.restEndedAt { rest.fixEnded(at: endedAt) }
       return
     }
-    guard WCSession.isSupported() else { return }
+    // A workout still running from before this launch (#190) is picked up once the session is activated:
+    // `logEvent` drops what comes before, and the recovery's lines are the only proof it ran.
+    guard WCSession.isSupported() else {
+      workout.recover()
+      return
+    }
     WCSession.default.delegate = self
     WCSession.default.activate()
     heartbeatTimer = Timer.scheduledTimer(withTimeInterval: Self.heartbeatInterval, repeats: true) { [weak self] _ in
       Task { @MainActor in self?.beat() }
     }
+    // WATCH_RETRY=<seconds> (simulator only, docs/TESTING.md): Retry that long after launch, as a tap on the
+    // button would; nothing can tap the watch simulator, and a lost phone can be staged there.
+    #if targetEnvironment(simulator)
+      if let delay = ProcessInfo.processInfo.environment["WATCH_RETRY"].flatMap(Double.init) {
+        Task { [weak self] in
+          try? await Task.sleep(for: .seconds(delay))
+          self?.retry()
+        }
+      }
+    #endif
   }
 
   /// Called from the view's scene phase: tells the phone whether to stream previews, and pings on wake.
@@ -194,7 +265,14 @@ final class PhoneLink: NSObject, ObservableObject {
         "seq": s.seq, "sent": s.sent, "replied": s.replied, "failed": s.failed, "skipped": s.skipped,
         "rtt_avg_ms": s.replied > 0 ? s.rttTotalMs / s.replied : -1, "rtt_max_ms": s.rttMaxMs,
         "seconds": Int(Date().timeIntervalSince(s.since)), "front": inFront, "workout": workout.running,
+        // Statuses that arrived by each road this minute, copies included (#189): whether the workout session
+        // delivers at all, and whether it still does when the messages stop.
+        // The context stored at activation is the same road as a context delivered live.
+        "status_message": statusArrivals["message", default: 0],
+        "status_context": statusArrivals["context", default: 0] + statusArrivals["stored_context", default: 0],
+        "status_workout": statusArrivals["workout", default: 0],
       ])
+    statusArrivals = [:]
     heartbeat = HeartbeatStats(seq: s.seq)
   }
 
@@ -225,7 +303,13 @@ final class PhoneLink: NSObject, ObservableObject {
   func send(_ command: WatchCommand) {
     guard screenshot == nil else { return }
     let session = WCSession.default
-    logEvent("command", ["command": command.rawValue, "reachable": session.isReachable, "activation": session.activationState.rawValue, "live": isLive])
+    var fields: [String: Any] = ["command": command.rawValue, "reachable": session.isReachable, "activation": session.activationState.rawValue, "live": isLive]
+    // What the camera button read when it was tapped (#188): whether the wrist showed the level the phone was at.
+    if command == .switchCamera {
+      fields["shown_camera"] = status.camera
+      fields["shown_zoom"] = status.zoom
+    }
+    logEvent("command", fields)
     guard session.activationState == .activated else { return }
     // A new set owns the idle screen: Record clears the rest count; a Preview is not a set, so the count
     // survives a look at the tripod and a Cancel (046, 047). Record from the preview clears it in `apply`
@@ -265,6 +349,7 @@ final class PhoneLink: NSObject, ObservableObject {
     guard screenshot == nil else { return }
     let set = HandSet(exercise: exercise, reps: HandSet.clamp(reps), at: Date().timeIntervalSince1970)
     handSet = set
+    lastTyped = set
     workout.setAnalyzed(reps: set.reps)
     rest.setEnded()
     logEvent("set_by_hand", ["id": set.id, "exercise": exercise.rawValue, "reps": set.reps, "reachable": reachable])
@@ -276,6 +361,10 @@ final class PhoneLink: NSObject, ObservableObject {
   private func apply(_ message: [String: Any], via channel: String) {
     guard let data = message["status"] as? Data, let next = try? JSONDecoder().decode(WatchStatus.self, from: data)
     else { return }
+    statusArrivals[channel, default: 0] += 1
+    // The newest by the phone's send time wins: a copy by a slower road, or an older status delivered late,
+    // changes nothing (#188, #189).
+    guard next.replaces(status) else { return }
     let previous = status
     status = next
     // Which channel ends a silence, and how long it was (#137): says whether the application context still
@@ -309,15 +398,11 @@ final class PhoneLink: NSObject, ObservableObject {
       handSet = nil  // the phone drops its last set here too (045)
     }
     // The workout (048): a rolling recorder is an activity inside it, and the pass's final count is a set of
-    // it. `at` keeps a stored context's old last set (a relaunch) from counting: only sets analyzed after
-    // Start belong to the workout.
+    // it. The workout takes each last set once, by its `at`; this link's own memory of what it heard is gone
+    // after a relaunch, the workout's is not (#190).
     if next.rolling, !previous.rolling { workout.setBegan(exercise: next.exercise) }
     if previous.rolling, !next.rolling { workout.setEnded() }
-    if let last = next.lastSet, last != previous.lastSet, let startedAt = workout.startedAt,
-      last.at >= startedAt.timeIntervalSince1970
-    {
-      workout.setAnalyzed(reps: last.reps)
-    }
+    if let last = next.lastSet { workout.setAnalyzed(last) }
   }
 
   /// Mirrors the set into the shared container for the face complication (story 043); what changes and when
@@ -381,6 +466,7 @@ extension PhoneLink: WCSessionDelegate {
       self.reachable = session.isReachable
       self.apply(context, via: "stored_context")
       self.logEvent("session", fields)
+      self.workout.recover()
     }
   }
 

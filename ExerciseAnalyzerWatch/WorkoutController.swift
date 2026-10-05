@@ -30,6 +30,9 @@ final class WorkoutController: NSObject, ObservableObject {
   /// sets typed by hand (059).
   @Published private(set) var sets = 0
   @Published private(set) var reps = 0
+  /// The phone's `LastSet.at` of the newest filmed set counted above: a set counts once, also when the phone
+  /// says it again to an app that restarted and no longer knows what it had heard (#190).
+  private var countedSetAt = 0.0
   @Published private(set) var lastError: String?
 
   var running: Bool { phase == .running || phase == .ending }
@@ -41,6 +44,10 @@ final class WorkoutController: NSObject, ObservableObject {
   private var activityOpen = false
   private var lastWireAt = Date.distantPast
   private let log: (String, [String: Any]) -> Void
+  /// What the phone sent through the mirrored session: its status, when WatchConnectivity may not carry it (#189).
+  var onPhoneData: ((Data) -> Void)?
+  /// A running workout was taken up again after a restart (#190): the link tells it the phone's last set again.
+  var onRecovered: (() -> Void)?
   /// Screenshot rung: the state is fixed and HealthKit is never touched.
   private let fixed: Bool
 
@@ -124,9 +131,11 @@ final class WorkoutController: NSObject, ObservableObject {
       heartRateMax = nil
       sets = 0
       reps = 0
+      countedSetAt = 0
       discarding = false
       activityOpen = false
       phase = .running
+      saveTally()
       log("workout_start", [:])
       sendWire()
     } catch {
@@ -135,6 +144,74 @@ final class WorkoutController: NSObject, ObservableObject {
       builder = nil
       fail("\(error)", event: "workout_failed")
     }
+  }
+
+  // MARK: - After a restart
+
+  /// Picks the running workout back up when the watch app comes back mid-workout (killed, crashed, or relaunched
+  /// by the system): Health keeps the session going without us, and without this the app showed no workout, sent
+  /// the phone nothing and had no End (#190). Called once at launch, after the link to the phone is up so its
+  /// log lines get there; no session to recover is the usual answer.
+  func recover() {
+    guard phase == .none, !fixed, HKHealthStore.isHealthDataAvailable() else { return }
+    store.recoverActiveWorkoutSession { [weak self] session, error in
+      Task { @MainActor in
+        guard let self, self.phase == .none else { return }
+        guard let session, session.state == .running || session.state == .paused else {
+          // "No active session" also arrives as an error on some systems: logged, never shown.
+          if let error { self.log("workout_recover_none", ["message": "\(error)"]) }
+          return
+        }
+        let builder = session.associatedWorkoutBuilder()
+        if builder.dataSource == nil {
+          builder.dataSource = HKLiveWorkoutDataSource(
+            healthStore: self.store, workoutConfiguration: session.workoutConfiguration)
+        }
+        session.delegate = self
+        builder.delegate = self
+        self.session = session
+        self.builder = builder
+        let start = session.startDate ?? builder.startDate ?? Date()
+        self.startedAt = start
+        // The count of sets is ours, not Health's: kept on disk per workout (`saveTally`).
+        let tally = Self.savedTally(startedAt: start)
+        self.sets = tally.sets
+        self.reps = tally.reps
+        self.countedSetAt = tally.countedSetAt
+        self.discarding = false
+        self.activityOpen = false
+        self.phase = .running
+        session.startMirroringToCompanionDevice { [weak self] ok, error in
+          Task { @MainActor in
+            self?.log("workout_mirror", ["ok": ok, "message": error.map { "\($0)" } ?? "", "recovered": true])
+          }
+        }
+        self.log(
+          "workout_recovered",
+          ["state": session.state.rawValue, "seconds": Int(Date().timeIntervalSince(start)), "sets": tally.sets,
+           "reps": tally.reps])
+        self.onRecovered?()
+        self.sendWire()
+      }
+    }
+  }
+
+  private static let tallyKey = "workoutTally"
+
+  /// The workout's sets and reps so far and the last filmed set in them, by its start: what a restarted app
+  /// counts on from (#190).
+  private func saveTally() {
+    guard let startedAt, !fixed else { return }
+    UserDefaults.standard.set(
+      ["startedAt": startedAt.timeIntervalSince1970, "sets": sets, "reps": reps, "countedSetAt": countedSetAt],
+      forKey: Self.tallyKey)
+  }
+
+  private static func savedTally(startedAt: Date) -> (sets: Int, reps: Int, countedSetAt: Double) {
+    guard let saved = UserDefaults.standard.dictionary(forKey: tallyKey),
+      let at = saved["startedAt"] as? Double, abs(at - startedAt.timeIntervalSince1970) < 2
+    else { return (0, 0, 0) }
+    return (saved["sets"] as? Int ?? 0, saved["reps"] as? Int ?? 0, saved["countedSetAt"] as? Double ?? 0)
   }
 
   /// End writes one HKWorkout; Discard writes nothing. Both end the session; the delegate finishes the job.
@@ -169,12 +246,22 @@ final class WorkoutController: NSObject, ObservableObject {
     log("workout_activity", ["begin": false])
   }
 
-  /// The phone's final count for a set recorded inside this workout (story 045's LastSet), or a set typed by hand
-  /// on the wrist (059).
+  /// The phone's final count for a set (story 045's LastSet), as often as the phone says it: it counts once, and
+  /// only when it was analyzed after Start. `at` decides both, so a stored context's old last set does not count,
+  /// nor does the last set told again to an app that restarted mid-workout (#190).
+  func setAnalyzed(_ last: LastSet) {
+    guard let startedAt, last.at >= startedAt.timeIntervalSince1970, last.at > countedSetAt else { return }
+    guard phase == .running else { return }
+    countedSetAt = last.at
+    setAnalyzed(reps: last.reps)
+  }
+
+  /// A set typed by hand on the wrist (059), or the phone's count from above.
   func setAnalyzed(reps count: Int) {
     guard phase == .running else { return }
     sets += 1
     reps += count
+    saveTally()
     sendWire()
   }
 
@@ -188,7 +275,13 @@ final class WorkoutController: NSObject, ObservableObject {
 
   /// Sends the workout's state to the phone through the mirrored session; heart-rate samples are throttled to
   /// one send every 5 s, transitions always go.
-  private func sendWire(ending: Bool = false, throttled: Bool = false) {
+  /// The wrist's Retry, by the workout's road (#189): asks the phone to say its status again.
+  func askPhoneForStatus() {
+    guard phase == .running else { return }
+    sendWire(wantsStatus: true)
+  }
+
+  private func sendWire(ending: Bool = false, throttled: Bool = false, wantsStatus: Bool = false) {
     guard let session, !fixed else { return }
     let now = Date()
     if throttled, now.timeIntervalSince(lastWireAt) < 5 { return }
@@ -196,6 +289,7 @@ final class WorkoutController: NSObject, ObservableObject {
     var message = wire
     message.ending = ending
     message.discarded = ending && discarding
+    if wantsStatus { message.wantsStatus = true }
     guard let data = try? JSONEncoder().encode(message) else { return }
     session.sendToRemoteWorkoutSession(data: data) { [weak self] ok, error in
       guard !ok else { return }
@@ -277,6 +371,10 @@ extension WorkoutController: HKWorkoutSessionDelegate {
       // the state change above.
       if phase == .starting { reset() }
     }
+  }
+
+  nonisolated func workoutSession(_ workoutSession: HKWorkoutSession, didReceiveDataFromRemoteWorkoutSession data: [Data]) {
+    Task { @MainActor in data.forEach { onPhoneData?($0) } }
   }
 }
 

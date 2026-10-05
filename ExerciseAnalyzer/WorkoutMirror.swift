@@ -19,12 +19,15 @@ final class WorkoutMirror: NSObject, ObservableObject {
   @Published private(set) var live: WorkoutWire?
   @Published private(set) var index: WorkoutIndex
   var onEvent: ((String, [String: Any]) -> Void)?
+  /// The wrist's Retry came through the workout session (#189): say the status again.
+  var onStatusWanted: (() -> Void)?
 
   private let store = HKHealthStore()
   private var session: HKWorkoutSession?
   private let root: URL
   private var lastDataLogged = Date.distantPast
   private var authorizationRequested = false
+  private var statusFailedLogged = false
 
   /// What was wrong with workouts.json at launch, if anything; the session logs it.
   let indexDamage: IndexDamage?
@@ -188,6 +191,24 @@ final class WorkoutMirror: NSObject, ObservableObject {
     onEvent?("workout_mirror", ["state": -1, "seeded": true, "started_at": live?.startedAt ?? 0])
   }
 
+  /// The phone's status to the wrist through the mirrored session (#189): a road that is not WatchConnectivity,
+  /// whose phone-to-watch direction has died mid-workout with the watch still heard (#137). Only while a workout
+  /// runs; a failure is logged once per spell.
+  func sendToWatch(_ status: Data) {
+    guard let session else { return }
+    session.sendToRemoteWorkoutSession(data: status) { [weak self] ok, error in
+      Task { @MainActor in
+        guard let self else { return }
+        if ok {
+          self.statusFailedLogged = false
+        } else if !self.statusFailedLogged {
+          self.statusFailedLogged = true
+          self.onEvent?("workout_status_failed", ["message": error.map { "\($0)" } ?? ""])
+        }
+      }
+    }
+  }
+
   private func ended(at date: Date) {
     guard let live else { return }
     defer {
@@ -246,8 +267,11 @@ extension WorkoutMirror: HKWorkoutSessionDelegate {
 
   nonisolated func workoutSession(_ workoutSession: HKWorkoutSession, didReceiveDataFromRemoteWorkoutSession data: [Data]) {
     let wires = data.compactMap { try? JSONDecoder().decode(WorkoutWire.self, from: $0) }
-    guard let last = wires.last else { return }
-    Task { @MainActor in
+    guard var last = wires.last else { return }
+    let wantsStatus = wires.contains { $0.wantsStatus == true }
+    last.wantsStatus = nil
+    Task { @MainActor [last] in
+      if wantsStatus { onStatusWanted?() }
       live = last
       // Heart rate arrives every few seconds: one line a minute keeps the log readable, transitions always.
       let now = Date()
