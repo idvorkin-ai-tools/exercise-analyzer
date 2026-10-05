@@ -683,8 +683,6 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 
 ---
 
----
-
 ### User Story 069:
 
 - **Summary:** Another app can open Exercise Analyzer
