@@ -9,7 +9,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 009:
 
 - **Summary:** Keep only the set, losslessly and fast
-- **Status:** implemented in [93cb349](https://github.com/idvorkin/exercise-analyzer/commit/93cb349), [6902937](https://github.com/idvorkin/exercise-analyzer/commit/6902937), [8309c6f](https://github.com/idvorkin/exercise-analyzer/commit/8309c6f); verified on the simulator (the `trim` check of `just test-sim`); the set switch (#52) in [920e803](https://github.com/idvorkin/exercise-analyzer/commit/920e803), verified on the host and the simulator; the implausible count (#141) in [638f3e8](https://github.com/idvorkin/exercise-analyzer/commit/638f3e8), verified on the host; on the phone since 2026-09-26, Igor's check pending (HDR, Photos undo)
+- **Status:** implemented in [93cb349](https://github.com/idvorkin/exercise-analyzer/commit/93cb349), [6902937](https://github.com/idvorkin/exercise-analyzer/commit/6902937), [8309c6f](https://github.com/idvorkin/exercise-analyzer/commit/8309c6f); verified on the simulator (the `trim` check of `just test-sim`); the set switch (#52) in [920e803](https://github.com/idvorkin/exercise-analyzer/commit/920e803), verified on the host and the simulator; the implausible count (#141) in [638f3e8](https://github.com/idvorkin/exercise-analyzer/commit/638f3e8), verified on the host; on the phone since 2026-09-26, Igor's check pending (HDR, Photos undo); the in-app set's undo (#199) in [d5ed484](https://github.com/idvorkin/exercise-analyzer/commit/d5ed484), written on Linux, not yet built or run on any rung
 
 #### Use Case:
 - **As a** lifter who leaves the camera running while setting up

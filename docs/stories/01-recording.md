@@ -9,7 +9,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 001:
 
 - **Summary:** Record a set and get a trusted rep count without touching the phone afterwards
-- **Status:** implemented in [0517562](https://github.com/idvorkin/exercise-analyzer/commit/0517562), [49c6529](https://github.com/idvorkin/exercise-analyzer/commit/49c6529); verified on the phone (daily use); the camera memory (#66) in [8e9f076](https://github.com/idvorkin/exercise-analyzer/commit/8e9f076), on the phone since 2026-09-13; the first swing (#148) in [09779df](https://github.com/idvorkin/exercise-analyzer/commit/09779df), verified on the host (swing-pickup-10reps, Igor's count), on the phone since 2026-09-26
+- **Status:** implemented in [0517562](https://github.com/idvorkin/exercise-analyzer/commit/0517562), [49c6529](https://github.com/idvorkin/exercise-analyzer/commit/49c6529); verified on the phone (daily use); the camera memory (#66) in [8e9f076](https://github.com/idvorkin/exercise-analyzer/commit/8e9f076), on the phone since 2026-09-13; the first swing (#148) in [09779df](https://github.com/idvorkin/exercise-analyzer/commit/09779df), verified on the host (swing-pickup-10reps, Igor's count), on the phone since 2026-09-26; the set kept before its pass (#200) in [22cb50f](https://github.com/idvorkin/exercise-analyzer/commit/22cb50f), written on Linux, not yet built or run on any rung
 
 #### Use Case:
 - **As a** solo lifter with the phone on a tripod
