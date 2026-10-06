@@ -2596,7 +2596,14 @@ final class VideoPoseSession: NSObject, ObservableObject {
         return
       }
       let scratch = Untrimmed(url: copy, pipeline: before.pipeline, frames: before.frames, origin: before.origin)
-      if finishUndo(before: scratch, operation: restored) { recents.dropBackup(id: id) }
+      let name = recents.entry(id: id)?.originalName
+      if finishUndo(before: scratch, operation: restored) {
+        recents.dropBackup(id: id)
+        // The save named the set after the scratch copy, and the session would trim that tmp file next: point
+        // both back at the set's own clip, so a second trim stashes again.
+        recents.update(id: id) { $0.originalName = name }
+        currentFileURL = recents.folder(for: id).appendingPathComponent("clip." + copy.pathExtension)
+      }
       return
     }
     finishUndo(before: before, operation: restored)

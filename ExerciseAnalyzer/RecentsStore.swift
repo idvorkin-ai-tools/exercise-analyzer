@@ -32,6 +32,11 @@ final class RecentsStore: ObservableObject {
     indexDamage = index.damage
     if index.backfill(root: self.root) { try? index.save(root: self.root) }
     entries = index.entries
+    // An in-app set's stash serves only an undo in this run (#199): one found at launch was left by a crash or a
+    // kill mid-trim. A Photos replace's stash sits on a Photos entry and stays.
+    for entry in entries where entry.originalBackup != nil {
+      if case .file = entry.source { dropBackup(id: entry.id) }
+    }
   }
 
   func folder(for id: String) -> URL { root.appendingPathComponent(id, isDirectory: true) }
