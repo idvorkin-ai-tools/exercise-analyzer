@@ -179,6 +179,11 @@ final class RecentsStore: ObservableObject {
     return name
   }
 
+  /// True when `url` is the set's own clip in its folder: a save of that set replaces the file (#199).
+  func ownsClip(_ url: URL, id: String) -> Bool {
+    url.deletingLastPathComponent().standardizedFileURL.path == folder(for: id).standardizedFileURL.path
+  }
+
   func backupURL(for entry: RecentEntry) -> URL? {
     guard let name = entry.originalBackup else { return nil }
     let url = folder(for: entry.id).appendingPathComponent(name)
