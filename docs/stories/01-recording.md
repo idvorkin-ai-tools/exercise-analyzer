@@ -28,11 +28,16 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **When:** I open Live for the next set
 - **Then:** the preview is already on that camera and zoom, and `camera_start` logs the restored choice
 
+- **Scenario:** Starting the next set before the last one is analyzed
+- **Given:** I tapped Done and the set is still finishing, trimming or analyzing
+- **When:** I start the next set from the watch, open another set, or cancel the analysis
+- **Then:** the finished set is already in Workouts with its live count (`recording_kept`), and the next time it is opened, or at the next launch, it is analyzed from its video; a set whose pass does finish is updated in place to the trimmed clip and the final count
+
 - **Notes:** Live is the set: the recorder rolls from the camera's first frame and Trim cuts the walk-in
   (story 009). Framing before the recorder rolls is the watch's Preview (story 047); the phone has no
   camera-only state of its own. What counts as a Bulgarian split squat rep is story 060.
 
-- **Issues:** [#66](https://github.com/idvorkin/exercise-analyzer/issues/66); [#148](https://github.com/idvorkin/exercise-analyzer/issues/148) the first swing off the floor was not counted, so ten swings read nine
+- **Issues:** [#66](https://github.com/idvorkin/exercise-analyzer/issues/66); [#148](https://github.com/idvorkin/exercise-analyzer/issues/148) the first swing off the floor was not counted, so ten swings read nine; [#200](https://github.com/idvorkin/exercise-analyzer/issues/200) a set was dropped when anything started before its offline pass ended
 
 ---
 

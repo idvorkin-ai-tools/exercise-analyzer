@@ -947,6 +947,38 @@ final class VideoPoseSession: NSObject, ObservableObject {
     return Dictionary(grouping: weights) { $0 }.max { $0.value.count < $1.value.count }?.key
   }
 
+  /// The card cut from the whole frame (#110). A stored set opened and saved again (a trim) has no new cut:
+  /// its stored picture stays, and only a set with neither falls back to a rep's still.
+  private func setThumbnail(_ pipeline: AnalysisPipeline, id: String) -> UIImage? {
+    let firstRep = pipeline.reps.first
+    return pipeline.cardImage.map { UIImage(cgImage: $0) }
+      ?? recents.entry(id: id).flatMap { recents.thumbnailImage(for: $0) }
+      ?? (pipeline.exercise.definition.galleryOrder.lazy.compactMap { firstRep?.positions[$0.id]?.image }.first
+        ?? firstRep?.checkpoints.first?.image).map { UIImage(cgImage: $0) }
+  }
+
+  /// A finished recording goes into Recents as soon as its clip is whole, with its live count (#200), whatever the
+  /// session is doing by then: a watch Start for the next set, a Recents tap or a Cancel supersedes the
+  /// recording's operation, and every later step of its trim and pass returns without saving. Stored under
+  /// `StoredSetPlan.liveTrackModels`, so if the pass never lands, opening the set or the launch refresh sends it
+  /// back to its video; when the pass lands it updates this same entry.
+  private func keepRecording(
+    id: String, clipURL: URL, live: AnalysisPipeline, recordedAt: Date, duration: Double, clipStartedAt: Date?,
+    onScreen: Bool
+  ) {
+    do {
+      try recents.save(
+        id: id, source: .file(name: "clip." + clipURL.pathExtension), recordedAt: recordedAt, duration: duration,
+        pipeline: live, clipURL: clipURL, thumbnail: setThumbnail(live, id: id),
+        originalName: clipURL.lastPathComponent, models: StoredSetPlan.liveTrackModels, clipStartedAt: clipStartedAt)
+      log.event(
+        "recording_kept",
+        ["id": id, "live_reps": live.reps.count, "clip": clipURL.lastPathComponent, "on_screen": onScreen])
+    } catch {
+      log.event("error", ["where": "recording_kept", "id": id, "message": "\(error)"])
+    }
+  }
+
   /// Writes the current clip and analysis into Recents (new entry, or updates the open one after a trim). True when
   /// the save landed.
   @discardableResult
@@ -966,18 +998,10 @@ final class VideoPoseSession: NSObject, ObservableObject {
     default:
       source = .file(name: "clip." + clipURL.pathExtension)
     }
-    // The card cut from the whole frame (#110). A stored set opened and saved again (a trim) has no new cut:
-    // its stored picture stays, and only a set with neither falls back to a rep's still.
-    let firstRep = pipeline.reps.first
-    let thumbnail =
-      pipeline.cardImage.map { UIImage(cgImage: $0) }
-      ?? recents.entry(id: id).flatMap { recents.thumbnailImage(for: $0) }
-      ?? (pipeline.exercise.definition.galleryOrder.lazy.compactMap { firstRep?.positions[$0.id]?.image }.first
-        ?? firstRep?.checkpoints.first?.image).map { UIImage(cgImage: $0) }
     do {
       try recents.save(
         id: id, source: source, recordedAt: currentRecordedAt ?? Date(), duration: duration,
-        pipeline: pipeline, clipURL: clipURL, thumbnail: thumbnail,
+        pipeline: pipeline, clipURL: clipURL, thumbnail: setThumbnail(pipeline, id: id),
         originalName: trimmedURL == nil ? currentFileURL?.lastPathComponent : nil, models: models.names,
         clipStartedAt: currentClipStartedAt)
       currentEntryID = id
@@ -2396,26 +2420,27 @@ final class VideoPoseSession: NSObject, ObservableObject {
         "live_fps": fps, "live_bells_dropped": liveBellsDropped,
         "paused_s": pausedTime, "segments": closing.count + 1,
       ])
+    // Until the set is in Recents (keepRecording below) finishing and joining run to the end even when another
+    // operation has taken over (#200); only the screen updates (status, progress) wait on `isCurrent`.
     Task {
       let finished = await recorder.finish()
-      guard isCurrent(operation) else { return }
       // Segments closed by a pause or a rotation may still be finishing (finishWriting takes 100–300 ms):
       // wait for each, in order, so Done right after Pause never reads an empty list and loses the set
       // (the 2026-09-15 review).
       var segments: [URL] = []
       for task in closing { if let url = await task.value { segments.append(url) } }
-      guard isCurrent(operation) else { return }
       if let url = finished ?? recorder.partialURL {
         if finished == nil {
-          statusMessage = "Recording was cut short, keeping what was captured"
+          if isCurrent(operation) { statusMessage = "Recording was cut short, keeping what was captured" }
           log.event("recording_partial", ["url": url.lastPathComponent, "duration_s": recordedDuration])
         }
         segments.append(url)
       }
       guard !segments.isEmpty else {
+        log.event("error", ["where": "recorder", "message": "finish returned no file"])
+        guard isCurrent(operation) else { return }
         statusMessage = "Nothing recorded"
         lastSetPassEnded("nothing recorded")
-        log.event("error", ["where": "recorder", "message": "finish returned no file"])
         activity = .idle
         return
       }
@@ -2428,34 +2453,36 @@ final class VideoPoseSession: NSObject, ObservableObject {
             self.activity = .working("Joining segments", progress: progress)
           }
         }
-        activity = .working("Joining \(segments.count) segments", progress: 0)
+        if isCurrent(operation) { activity = .working("Joining \(segments.count) segments", progress: 0) }
         let started = Date()
         do {
           // Same display size throughout: a passthrough join (seconds, no quality loss); a rotation across a
           // pause changes the size and still takes the re-encoding stitch.
           let passthrough = await VideoFile.sameDisplaySize(segments)
-          guard isCurrent(operation) else { return }
           if passthrough {
             clipURL = try await VideoFile.join(segments, progress: progress)
           } else {
             clipURL = try await VideoFile.stitch(segments, progress: progress)
           }
-          guard isCurrent(operation) else { return }
           log.event("stitch", ["segments": segments.count, "elapsed_s": Date().timeIntervalSince(started), "clip": clipURL.lastPathComponent, "passthrough": passthrough])
         } catch {
-          guard isCurrent(operation) else { return }
           log.event("error", ["where": "stitch", "message": "\(error)"])
-          statusMessage = "Couldn't join the segments; keeping the last one"
+          if isCurrent(operation) { statusMessage = "Couldn't join the segments; keeping the last one" }
           clipURL = segments[segments.count - 1]
         }
       }
+      // ponytail: a paused or rotated set has wall-clock time missing between its segments, so clip time is
+      // not first frame + playhead any more and it gets no heart rate. Upgrade: keep each segment's start.
+      let startedAt = segments.count == 1 && !hadPause ? clipStartedAt : nil
+      keepRecording(
+        id: operation.entryID, clipURL: clipURL, live: livePipeline, recordedAt: stoppedAt,
+        duration: recordedDuration, clipStartedAt: startedAt, onScreen: isCurrent(operation))
+      guard isCurrent(operation) else { return }
       currentFileURL = clipURL
       currentOrigin = .recording
       currentEntryID = operation.entryID
       currentRecordedAt = stoppedAt
-      // ponytail: a paused or rotated set has wall-clock time missing between its segments, so clip time is
-      // not first frame + playhead any more and it gets no heart rate. Upgrade: keep each segment's start.
-      currentClipStartedAt = segments.count == 1 && !hadPause ? clipStartedAt : nil
+      currentClipStartedAt = startedAt
       canSave = true
       await trim(url: clipURL, using: livePipeline, thenAnalyze: true, operation: operation)
     }
