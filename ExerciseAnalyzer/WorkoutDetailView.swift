@@ -32,15 +32,16 @@ struct WorkoutDetailView: View {
   @State private var heartRateFor: WorkoutIdentity?
 
   var body: some View {
+    let series = heartRateFor == identity ? heartRate : nil
     let snapshot = WorkoutPageSnapshot(
       identity: identity, live: workouts.live, saved: workouts.sessions,
       // The 20 s tick, not Date(): a live workout's end read per render changed on every pan and pinch frame,
       // re-logging `workout_page` and rebuilding the timeline each time.
-      now: tick, sets: store.entries, heartRate: heartRate)
+      now: tick, sets: store.entries, heartRate: series)
     Group {
       if let snapshot {
         WorkoutPageView(
-          snapshot: snapshot, sets: store.entries, heartRate: heartRate, onOpen: onOpen,
+          snapshot: snapshot, sets: store.entries, heartRate: series, onOpen: onOpen,
           thumbnail: thumbnail, onEvent: onEvent, onDelete: onDelete, onKeepByHand: onKeepByHand,
           onAddByHand: onAddByHand, onSetBellKg: onSetBellKg)
           // A fresh page per workout: the reused iPad page kept the last workout's chart window, so this one's
