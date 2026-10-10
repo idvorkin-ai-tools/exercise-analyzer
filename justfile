@@ -143,6 +143,7 @@ analyze clip *args:
 pull-tracks:
     scripts/pull-tracks.sh {{device}}
 
-# Quick check for unfiled bug reports on the phone (exit 1 when there are any); `/loop 5m just bugs-check` while testing.
+# Quick check for unfiled bug reports on every paired iPhone and iPad, through BugKit's pull-reports.sh --check
+# (exit 1 when there are any, 2 when the issue lookup failed); scripts/bugs-monitor.sh watches it while Igor tests.
 bugs-check:
-    scripts/bugs-check.sh {{device}}
+    scripts/bugs-check.sh

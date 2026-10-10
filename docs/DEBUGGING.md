@@ -83,20 +83,26 @@ the numbers, then fix. Never ship a second guessed fix. Examples that paid off: 
    `files`, `context`), with the images under `Documents/bugs/<stamp>/` (`-2`, `-3` within one second; the append
    is locked, so two reports never overwrite each other). "Log it and another" writes the same and empties the
    sheet; every report until the next shake carries that shake's picture (#212).
-2. **Monitor while Igor tests**: `just bugs-check` copies only `bugs.jsonl` and exits 1 when a report is not yet an
-   issue. The agent watches it through `scripts/bugs-monitor.sh`, which polls every minute and prints one line per
-   new report, once (silent otherwise), armed as a persistent `Monitor`:
+2. **Monitor while Igor tests**: `just bugs-check` runs BugKit's `pull-reports.sh --check exercise-analyzer`: it
+   copies only `bugs.jsonl` from every paired iPhone and iPad (no device ids; the listener's
+   `~/.config/bug-kit/apps.json` names the app), prints one stable line per report that is not yet an issue
+   (`new exercise-analyzer <device> <reported_at> <note>`) and exits 1 when there are any, 0 when clean, 2 when the
+   issue lookup failed. The agent watches it through `scripts/bugs-monitor.sh`, which polls every minute and prints
+   one line per new report, once (silent otherwise), armed as a persistent `Monitor`:
 
    ```
    Monitor(command: "scripts/bugs-monitor.sh", description: "new shake reports on the phone", persistent: true)
    ```
 
    This is cheaper than `/loop 5m just bugs-check` (the fallback when Monitor is not available): a monitor wakes
-   the model only when a report appears, a loop wakes it every five minutes to find nothing. "phone not
-   reachable" from `bugs-check` (locked or away) is not a failure; the monitor stays quiet.
-3. **When it exits 1**: `just pull-logs && just file-bugs`. Each new report becomes one issue with the note, the
-   context table, and the screenshot and frame hosted on a gist (`scripts/gist-images.sh`); the marker
-   `<!-- bug:<reported_at> -->` in the body is what makes filing idempotent.
+   the model only when a report appears, a loop wakes it every five minutes to find nothing. An unreachable device
+   (locked before its first unlock, or away) is named by the check, not a failure; the monitor stays quiet.
+3. **When it exits 1**: `just pull-logs && just file-bugs` (`DEVICE=<iPad udid> just pull-logs` for the iPad). Each
+   new report becomes one issue with the note, the context table (screen, clip, exercise, playhead, reps, build and
+   commit, the log and its millisecond), and the screenshot's and frame's paths on the Mac, named and never
+   uploaded (the repo is public; BugKit principle 13). The markers `<!-- bug:<reported_at> -->` and
+   `<!-- bug-id:<id> -->` in the body are what make filing idempotent; a failed look at the existing issues stops
+   the filing rather than filing everything again.
 4. **Before fixing**: find or write the story in [stories/](stories/README.md) that the report belongs to (a bug gets an
    `Issues:` line, a request becomes a story). Then open the report's log at its `session_t_ms` and read what the
    app was doing; put that evidence on the issue as a comment.
