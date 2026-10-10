@@ -54,7 +54,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 036:
 
 - **Summary:** A crash comes back with the logs (technical)
-- **Status:** implemented in [42b50ff](https://github.com/idvorkin/exercise-analyzer/commit/42b50ff); verified by build and by the first crash it caught (the Float16 tensor read, fixed in the same commit); the pruning (#72) in [a0a11ba](https://github.com/idvorkin/exercise-analyzer/commit/a0a11ba), on the phone since 2026-09-13; the exception file and the once-only announcement in [183db20](https://github.com/idvorkin/exercise-analyzer/commit/183db20), on the phone since 2026-09-16, verified by the next exception
+- **Status:** implemented in [42b50ff](https://github.com/idvorkin/exercise-analyzer/commit/42b50ff), from [BugKit](https://github.com/idvorkin/bug-kit)'s `CrashReports` and `BugStore.pruneLogs` since [60bd42b](https://github.com/idvorkin/exercise-analyzer/commit/60bd42b) (same files, same events; installed by the session once its log is open), verified by build; verified by build and by the first crash it caught (the Float16 tensor read, fixed in the same commit); the pruning (#72) in [a0a11ba](https://github.com/idvorkin/exercise-analyzer/commit/a0a11ba), on the phone since 2026-09-13; the exception file and the once-only announcement in [183db20](https://github.com/idvorkin/exercise-analyzer/commit/183db20), on the phone since 2026-09-16, verified by the next exception
 
 #### Use Case:
 - **As a** developer reading a session log that stops mid-work
@@ -104,7 +104,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 072:
 
 - **Summary:** What's new in this build, written by the build itself
-- **Status:** implemented through [BugKit](https://github.com/idvorkin/bug-kit)'s `WhatsNew` (its stories 030–033); the build phase, the row and the list in this app's BugKit step 4 commit; verified by `just build-sim` (the bundle's `whats-new.json` lists this month's stories) and on the simulator; the row on the phone is Igor's check
+- **Status:** implemented through [BugKit](https://github.com/idvorkin/bug-kit)'s `WhatsNew` (its stories 030–033); the build phase, the row and the list in [265c2e9](https://github.com/idvorkin/exercise-analyzer/commit/265c2e9); verified by `just build-sim` (the bundle's `whats-new.json` lists this month's stories) and on the simulator; the row on the phone is Igor's check
 
 #### Use Case:
 - **As a** lifter who installs a new build most days
