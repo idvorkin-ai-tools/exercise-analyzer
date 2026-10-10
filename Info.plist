@@ -14,6 +14,9 @@
 	<true/>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
+	<!-- The commit a bug report names (BugKit); `just build-*` pass BUGKIT_COMMIT, an Xcode build leaves it "unknown". -->
+	<key>BugKitCommit</key>
+	<string>$(BUGKIT_COMMIT)</string>
 	<!-- Story 069: exerciseanalyzer:// brings the app forward from another app (Grabber Native's home screen). -->
 	<key>CFBundleURLTypes</key>
 	<array>

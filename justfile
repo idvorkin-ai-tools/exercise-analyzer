@@ -45,7 +45,7 @@ build-sim:
     set -uo pipefail
     out=$(xcodebuild -project ExerciseAnalyzer.xcodeproj -scheme ExerciseAnalyzer \
       -derivedDataPath Build/ -destination "platform=iOS Simulator,name={{sim}}" \
-      CODE_SIGNING_ALLOWED=NO build 2>&1)
+      CODE_SIGNING_ALLOWED=NO BUGKIT_COMMIT="$(git rev-parse --short HEAD)" build 2>&1)
     echo "$out" | grep -E "error:|BUILD"
     echo "$out" | grep -q "BUILD SUCCEEDED"
 
@@ -63,7 +63,7 @@ build-device:
     set -uo pipefail
     out=$(xcodebuild -project ExerciseAnalyzer.xcodeproj -scheme ExerciseAnalyzer \
       -derivedDataPath Build/ -destination "platform=iOS,id={{device}}" \
-      -allowProvisioningUpdates -allowProvisioningDeviceRegistration build 2>&1)
+      -allowProvisioningUpdates -allowProvisioningDeviceRegistration BUGKIT_COMMIT="$(git rev-parse --short HEAD)" build 2>&1)
     echo "$out" | grep -E "error:|BUILD"
     echo "$out" | grep -q "BUILD SUCCEEDED"
 

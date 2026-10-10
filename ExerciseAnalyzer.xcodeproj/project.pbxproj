@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		5A1A00000000000000000012 /* UltralyticsYOLO in Frameworks */ = {isa = PBXBuildFile; productRef = 5A1A00000000000000000011 /* UltralyticsYOLO */; };
 		5A1A00000000000000000022 /* ExerciseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 5A1A00000000000000000021 /* ExerciseCore */; };
+		5B1A00000000000000000071 /* BugKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5B1A00000000000000000072 /* BugKit */; };
 		5A1A0000000000000000003A /* ExerciseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 5A1A00000000000000000039 /* ExerciseCore */; };
 		5A1A0000000000000000003F /* ExerciseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 5A1A00000000000000000039 /* ExerciseCore */; };
 		5C1A00000000000000000061 /* ExerciseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 5C1A00000000000000000060 /* ExerciseCore */; };
@@ -117,6 +118,7 @@
 			files = (
 				5A1A00000000000000000012 /* UltralyticsYOLO in Frameworks */,
 				5A1A00000000000000000022 /* ExerciseCore in Frameworks */,
+				5B1A00000000000000000071 /* BugKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -197,6 +199,7 @@
 			packageProductDependencies = (
 				5A1A00000000000000000011 /* UltralyticsYOLO */,
 				5A1A00000000000000000021 /* ExerciseCore */,
+				5B1A00000000000000000072 /* BugKit */,
 			);
 			productName = ExerciseAnalyzer;
 			productReference = 5A1A0000000000000000000C /* ExerciseAnalyzer.app */;
@@ -310,6 +313,7 @@
 			packageReferences = (
 				5A1A00000000000000000010 /* XCRemoteSwiftPackageReference "yolo-ios-app" */,
 				5A1A00000000000000000020 /* XCLocalSwiftPackageReference "ExerciseCore" */,
+				5B1A00000000000000000070 /* XCRemoteSwiftPackageReference "bug-kit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 5A1A00000000000000000006 /* Products */;
@@ -825,6 +829,14 @@
 				revision = 90df40ee2e5e2f30b40ac7518e43712f9a906381;
 			};
 		};
+		5B1A00000000000000000070 /* XCRemoteSwiftPackageReference "bug-kit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/idvorkin/bug-kit";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -844,6 +856,11 @@
 		5C1A00000000000000000060 /* ExerciseCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = ExerciseCore;
+		};
+		5B1A00000000000000000072 /* BugKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5B1A00000000000000000070 /* XCRemoteSwiftPackageReference "bug-kit" */;
+			productName = BugKit;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

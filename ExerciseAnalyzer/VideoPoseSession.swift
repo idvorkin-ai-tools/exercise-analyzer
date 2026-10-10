@@ -12,6 +12,7 @@
 //  clock; no frames are pulled from the player.
 
 import AVFoundation
+import BugKit
 import ExerciseCore
 import Combine
 import CoreMedia
@@ -45,8 +46,15 @@ final class VideoPoseSession: NSObject, ObservableObject {
 
   let player = AVPlayer()
   let log: SessionLog
-  /// Shake reports' files and old-log pruning (BugReport.swift).
-  private let bugReporter: BugReporter
+  /// Shake to report, BugKit's reporter with this app's hooks (BugReport.swift); made on first use.
+  private(set) lazy var bugReporter: BugReporter = makeBugReporter()
+  /// The screen the report names, kept current by ContentView: workouts, workout, player or camera.
+  var bugScreen = "workouts"
+  /// The clip and playhead when the report sheet opened, for its `frame.jpg`.
+  var bugClip: (url: URL, time: Double)?
+  var bugStatus: AnyCancellable?
+  /// What the last report's save says ("Problem logged. Thanks."), on the status line.
+  func noteBugStatus(_ text: String) { statusMessage = text }
   let recents = RecentsStore()
   /// The iCloud copy of Recents and the workouts for the other devices (story 070), watched by the Sync status screen (#231).
   private(set) var sync: SyncStore?
@@ -170,12 +178,12 @@ final class VideoPoseSession: NSObject, ObservableObject {
   private var lastCameraPts: Double?
 
   private var recentBoxes: [(time: Double, box: CGRect)] = []
-  private var currentFileURL: URL?
-  private var trimmedURL: URL?
+  private(set) var currentFileURL: URL?
+  private(set) var trimmedURL: URL?
   /// A Photos clip was just trimmed: the view offers to replace the original in Photos right away (#90).
   @Published var replaceOriginalPrompt = false
   private var currentOrigin: Origin = .file
-  private var currentEntryID: String?
+  private(set) var currentEntryID: String?
   private typealias Operation = ClipOperation<Origin>
   private var clipOperations = ClipOperationSlot<Origin>()
 
@@ -319,9 +327,9 @@ final class VideoPoseSession: NSObject, ObservableObject {
     cameraZoom = savedZoom > 0 ? savedZoom : 1
     log = SessionLog()
     models = ModelSet(log: log)
-    bugReporter = BugReporter(log: log)
     super.init()
-    bugReporter.pruneOldLogs()  // after the new session's log is open (#72)
+    // Logs older than 30 days go, except one a report names (#72); after the new session's log is open.
+    BugStore().pruneLogs(logger: { [log] type, fields in log.event(type, fields.mapValues(\.foundation)) })
     if case .fixed(let kind) = exerciseMode { exercise = kind }
     pipeline = AnalysisPipeline(exercise: exercise)
     watch.onEvent = { [weak self] type, fields in self?.log.event(type, fields) }
@@ -2950,35 +2958,6 @@ final class VideoPoseSession: NSObject, ObservableObject {
       }
     }
   #endif
-
-  // MARK: - Bug reports (the files are BugReporter's)
-
-  /// The shake landed: the screen now, and in playback the clip's frame at the playhead.
-  func captureBugScreenshot() {
-    bugReporter.capture(clip: source == .camera ? nil : currentFileURL.map { ($0, currentTime) })
-  }
-
-  /// What a report carries besides the note: enough to find the moment in the log and the clip in Recents.
-  func bugContext() -> [String: String] {
-    var context: [String: String] = [
-      "log": log.url.lastPathComponent,
-      "exercise": exercise.definition.name,
-      "mode": exerciseMode.storageValue,
-      "source": "\(source)",
-      "playhead": String(format: "%.2f s", currentTime),
-      "reps": "\(reps.count)",
-      "phase": latestFrame?.analysis?.phase ?? "–",
-    ]
-    if let id = currentEntryID { context["recents_id"] = id }
-    if let url = trimmedURL ?? currentFileURL { context["clip"] = url.lastPathComponent }
-    if let detection { context["detected"] = "\(detection.exercise.rawValue) \(detection.confidence)%" }
-    return context
-  }
-
-  /// Writes the report into the session log and to Documents/bugs.jsonl (one line per report, newest last).
-  func reportBug(note: String) {
-    statusMessage = bugReporter.report(note: note, context: bugContext())
-  }
 
   private func currentVideoOrientation() -> AVCaptureVideoOrientation {
     let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene

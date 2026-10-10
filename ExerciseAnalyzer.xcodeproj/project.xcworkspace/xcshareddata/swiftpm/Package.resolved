@@ -1,6 +1,15 @@
 {
-  "originHash" : "7da310081d69d30a7ab08743d20e135a898169f08e50366813dbcde706c0bfcb",
+  "originHash" : "16a5a5c88a0a8066c559186fd2315b4b51804d425739fb0924b95773023d0461",
   "pins" : [
+    {
+      "identity" : "bug-kit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/idvorkin/bug-kit",
+      "state" : {
+        "branch" : "main",
+        "revision" : "c409958c69f41c0f198af27bf2ce3e8e4f0fe1bb"
+      }
+    },
     {
       "identity" : "yolo-ios-app",
       "kind" : "remoteSourceControl",

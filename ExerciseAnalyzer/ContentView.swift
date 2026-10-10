@@ -5,6 +5,7 @@
 //  Launch with the SWING_VIDEO environment variable set to a file path to auto-load a video (simulator testing).
 
 import AVFoundation
+import BugKit
 import ExerciseCore
 import Photos
 import PhotosUI
@@ -42,7 +43,6 @@ struct ContentView: View {
   @Environment(\.openURL) private var openURL
   @Environment(\.horizontalSizeClass) private var sizeClass
   @State private var lastClockLog = Date.distantPast
-  @State private var showBugReport = false
   @State private var showSyncStatus = false
   @State private var showGallery = false
   /// The clip copied for the share sheet, while the sheet is up (#162).
@@ -109,13 +109,12 @@ struct ContentView: View {
   /// the flow for B"). The app-wide dialogs, pickers and hooks hang here, so they work on every screen.
   private var mainBody: some View {
     navigation
-    .background(
-      ShakeDetector {
-        guard session.instrumentedRun == nil else { return }  // a shake mid-run is the phone being carried, not a report
-        session.captureBugScreenshot()
-        showBugReport = true
-      })
-    .sheet(isPresented: $showBugReport) { BugReportSheet(session: session) }
+    // A shake, ⌘I or the menu's "Report a problem" opens BugKit's sheet over whatever is up (#41). A shake mid-run
+    // is the phone being carried, not a report (story 037), so shakes follow the run. The report names its screen.
+    .bugReporting(session.bugReporter)
+    .onChange(of: session.instrumentedRun == nil, initial: true) { _, idle in session.bugReporter.shakeEnabled = idle }
+    .onChange(of: path, initial: true) { _, path in session.bugScreen = Self.bugScreen(path: path, source: session.source) }
+    .onChange(of: session.source) { _, source in session.bugScreen = Self.bugScreen(path: path, source: source) }
     .sheet(isPresented: $showSyncStatus) {
       if let sync = session.sync { SyncStatusView(sync: sync) } else { Text("No sync store").padding() }
     }
@@ -318,9 +317,7 @@ struct ContentView: View {
         }
       } label: { Label("Photos", systemImage: "photo.on.rectangle") }
       Button { showFileImporter = true } label: { Label("Files", systemImage: "folder") }
-      Button { session.captureBugScreenshot(); showBugReport = true } label: {
-        Label("Report a problem", systemImage: "ladybug")
-      }
+      BugReportButton(reporter: session.bugReporter)
       Button { Task { await session.startInstrumentedRun() } } label: {
         Label("Instrumented run", systemImage: "waveform.path.ecg")
       }
@@ -1130,27 +1127,21 @@ struct ContentView: View {
     return String(format: "%d:%02d", total / 60, total % 60)
   }
 
+  /// The screen a report names: the log, a workout's page, the player, or the camera.
+  private static func bugScreen(path: [AppRoute], source: VideoPoseSession.Source) -> String {
+    switch path.last {
+    case .player: return source == .camera ? "camera" : "player"
+    case .workout: return "workout"
+    case nil: return "workouts"
+    }
+  }
+
   private func loadFromEnvironment() {
     let env = ProcessInfo.processInfo.environment
     workouts.seedLiveFromEnvironment()  // SWING_LIVE_WORKOUT=<minutes>: a running workout without a watch (#123)
-    if let note = env["SWING_BUG"], !note.isEmpty {
-      // Test hook: file a report 8 s after launch (after the clip is up), screenshot and frame included. Notes
-      // separated by | are filed one after the other from the one capture, as "Log it and another" files them (#212).
-      Task {
-        try? await Task.sleep(for: .seconds(8))
-        session.captureBugScreenshot()
-        try? await Task.sleep(for: .seconds(1))
-        for part in note.split(separator: "|") { session.reportBug(note: String(part)) }
-      }
-    }
-    if env["SWING_SHOW_BUG_SHEET"] == "1" {
-      // Test hook (#212): the report sheet up 8 s after launch, for a screenshot of its buttons.
-      Task {
-        try? await Task.sleep(for: .seconds(8))
-        session.captureBugScreenshot()
-        showBugReport = true
-      }
-    }
+    // Test hooks (BugKit): SWING_BUG="first|second" saves the reports 2 s after launch from one picture, as "Log it
+    // and another" does (#212); SWING_SHAKE_AFTER=<seconds> opens the sheet, for a screenshot of its buttons.
+    session.bugReporter.runLaunchHooks()
     // Test hook (#53): turn the screen sideways, as the simulator's Rotate would (an iPad in landscape).
     if env["SWING_LANDSCAPE"] == "1",
       let scene = UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene
