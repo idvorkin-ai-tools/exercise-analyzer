@@ -98,3 +98,30 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Then:** a banner reads "Instrumented run · n of N · <set>" with the frames, fps and per-model milliseconds of the pass under way, a shake shows no report sheet, each set goes through the pose model and the detector from its clip and replaces its own entry, the log carries `debug_run` (start and end, with the mean fps) and per set `offline_pass` (`where: debug`, the detector's floor and cap, thermal state, low power, battery and memory) and `bell_held`; Cancel on the banner stops after the set in progress
 
 - **Issues:** [#18](https://github.com/idvorkin/exercise-analyzer/issues/18)
+
+---
+
+### User Story 072:
+
+- **Summary:** What's new in this build, written by the build itself
+- **Status:** implemented through [BugKit](https://github.com/idvorkin/bug-kit)'s `WhatsNew` (its stories 030–033); the build phase, the row and the list in this app's BugKit step 4 commit; verified by `just build-sim` (the bundle's `whats-new.json` lists this month's stories) and on the simulator; the row on the phone is Igor's check
+
+#### Use Case:
+- **As a** lifter who installs a new build most days
+- **I want to** see on the Workouts screen one line about the newest change, and a list of this month's changes by day, each opening its story
+- **so that** I know what to try at the gym without anyone keeping a list up to date
+
+#### Acceptance Criteria:
+- **Scenario:** The home line
+- **Given:** this build's git history holds story commits from the last thirty days (a subject ending "(refs #N)" whose issue a story's Issues line lists, or naming "story NNN")
+- **When:** I open the app
+- **Then:** the top of Workouts reads "What's new · <day> — <the newest change>" with a ✕; tapping the line opens the list, one section per day, newest first, each change once per story per day with its story's summary, and a change opens its story on GitHub; the log has `ui` open_whats_new and open_story
+
+- **Scenario:** Dismissed until something newer
+- **Given:** the line is up
+- **When:** I tap its ✕
+- **Then:** the line goes (`ui` dismiss_whats_new) and stays gone through relaunches, until a build with a newer change; the list stays reachable from the ⋯ menu
+
+- **Scenario:** Nothing to show
+- **Given:** a build made without git history (the pipeline's clone, an archive)
+- **Then:** the feed is empty, there is no line, the list says there is nothing new, and the build did not fail

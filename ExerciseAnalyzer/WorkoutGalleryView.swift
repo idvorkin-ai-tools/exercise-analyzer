@@ -5,6 +5,7 @@
 //  wrist's workouts as green lines that open the workout's page (053). Tap a set to reopen it; long-press for
 //  Open, "Set exercise and reps…" (062) or "Delete set and video…" (056).
 
+import BugKit
 import ExerciseCore
 import SwiftUI
 
@@ -17,6 +18,9 @@ struct WorkoutGalleryView: View {
   var onImport: ((String, Date?) -> Void)? = nil
   var onEvent: ((String, [String: Any]) -> Void)? = nil
   var session: VideoPoseSession? = nil
+  /// What's new (story 072): the build's feed and what opens the list; nil hides the row.
+  var whatsNew: WhatsNewFeed? = nil
+  var onWhatsNew: (() -> Void)? = nil
   /// Pushes a workout's page (053), from a tap on its line, or on landing mid-workout (#123).
   let onOpenWorkout: (StoredWorkout) -> Void
   @StateObject private var suggestions = PhotosSuggestions()
@@ -88,6 +92,13 @@ struct WorkoutGalleryView: View {
         } else {
           ScrollView {
             LazyVStack(alignment: .leading, spacing: 14, pinnedViews: [.sectionHeaders]) {
+              // One line about the newest change, with its ✕ (story 072); BugKit's row shows nothing once dismissed.
+              if let onWhatsNew {
+                WhatsNewRow(feed: whatsNew, logger: { type, fields in onEvent?(type, fields.mapValues(\.foundation)) }) {
+                  onWhatsNew()
+                }
+                .padding(.top, 8)
+              }
               if !suggestions.clips.isEmpty, let onImport {
                 PhotosSuggestionsRow(suggestions: suggestions) { clip in
                   // An analyzed clip is already a set: open that instead of importing it a second time.

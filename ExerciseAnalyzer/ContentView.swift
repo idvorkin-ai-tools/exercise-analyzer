@@ -44,6 +44,9 @@ struct ContentView: View {
   @Environment(\.horizontalSizeClass) private var sizeClass
   @State private var lastClockLog = Date.distantPast
   @State private var showSyncStatus = false
+  /// What's new (story 072): the feed the build wrote into the bundle, and its list.
+  private static let whatsNew = WhatsNewSeen.bundledFeed()
+  @State private var showWhatsNew = false
   @State private var showGallery = false
   /// The clip copied for the share sheet, while the sheet is up (#162).
   @State private var sharing: SharedClip?
@@ -117,6 +120,12 @@ struct ContentView: View {
     .onChange(of: session.source) { _, source in session.bugScreen = Self.bugScreen(path: path, source: source) }
     .sheet(isPresented: $showSyncStatus) {
       if let sync = session.sync { SyncStatusView(sync: sync) } else { Text("No sync store").padding() }
+    }
+    .sheet(isPresented: $showWhatsNew) {
+      NavigationStack {
+        WhatsNewView(feed: Self.whatsNew, logger: session.bugLogger)
+          .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showWhatsNew = false } } }
+      }
     }
     .confirmationDialog(
       "No reps found in this recording", isPresented: $session.emptyRecordingPrompt, titleVisibility: .visible
@@ -252,6 +261,7 @@ struct ContentView: View {
         }
       },
       onEvent: { session.log.event($0, $1) }, session: session,
+      whatsNew: Self.whatsNew, onWhatsNew: { showWhatsNew = true },
       onOpenWorkout: { workout in fromLog { path = [.workout(WorkoutIdentity(start: workout.start))] } })
       .toolbar {
         ToolbarItem(placement: .topBarTrailing) { moreMenu.disabled(session.source == .camera) }
@@ -322,6 +332,7 @@ struct ContentView: View {
         Label("Instrumented run", systemImage: "waveform.path.ecg")
       }
       Button { showSyncStatus = true } label: { Label("Sync status", systemImage: "gearshape") }
+      Button { showWhatsNew = true } label: { Label("What's new", systemImage: "sparkles") }
       Button { openURL(URL(string: "https://github.com/idvorkin/exercise-analyzer")!) } label: {
         Label("GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
       }
