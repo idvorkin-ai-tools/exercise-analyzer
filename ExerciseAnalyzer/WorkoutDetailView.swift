@@ -29,7 +29,7 @@ struct WorkoutDetailView: View {
   @State private var heartRate: HeartRateSeries?
   /// Whose series `heartRate` is: the iPad's split view reuses this page between workouts (#244), so a series
   /// read for one workout stayed on the next, drawn outside its window as an empty chart.
-  @State private var heartRateFor: String?
+  @State private var heartRateFor: WorkoutIdentity?
 
   var body: some View {
     let snapshot = WorkoutPageSnapshot(
@@ -46,9 +46,9 @@ struct WorkoutDetailView: View {
           // Twenty seconds matches the set page's Health re-ask (#107). A saved id triggers one final read.
           .task(id: HeartRateRequest(workout: snapshot.workout, active: scenePhase == .active)) {
             guard scenePhase == .active else { return }
-            if heartRateFor != snapshot.workout.id {
+            if heartRateFor != identity {
               heartRate = nil
-              heartRateFor = snapshot.workout.id
+              heartRateFor = identity
             }
             let read = await workouts.heartRate(for: snapshot.workout)
             guard !Task.isCancelled else { return }
