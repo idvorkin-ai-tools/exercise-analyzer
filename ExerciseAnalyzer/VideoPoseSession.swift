@@ -328,8 +328,10 @@ final class VideoPoseSession: NSObject, ObservableObject {
     log = SessionLog()
     models = ModelSet(log: log)
     super.init()
-    // Logs older than 30 days go, except one a report names (#72); after the new session's log is open.
-    BugStore().pruneLogs(logger: { [log] type, fields in log.event(type, fields.mapValues(\.foundation)) })
+    // BugKit, once the new session's log is open: last launch's crash files and MetricKit diagnostics are announced
+    // here as crash_report (story 036), then logs older than 30 days go, except one a report names (#72).
+    CrashReports.shared.install(logger: bugLogger)
+    BugStore().pruneLogs(logger: bugLogger)
     if case .fixed(let kind) = exerciseMode { exercise = kind }
     pipeline = AnalysisPipeline(exercise: exercise)
     watch.onEvent = { [weak self] type, fields in self?.log.event(type, fields) }
@@ -350,8 +352,6 @@ final class VideoPoseSession: NSObject, ObservableObject {
     } log: { [weak self] type, fields in
       self?.log.event(type, fields)
     }
-    CrashReports.shared.onEvent = { [weak self] type, fields in self?.log.event(type, fields) }
-    CrashReports.shared.reportSignalLogs { [weak self] type, fields in self?.log.event(type, fields) }
     watch.onCommand = { [weak self] command in self?.handleWatch(command) }
     watch.onReachable = { [weak self] in self?.pushWatchStatus(force: true) }
     watch.onContact = { [weak self] in self?.updateKeepAwake() }

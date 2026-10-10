@@ -12,6 +12,13 @@ import ExerciseCore
 import UIKit
 
 extension VideoPoseSession {
+  /// This session's log as BugKit's logger: its events (bug_report, crash_report, logs_pruned, error…) land beside
+  /// everything else the app did.
+  var bugLogger: BugLogger {
+    let log = log
+    return { type, fields in log.event(type, fields.mapValues(\.foundation)) }
+  }
+
   /// One reporter for the app, made on first use (the hooks read this session's state, so it cannot exist before it).
   func makeBugReporter() -> BugReporter {
     var options = BugReporterOptions()
@@ -29,7 +36,7 @@ extension VideoPoseSession {
           return self.bugContext()
         },
         sessionLog: { ("logs/\(log.url.lastPathComponent)", Int(Date().timeIntervalSince(log.startedAt) * 1000)) },
-        logger: { type, fields in log.event(type, fields.mapValues(\.foundation)) },
+        logger: bugLogger,
         extraFiles: { [weak self] folder in
           guard let clip = await MainActor.run(body: { self?.bugClip }) else { return [] }
           return try await Self.writeFrame(of: clip, into: folder)

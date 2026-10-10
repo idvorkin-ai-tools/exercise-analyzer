@@ -9,7 +9,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 022:
 
 - **Summary:** Report a problem in five seconds with the evidence attached
-- **Status:** implemented in [adc537a](https://github.com/idvorkin/exercise-analyzer/commit/adc537a), [d92c62f](https://github.com/idvorkin/exercise-analyzer/commit/d92c62f); verified on the phone (every issue from #25 on came through it); "Log it and another" (#212) in [8a40d31](https://github.com/idvorkin/exercise-analyzer/commit/8a40d31) (PR #213), verified on the simulator (`bug_again` smoke check: two reports from one capture, both with screenshot and frame; the sheet screenshotted on the iPhone 17 and iPad mini simulators), not on the phone yet
+- **Status:** implemented in [adc537a](https://github.com/idvorkin/exercise-analyzer/commit/adc537a), [d92c62f](https://github.com/idvorkin/exercise-analyzer/commit/d92c62f); verified on the phone (every issue from #25 on came through it); "Log it and another" (#212) in [8a40d31](https://github.com/idvorkin/exercise-analyzer/commit/8a40d31) (PR #213), verified on the simulator (`bug_again` smoke check: two reports from one capture, both with screenshot and frame; the sheet screenshotted on the iPhone 17 and iPad mini simulators), not on the phone yet; the shake, the sheet and the report's files come from [BugKit](https://github.com/idvorkin/bug-kit) since [a87acbb](https://github.com/idvorkin/exercise-analyzer/commit/a87acbb) (this app keeps its hooks: the screen, the context with numbers as numbers, the frame; a locked append and a folder per report, an `id` and the build's commit on every line), verified by build and the `bug_again` smoke check, the phone's first report is the proof
 
 #### Use Case:
 - **As a** lifter who just saw a wrong count
@@ -34,7 +34,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 026:
 
 - **Summary:** Attach what I was looking at to a bug report
-- **Status:** implemented in [523765b](https://github.com/idvorkin/exercise-analyzer/commit/523765b); verified on the simulator (`SWING_BUG` hook: screen.png and frame.jpg written and embedded by `file-bugs`)
+- **Status:** implemented in [523765b](https://github.com/idvorkin/exercise-analyzer/commit/523765b); verified on the simulator (`SWING_BUG` hook: screen.png and frame.jpg written and embedded by `file-bugs`); through BugKit since [a87acbb](https://github.com/idvorkin/exercise-analyzer/commit/a87acbb): the window snapshot is BugKit's, taken before the sheet appears, and `frame.jpg` is this app's extra file, listed under the report's `files`
 
 #### Use Case:
 - **As a** lifter reporting a wrong count or a display glitch
@@ -45,7 +45,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Scenario:** Reporting a glitch on screen
 - **Given:** a clip is open and something looks wrong on screen
 - **When:** I shake the phone and send a report
-- **Then:** the report carries a screenshot taken at the moment of the shake and, in playback, the clip's frame at the playhead; `just pull-logs` brings both to the Mac and the issue filed from the report shows them under the note
+- **Then:** the report carries a screenshot taken at the moment of the shake and, in playback, the clip's frame at the playhead; `just pull-logs` brings both to the Mac and the issue filed from the report names their paths there under the note (never uploaded: the repo is public, and a screenshot can show anything)
 
 - **Issues:** [#24](https://github.com/idvorkin/exercise-analyzer/issues/24)
 
