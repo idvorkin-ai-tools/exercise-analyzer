@@ -27,22 +27,33 @@ struct WorkoutDetailView: View {
   @Environment(\.scenePhase) private var scenePhase
   @State private var tick = Date()
   @State private var heartRate: HeartRateSeries?
+  /// Whose series `heartRate` is: the iPad's split view reuses this page between workouts (#244), so a series
+  /// read for one workout stayed on the next, drawn outside its window as an empty chart.
+  @State private var heartRateFor: WorkoutIdentity?
 
   var body: some View {
+    let series = heartRateFor == identity ? heartRate : nil
     let snapshot = WorkoutPageSnapshot(
       identity: identity, live: workouts.live, saved: workouts.sessions,
       // The 20 s tick, not Date(): a live workout's end read per render changed on every pan and pinch frame,
       // re-logging `workout_page` and rebuilding the timeline each time.
-      now: tick, sets: store.entries, heartRate: heartRate)
+      now: tick, sets: store.entries, heartRate: series)
     Group {
       if let snapshot {
         WorkoutPageView(
-          snapshot: snapshot, sets: store.entries, heartRate: heartRate, onOpen: onOpen,
+          snapshot: snapshot, sets: store.entries, heartRate: series, onOpen: onOpen,
           thumbnail: thumbnail, onEvent: onEvent, onDelete: onDelete, onKeepByHand: onKeepByHand,
           onAddByHand: onAddByHand, onSetBellKg: onSetBellKg)
+          // A fresh page per workout: the reused iPad page kept the last workout's chart window, so this one's
+          // series drew off the plot (#244). The identity holds across the live → saved hand-over.
+          .id(identity)
           // Twenty seconds matches the set page's Health re-ask (#107). A saved id triggers one final read.
           .task(id: HeartRateRequest(workout: snapshot.workout, active: scenePhase == .active)) {
             guard scenePhase == .active else { return }
+            if heartRateFor != identity {
+              heartRate = nil
+              heartRateFor = identity
+            }
             let read = await workouts.heartRate(for: snapshot.workout)
             guard !Task.isCancelled else { return }
             if let read, read.samples.count > (heartRate?.samples.count ?? 0) { heartRate = read }
