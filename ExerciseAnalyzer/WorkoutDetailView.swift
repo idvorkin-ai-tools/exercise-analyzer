@@ -43,6 +43,9 @@ struct WorkoutDetailView: View {
           snapshot: snapshot, sets: store.entries, heartRate: heartRate, onOpen: onOpen,
           thumbnail: thumbnail, onEvent: onEvent, onDelete: onDelete, onKeepByHand: onKeepByHand,
           onAddByHand: onAddByHand, onSetBellKg: onSetBellKg)
+          // A fresh page per workout: the reused iPad page kept the last workout's chart window, so this one's
+          // series drew off the plot (#244). The identity holds across the live → saved hand-over.
+          .id(identity)
           // Twenty seconds matches the set page's Health re-ask (#107). A saved id triggers one final read.
           .task(id: HeartRateRequest(workout: snapshot.workout, active: scenePhase == .active)) {
             guard scenePhase == .active else { return }
