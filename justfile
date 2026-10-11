@@ -98,7 +98,7 @@ pull-crashes:
 # UUID: Debug builds make dSYMs for the stub and the debug dylib); system frames print as offsets, another build's
 # frames say "(no dSYM)". PRODUCTS=<folder> for another build's dSYMs.
 symbolicate file:
-    "$(scripts/bugkit-path.sh)/scripts/symbolicate.sh" {{file}} "${PRODUCTS:-Build/Build/Products/Debug-iphoneos}"
+    kit=$(scripts/bugkit-path.sh) && "$kit/scripts/symbolicate.sh" {{file}} "${PRODUCTS:-Build/Build/Products/Debug-iphoneos}"
 
 # Templates: Allocations, Leaks, Time Profiler, Core ML, Activity Monitor. Launch the app first; do the action
 # (reopen the set) inside the window. Open the .trace in Instruments, or `xcrun xctrace export --input <trace>
