@@ -118,9 +118,9 @@ Watch installation and device setup: [device tooling](docs/DEBUGGING.md#device-t
 
 ## Debugging
 
-Every launch writes a session log to the phone. Shake to file a bug with the context attached, then
-`just pull-logs` and `just file-bugs` turn the reports into GitHub issues. The event catalogue, the device
-tooling and the bug monitor loop: [docs/DEBUGGING.md](docs/DEBUGGING.md).
+Every launch writes a session log to the phone. Shake to file a bug with the context attached; the always-on
+bug-kit listener turns each report into a GitHub issue within about five minutes, and `just pull-logs` brings the
+session log to the Mac. The event catalogue, the device tooling and the bug flow: [docs/DEBUGGING.md](docs/DEBUGGING.md).
 
 ## Layout
 

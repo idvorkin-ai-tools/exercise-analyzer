@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Prints the BugKit checkout whose scripts this repo's recipes run (bugs-check, bugs-monitor, symbolicate): the
+# Prints the BugKit checkout whose scripts this repo's recipes run (bugs-check, symbolicate): the
 # SwiftPM checkout a build leaves under Build/ (the pinned revision), else ~/gits/bug-kit; BUG_KIT overrides both.
-# A checkout counts only when it has all three scripts (bugs-monitor.sh and symbolicate.sh arrived in 94a5ae3), so
+# A checkout counts only when it has all three scripts (bugs-monitor.sh and symbolicate.sh arrived in 94a5ae3;
+# bugs-monitor.sh is only that version marker now, scripts/bugs-monitor.sh tails the listener's inbox), so
 # one left by an older pin is skipped. Exit 2 with a hint when there is none.
 set -uo pipefail
 HERE=$(cd "$(dirname "$0")/.." && pwd)
