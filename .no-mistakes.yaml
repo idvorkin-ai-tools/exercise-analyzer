@@ -4,9 +4,18 @@ commands:
   test: "just test"
   lint: "just lint"
 
-# Rung 1 of the test ladder only (host `swift test` over stored pose tracks, ~1s, no
-# simulator/device). Rungs 2+ (simulator smoke, phone) need a booted sim or attached
-# hardware and are not run here.
+# The test command is rung 1 of the ladder only (host `swift test` over stored pose tracks, ~1s,
+# no simulator/device). The test step's evidence agent may still drive a simulator for a scenario;
+# these instructions reach its prompt (read from main only, like the rest of this file).
+test:
+  instructions: |
+    Only one simulator on this Mac at a time (Igor's rule, 2026-10-11; other agents and Igor's own
+    smoke runs share it). Before booting any simulator run `xcrun simctl list devices booted` and
+    wait until it lists none; then boot exactly one, and `xcrun simctl shutdown <udid>` it when the
+    scenario is done, including when the scenario fails. A paired watch and phone count as two: do
+    not boot them together. Never boot while another agent's simulator is up, and if a second one
+    would be needed, skip that scenario and say so instead of booting it. The host test command is
+    the gate; simulator evidence is optional. docs/TESTING.md has the launch hooks.
 
 # No GitHub workflows in this repo; `just test` and `just lint` are the whole automated suite.
 no_ci: true
