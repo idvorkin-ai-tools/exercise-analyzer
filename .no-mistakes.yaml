@@ -2,6 +2,7 @@
 
 commands:
   test: "just test"
+  lint: "just lint"
 
 # Rung 1 of the test ladder only (host `swift test` over stored pose tracks, ~1s, no
 # simulator/device). Rungs 2+ (simulator smoke, phone) need a booted sim or attached
