@@ -177,7 +177,7 @@ footprint and what iOS still allows.
 ## Crash reports
 
 The app has no crash service; it uses MetricKit, which hands an app its own crash and hang diagnostics on the
-next launch (`CrashReports.swift`). Each payload is written to `Documents/crashes/<stamp>.json` and announced in
+next launch (BugKit's `CrashReports`, installed by the session once its log is open). Each payload is written to `Documents/crashes/<stamp>.json` and announced in
 the new session's log as `crash_report` (kind crash or hang, exception type, signal, termination reason, the file).
 MetricKit can take days on a development build, so the app also keeps its own last-resort files in the same folder:
 `signal-<epoch>.txt` from a signal handler (the crashing thread's raw backtrace) and, for an Objective-C
