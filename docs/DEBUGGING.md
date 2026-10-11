@@ -100,8 +100,8 @@ the numbers, then fix. Never ship a second guessed fix. Examples that paid off: 
 3. **Monitor while Igor tests**: arm `scripts/bugs-monitor.sh` as a persistent `Monitor`. It tails the inbox and
    prints one line per issue the listener filed for this app (`filed <kind> <device> <issue url> <note>`), and it
    watches the listener itself: `listener_stale <age>` when `status.json` shows no completed poll for three
-   intervals, `listener_missing` when there is no status at all, `listener_ok` when it is back, so a dead listener
-   is not silence.
+   intervals, `listener_missing` when there is no status at all, `listener_error <text>` when its last poll failed
+   (`last_error` in `status.json`), `listener_ok` when it is back, so a dead or failing listener is not silence.
 
    ```
    Monitor(command: "scripts/bugs-monitor.sh", description: "issues the bug-kit listener filed for this app", persistent: true)

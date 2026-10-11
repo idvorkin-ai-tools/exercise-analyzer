@@ -6,20 +6,23 @@
 # agent is woken to fix, never to file (`just file-bugs` next to a live listener files the same report twice).
 # It also watches the listener itself, once on arming and then every poll interval, one line per change:
 # `listener_stale <age>` when status.json shows no completed poll for three intervals, `listener_missing` when there
-# is no status at all, `listener_ok` when it is back; a dead listener must not look like a quiet phone.
+# is no status at all, `listener_error <text>` when its last poll failed (status.json's `last_error`), `listener_ok`
+# when it is back; a dead or failing listener must not look like a quiet phone.
 # Usage: scripts/bugs-monitor.sh          (BUGS_STATE=<dir> points at another state folder, for tests)
 set -uo pipefail
 STATE="${BUGS_STATE:-$HOME/tmp/agent/bugs}"
 APP=exercise-analyzer
 
 listener_state() {
-  local status="$STATE/status.json" last every age
+  local status="$STATE/status.json" last every age error
   [ -f "$status" ] || { echo "missing no $status"; return; }
   last=$(jq -r '.last_poll_completed // empty' "$status")
   every=$(jq -r '.poll_seconds // 300' "$status")
   [ -n "$last" ] || { echo "missing no completed poll in $status"; return; }
   age=$(( $(date +%s) - $(date -j -u -f '%Y-%m-%dT%H:%M:%S' "${last%%.*}" +%s) ))
-  if [ "$age" -gt $(( every * 3 )) ]; then echo "stale ${age}s since the last poll (every ${every}s)"; else echo ok; fi
+  if [ "$age" -gt $(( every * 3 )) ]; then echo "stale ${age}s since the last poll (every ${every}s)"; return; fi
+  error=$(jq -r '.last_error // empty | tostring | gsub("\n"; " ")' "$status")
+  if [ -n "$error" ]; then echo "error $error"; else echo ok; fi
 }
 
 watch_listener() {
