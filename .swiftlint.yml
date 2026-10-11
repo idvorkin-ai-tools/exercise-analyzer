@@ -1,0 +1,48 @@
+# SwiftLint, the smell check (`just lint`, and the gate's lint step). swift-format owns layout, so every rule
+# that is about whitespace, braces, commas or line length is off here (one job per tool; chop-conventions
+# ios-app/libraries.md). Size and complexity rules are off too: the analyzers and VideoPoseSession are large by
+# history (#51 is the plan to split it), and the pipeline's review judges size better than a threshold.
+# `force_unwrapping` is opt-in and on: a crash-on-nil is the kind of bug behind the HeadCalibrate crash.
+included:
+  - ExerciseAnalyzer
+  - ExerciseAnalyzerWatch
+  - ExerciseAnalyzerWatchComplication
+  - ExerciseAnalyzerControls
+  - ExerciseCore/Sources
+  - ExerciseCore/Tests
+excluded:
+  - Build
+  - ExerciseCore/.build
+  - .worktrees
+opt_in_rules:
+  - force_unwrapping
+disabled_rules:
+  # swift-format's job
+  - line_length
+  - trailing_comma
+  - opening_brace
+  - closing_brace
+  - colon
+  - comma
+  - vertical_whitespace
+  - trailing_whitespace
+  - leading_whitespace
+  - statement_position
+  - operator_usage_whitespace
+  - trailing_newline
+  - vertical_parameter_alignment
+  - multiple_closures_with_trailing_closure
+  - closure_parameter_position
+  - implicit_optional_initialization
+  # size and complexity: the review's job
+  - cyclomatic_complexity
+  - function_body_length
+  - type_body_length
+  - file_length
+  - function_parameter_count
+  - large_tuple
+  - nesting
+identifier_name:
+  # Analysis code names joints, times and sizes with one or two letters (t, x, y, kg, hz); that is the domain's
+  # notation, not a smell.
+  min_length: 1

@@ -7,6 +7,7 @@ camera, a display, or a wrist goes higher.
 
 | Rung | What runs | Command | Time | Answers |
 |---|---|---|---|---|
+| 0 Lint | SwiftLint over the tree (`.swiftlint.yml`: smells, `force_unwrapping` on; layout and size rules off), swift-format's lint over the Swift files the branch touched (`.swift-format`: 2 spaces, 120 columns) | `just lint`, `just format` to fix layout | ~10 s | a new `!`, a `try!`, a duplicate import, an unattached doc comment; the gate's lint step runs it on every PR. Thirty-one force unwraps are the 2026-10-11 baseline, to burn down, not to add to; the whole-tree reformat is its own future commit |
 | 1 Host | `ExerciseCore` XCTest against stored pose tracks | `just test` | ~1 s | detection, rep counts, phases, checkpoints, quality, crops, frame status, message types |
 | 1.5 Mac model | `posetrack`: the pose model plus the analyzers on a clip; `scripts/model-trials/` for candidate models | `just analyze clip.mov`, `scripts/model-trials/*.py` | ~clip length ÷ 4 | what the phone would count for any clip on the Mac (AirDropped or sample); makes fixtures without the phone; whether a new model (a bell detector) works at all |
 | 2 Simulator | the app, driven by env hooks, judged from its log | `just test-sim` | 5–8 min | loading, offline pose pass, analysis in the app, trim (`AVAssetExportSession`), player start, Recents |

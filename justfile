@@ -22,6 +22,26 @@ test:
     cd ExerciseCore && swift test --skip TuningReports --skip DetectionReport --skip SwingThresholdSweep --skip ZoomPreviewReport 2>&1 \
       | grep -E "Test Suite|passed|failed|error" | tail -20
 
+# Rung 0: the smell check and the formatter's lint (docs/TESTING.md "Lint"). SwiftLint runs over the whole tree
+# (errors fail, warnings print: the force-unwrap count is a baseline to burn down); swift-format lints only the
+# Swift files this branch touched against main, until the one-time reformat lands. Both tools run in the gate.
+lint:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    swiftlint lint --quiet; rc=$?
+    base=$(git merge-base HEAD origin/main 2>/dev/null || git rev-parse HEAD)
+    changed=$(git diff --name-only --diff-filter=ACMR "$base" -- '*.swift'; git ls-files --others --exclude-standard -- '*.swift')
+    if [ -n "$changed" ]; then echo "$changed" | xargs xcrun swift-format lint --strict || rc=1; fi
+    exit $rc
+
+# Format the Swift files this branch touched (swift-format from the Xcode toolchain, config in .swift-format).
+format:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    base=$(git merge-base HEAD origin/main 2>/dev/null || git rev-parse HEAD)
+    { git diff --name-only --diff-filter=ACMR "$base" -- '*.swift'; git ls-files --others --exclude-standard -- '*.swift'; } \
+      | sort -u | xargs -r xcrun swift-format format -i
+
 # The tuning reports: every trace, sweep and signal table, printed (docs/TESTING.md "Tuning reports").
 reports filter="TuningReports|DetectionReport|SwingThresholdSweep":
     cd ExerciseCore && swift test --filter "{{filter}}" 2>&1 | grep -vE "^\[|^Build|^Compiling|^Linking|^Test Case|^Executed|^Test Suite"
