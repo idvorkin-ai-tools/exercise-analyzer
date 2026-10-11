@@ -30,7 +30,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Scenario:** Speaking the note (#250)
 - **Given:** the report sheet is up, with chalk on my hands
 - **When:** I tap the microphone next to the note, say "rep 3 isn't a rep" and tap stop (or Log it)
-- **Then:** what I said is the note, after anything I had typed; the first tap asks for the microphone and speech recognition once; music pauses only while I dictate and resumes after; the log has `dictation_start` and `dictation_stop`
+- **Then:** what I said is the note, after anything I had typed; the first tap asks for the microphone and speech recognition once; music keeps playing, mixed with the microphone, and the app lets the session go when I stop; the log has `dictation_start` and `dictation_stop`
 
 - **Issues:** [#41](https://github.com/idvorkin/exercise-analyzer/issues/41) a shake from the Workouts sheet replaced that sheet with the report; the report now opens over it; [#212](https://github.com/idvorkin/exercise-analyzer/issues/212) "Log it and another"; [#250](https://github.com/idvorkin/exercise-analyzer/issues/250) no voice input on the sheet (BugKit's dictation was off: the usage strings were missing)
 
