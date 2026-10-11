@@ -86,7 +86,7 @@ pull-logs:
     ls -t ~/tmp/agent/swing-logs/logs | head -5
     @ls -t ~/tmp/agent/swing-logs/crashes 2>/dev/null | head -3 | sed 's/^/crash report: /' || true
     @echo "--- bug reports (newest last); each names its log file:"
-    @tail -5 ~/tmp/agent/swing-logs/bugs.jsonl 2>/dev/null | jq -c '{reported_at, note, log, clip, exercise, playhead}' || true
+    @tail -5 ~/tmp/agent/swing-logs/bugs.jsonl 2>/dev/null | jq -c '{reported_at, screen, note, log, clip: (.context.clip // .clip), exercise: (.context.exercise // .exercise), playhead: (.context.playhead // .playhead)}' || true
 
 # MetricKit reports (Documents/crashes, pulled by pull-logs) do not need this.
 # The phone's own crash reports (.ips) via libimobiledevice; needs the phone on USB and paired (`idevicepair pair`).
