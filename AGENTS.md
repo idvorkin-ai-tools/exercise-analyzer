@@ -49,14 +49,15 @@ carry only what was decided.
   See [the frame-description workflow](docs/DEBUGGING.md#video-frame-descriptions).
 - **Instrument before theorizing.** For any phone-only symptom add a log event, deploy, `just pull-logs`, then fix
   from evidence. Never ship a second guessed fix ([DEBUGGING.md](docs/DEBUGGING.md) lists the events).
-- **Run the bug monitor while Igor is on the phone**: arm a `Monitor` on `scripts/bugs-monitor.sh` (persistent).
-  It polls the phone every minute and emits one line per new report, so the agent is woken only when there is
-  something to file; a `/loop 5m just bugs-check` wakes the model every five minutes to look and is the fallback
-  when Monitor is unavailable. On an event: `just pull-logs && just file-bugs`, then for every report find or
-  write the story in `docs/stories/` that covers
-  it before fixing anything (a request becomes a story, a bug gets an `Issues:` line, no story means the spec has a
-  hole). Evidence and analysis go on the issue as a comment. A bug Igor reports by voice gets an issue too. The whole
-  flow: [DEBUGGING.md](docs/DEBUGGING.md).
+- **The bug-kit listener files every report and crash** (Igor, 2026-10-11): it is always on in a Herdr pane
+  (bug-kit's `listener/bug-listener`, every five minutes, every paired iPhone and iPad), pulls each new report,
+  opens the issue and appends a line to `~/tmp/agent/bugs/inbox.jsonl`. Never file reports yourself: `just file-bugs`
+  next to it files them twice. While Igor is on the phone, arm a `Monitor` on `scripts/bugs-monitor.sh`
+  (persistent): it tails that inbox for this app and prints one line per filed issue, plus `listener_stale` when
+  the listener has stopped polling. On an event: read the issue, `just pull-logs` for its log, then for every
+  report find or write the story in `docs/stories/` that covers it before fixing anything (a request becomes a
+  story, a bug gets an `Issues:` line, no story means the spec has a hole). Evidence and analysis go on the issue as
+  a comment. A bug Igor reports by voice gets an issue too. The whole flow: [DEBUGGING.md](docs/DEBUGGING.md).
 - **A bug in BugKit code is fixed in BugKit, not here.** Bug reporting is the shared package
   [idvorkin/bug-kit](https://github.com/idvorkin/bug-kit) (its README, "Where a bug gets fixed"): the dialog, the
   shake, dictation, the store and its format, crash capture, pruning, What's new, the listener and the scripts are

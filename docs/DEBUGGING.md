@@ -83,32 +83,35 @@ the numbers, then fix. Never ship a second guessed fix. Examples that paid off: 
    `files`, `context`), with the images under `Documents/bugs/<stamp>/` (`-2`, `-3` within one second; the append
    is locked, so two reports never overwrite each other). "Log it and another" writes the same and empties the
    sheet; every report until the next shake carries that shake's picture (#212).
-2. **Monitor while Igor tests**: `just bugs-check` runs BugKit's `pull-reports.sh --check exercise-analyzer`: it
-   copies only `bugs.jsonl` from every paired iPhone and iPad (no device ids; the listener's
-   `~/.config/bug-kit/apps.json` names the app), prints one stable line per report that is not yet an issue
-   (`new exercise-analyzer <device> <reported_at> <note>`) and exits 1 when there are any, 0 when clean, 2 when the
-   issue lookup failed. The agent watches it through `scripts/bugs-monitor.sh` (BugKit's `bugs-monitor.sh` for
-   this app; `scripts/bugkit-path.sh` finds the checkout), which polls every minute and prints one line per new
-   report, once, plus `check_failed <reason>` once when the check itself breaks and `check_ok` when it recovers
-   (silent otherwise), armed as a persistent `Monitor`:
+2. **The listener files it** (since 2026-10-11): bug-kit's `listener/bug-listener` is always on in a Herdr pane,
+   polling every five minutes every paired iPhone and iPad; `~/.config/bug-kit/apps.json` names this app, its
+   bundle, its repo and its tracker (GitHub, `idvorkin/exercise-analyzer`). Each poll copies new reports and crash
+   files to `~/tmp/agent/bugs/exercise-analyzer/<device>/`, files one issue per report with the note, the context
+   table (screen, clip, exercise, playhead, reps, build and commit, the log and its millisecond) and the
+   screenshot's and frame's paths on the Mac, named and never uploaded (the repo is public; BugKit principle 13;
+   the markers `<!-- bug:<reported_at> -->` and `<!-- bug-id:<id> -->` make filing idempotent), then appends a line
+   to `~/tmp/agent/bugs/inbox.jsonl` (`t`, `app`, `device`, `key`, `kind`, `reported_at`, `note`, `ref` the issue
+   URL, `dir`) and sends a Herdr notification. Nobody else files: `just file-bugs` is the fallback for a listener
+   that is down, and next to a live one it files the same report twice. A report that fails to copy or file stays
+   pending for the next poll; `listener/bug-listener status --json` in the bug-kit checkout shows the last poll and
+   what is pending. Through the app's `pull_extra` list in `apps.json` the listener also copies the
+   WatchConnectivity inbox (`Documents/Inbox/com.apple.watchconnectivity/`, the watch's transfers waiting for the
+   app, #197).
+3. **Monitor while Igor tests**: arm `scripts/bugs-monitor.sh` as a persistent `Monitor`. It tails the inbox and
+   prints one line per issue the listener filed for this app (`filed <kind> <device> <issue url> <note>`), and it
+   watches the listener itself: `listener_stale <age>` when `status.json` shows no completed poll for three
+   intervals, `listener_missing` when there is no status at all, `listener_error <text>` when its last poll failed
+   (`last_error` in `status.json`), `listener_ok` when it is back, so a dead or failing listener is not silence.
 
    ```
-   Monitor(command: "scripts/bugs-monitor.sh", description: "new shake reports on the phone", persistent: true)
+   Monitor(command: "scripts/bugs-monitor.sh", description: "issues the bug-kit listener filed for this app", persistent: true)
    ```
 
-   This is cheaper than `/loop 5m just bugs-check` (the fallback when Monitor is not available): a monitor wakes
-   the model only when a report appears, a loop wakes it every five minutes to find nothing. An unreachable device
-   (locked before its first unlock, or away) is named by the check, not a failure; the monitor stays quiet.
-   `pull-reports.sh exercise-analyzer` (no `--check`) copies every report's folder and, through the app's
-   `pull_extra` list in `apps.json`, the WatchConnectivity inbox
-   (`Documents/Inbox/com.apple.watchconnectivity/`, the watch's transfers waiting for the app, #197) to
-   `~/tmp/agent/bugs/<device>/com.apple.watchconnectivity/`.
-3. **When it exits 1**: `just pull-logs && just file-bugs` (`DEVICE=<iPad udid> just pull-logs` for the iPad). Each
-   new report becomes one issue with the note, the context table (screen, clip, exercise, playhead, reps, build and
-   commit, the log and its millisecond), and the screenshot's and frame's paths on the Mac, named and never
-   uploaded (the repo is public; BugKit principle 13). The markers `<!-- bug:<reported_at> -->` and
-   `<!-- bug-id:<id> -->` in the body are what make filing idempotent; a failed look at the existing issues stops
-   the filing rather than filing everything again.
+   `just bugs-check` (BugKit's `pull-reports.sh --check exercise-analyzer`: one stable line per report on a device
+   that has no issue yet, exit 1 when there are any, 0 when clean, 2 when the issue lookup failed) is the manual
+   cross-check that the listener is keeping up, not the trigger to file. For the report's session log:
+   `just pull-logs` (`DEVICE=<iPad udid> just pull-logs` for the iPad), or read the copy under the listener's
+   `dir`.
 4. **Before fixing**: find or write the story in [stories/](stories/README.md) that the report belongs to (a bug gets an
    `Issues:` line, a request becomes a story). Then open the report's log at its `session_t_ms` and read what the
    app was doing; put that evidence on the issue as a comment.

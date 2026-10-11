@@ -1,11 +1,49 @@
 #!/usr/bin/env bash
-# Event stream for an agent Monitor: BugKit's bugs-monitor.sh for this app (bug-kit PR #10, from this script's
-# first version). It runs `pull-reports.sh --check exercise-analyzer` every minute and prints one line per report
-# that is not yet an issue, each once (`new exercise-analyzer <device> <reported_at> <note>`), plus
-# `check_failed <reason>` once when the check itself breaks (devicectl, the issue lookup) and `check_ok` when it
-# recovers, so a broken check is not silence. Silent otherwise, so the agent is woken only to file.
-# Usage: scripts/bugs-monitor.sh [--every seconds]   (default 60)
+# Event stream for an agent Monitor: the issues the bug-kit listener filed for this app. The listener
+# (bug-kit's listener/bug-listener, always on in a Herdr pane, every five minutes, every paired iPhone and iPad)
+# pulls each new report and crash, files the issue and appends one line to ~/tmp/agent/bugs/inbox.jsonl; this
+# script prints those lines for exercise-analyzer as they land (`filed <kind> <device> <issue url> <note>`), so the
+# agent is woken to fix, never to file (`just file-bugs` next to a live listener files the same report twice).
+# It also watches the listener itself, once on arming and then every poll interval, one line per change:
+# `listener_stale <age>` when status.json shows no completed poll for three intervals, `listener_missing` when there
+# is no status at all, `listener_error <text>` when its last poll failed (status.json's `last_error`), `listener_ok`
+# when it is back; a dead or failing listener must not look like a quiet phone.
+# Usage: scripts/bugs-monitor.sh          (BUGS_STATE=<dir> points at another state folder, for tests)
 set -uo pipefail
-HERE=$(cd "$(dirname "$0")" && pwd)
-KIT=$("$HERE/bugkit-path.sh") || exit 2
-exec "$KIT/scripts/bugs-monitor.sh" exercise-analyzer "$@"
+STATE="${BUGS_STATE:-$HOME/tmp/agent/bugs}"
+APP=exercise-analyzer
+
+listener_state() {
+  local status="$STATE/status.json" last every age error
+  [ -f "$status" ] || { echo "missing no $status"; return; }
+  last=$(jq -r '.last_poll_completed // empty' "$status")
+  every=$(jq -r '.poll_seconds // 300' "$status")
+  [ -n "$last" ] || { echo "missing no completed poll in $status"; return; }
+  age=$(( $(date +%s) - $(date -j -u -f '%Y-%m-%dT%H:%M:%S' "${last%%.*}" +%s) ))
+  if [ "$age" -gt $(( every * 3 )) ]; then echo "stale ${age}s since the last poll (every ${every}s)"; return; fi
+  error=$(jq -r '.last_error // empty | tostring | gsub("\n"; " ")' "$status")
+  if [ -n "$error" ]; then echo "error $error"; else echo ok; fi
+}
+
+watch_listener() {
+  local state=ok now
+  while true; do
+    now=$(listener_state)
+    if [ "${now%% *}" != "${state%% *}" ]; then
+      if [ "$now" = ok ]; then echo "listener_ok"; else echo "listener_$now"; fi
+      state=$now
+    fi
+    sleep "${BUGS_EVERY:-$(jq -r '.poll_seconds // 300' "$STATE/status.json" 2>/dev/null || echo 300)}"
+  done
+}
+watch_listener &
+WATCH=$!
+
+mkdir -p "$STATE" && touch "$STATE/inbox.jsonl"
+( tail -n 0 -F "$STATE/inbox.jsonl" | jq --unbuffered -r --arg app "$APP" \
+  'select(.app == $app) | "filed \(.kind) \(.device) \(.ref // "no-ref") \(.note // "" | gsub("\n"; " "))"' ) &
+PIPE=$!
+# The Monitor harness ends the watch by killing this script: take the watcher and the tail pipeline (the subshell's
+# children) along, or every expired monitor leaves a `tail -F` behind.
+trap 'pkill -P "$PIPE" 2>/dev/null; kill "$PIPE" "$WATCH" 2>/dev/null' EXIT TERM INT
+wait "$PIPE"

@@ -269,6 +269,7 @@ session state, and bug reports. `just log-summary <file>` prints everything exce
 
 ## Bug flow
 
-Shake the phone → `bug_report` event + `Documents/bugs.jsonl` → `just pull-logs` → `just file-bugs` files each new
-report as a GitHub issue once (marker `<!-- bug:<reported_at> -->`) → analysis and evidence go on the issue as a
+Shake the phone → `bug_report` event + `Documents/bugs.jsonl` → the bug-kit listener (always on, every five
+minutes) files each new report as a GitHub issue once (marker `<!-- bug:<reported_at> -->`) and appends a line to
+`~/tmp/agent/bugs/inbox.jsonl`, which `scripts/bugs-monitor.sh` tails → analysis and evidence go on the issue as a
 comment → one commit per issue with a closing keyword (`Fixes #N`) once the right rung has verified it.

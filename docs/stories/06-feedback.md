@@ -9,7 +9,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 022:
 
 - **Summary:** Report a problem in five seconds with the evidence attached
-- **Status:** implemented in [adc537a](https://github.com/idvorkin/exercise-analyzer/commit/adc537a), [d92c62f](https://github.com/idvorkin/exercise-analyzer/commit/d92c62f); verified on the phone (every issue from #25 on came through it); "Log it and another" (#212) in [8a40d31](https://github.com/idvorkin/exercise-analyzer/commit/8a40d31) (PR #213), verified on the simulator (`bug_again` smoke check: two reports from one capture, both with screenshot and frame; the sheet screenshotted on the iPhone 17 and iPad mini simulators), not on the phone yet; the shake, the sheet and the report's files come from [BugKit](https://github.com/idvorkin/bug-kit) since [a87acbb](https://github.com/idvorkin/exercise-analyzer/commit/a87acbb) (this app keeps its hooks: the screen, the context with numbers as numbers, the frame; a locked append and a folder per report, an `id` and the build's commit on every line), verified by build and the `bug_again` smoke check, and by the phone's first two reports on 2026-10-10 (#249, #250: screen, build, commit, device and context on both lines); dictation on (#250) in [ff2cbbf](https://github.com/idvorkin/exercise-analyzer/commit/ff2cbbf), verified by the simulator build, the mic button and its first-tap prompts are the phone's to feel
+- **Status:** implemented in [adc537a](https://github.com/idvorkin/exercise-analyzer/commit/adc537a), [d92c62f](https://github.com/idvorkin/exercise-analyzer/commit/d92c62f); verified on the phone (every issue from #25 on came through it); "Log it and another" (#212) in [8a40d31](https://github.com/idvorkin/exercise-analyzer/commit/8a40d31) (PR #213), verified on the simulator (`bug_again` smoke check: two reports from one capture, both with screenshot and frame; the sheet screenshotted on the iPhone 17 and iPad mini simulators), not on the phone yet; the shake, the sheet and the report's files come from [BugKit](https://github.com/idvorkin/bug-kit) since [a87acbb](https://github.com/idvorkin/exercise-analyzer/commit/a87acbb) (this app keeps its hooks: the screen, the context with numbers as numbers, the frame; a locked append and a folder per report, an `id` and the build's commit on every line), verified by build and the `bug_again` smoke check, and by the phone's first two reports on 2026-10-10 (#249, #250: screen, build, commit, device and context on both lines); dictation on (#250) in [ff2cbbf](https://github.com/idvorkin/exercise-analyzer/commit/ff2cbbf), verified by the simulator build, the mic button and its first-tap prompts are the phone's to feel; filed by the always-on bug-kit listener since 2026-10-11 (this repo: docs and scripts/bugs-monitor.sh in the commit on this branch; the listener is bug-kit's code)
 
 #### Use Case:
 - **As a** lifter who just saw a wrong count
@@ -20,7 +20,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Scenario:** Reporting a miscount
 - **Given:** a clip is open at the rep that was counted wrong
 - **When:** I shake the phone, type "rep 3 isn't a rep" and send
-- **Then:** the report is stored with the clip name, the playhead time and the session log's name, and shows up as a GitHub issue after the developer pulls logs
+- **Then:** the report is stored with the clip name, the playhead time and the session log's name, and shows up as a GitHub issue within about five minutes, filed by the always-on bug-kit listener with nobody pulling anything
 
 - **Scenario:** Several problems from one shake
 - **Given:** the report sheet is up and I have typed the first problem
@@ -39,7 +39,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 026:
 
 - **Summary:** Attach what I was looking at to a bug report
-- **Status:** implemented in [523765b](https://github.com/idvorkin/exercise-analyzer/commit/523765b); verified on the simulator (`SWING_BUG` hook: screen.png and frame.jpg written and embedded by `file-bugs`); through BugKit since [a87acbb](https://github.com/idvorkin/exercise-analyzer/commit/a87acbb): the window snapshot is BugKit's, taken before the sheet appears, and `frame.jpg` is this app's extra file, listed under the report's `files`
+- **Status:** implemented in [523765b](https://github.com/idvorkin/exercise-analyzer/commit/523765b); verified on the simulator (`SWING_BUG` hook: screen.png and frame.jpg written and embedded by `file-bugs`); through BugKit since [a87acbb](https://github.com/idvorkin/exercise-analyzer/commit/a87acbb): the window snapshot is BugKit's, taken before the sheet appears, and `frame.jpg` is this app's extra file, listed under the report's `files`; since 2026-10-11 the bug-kit listener copies the pictures to the Mac and files the issue naming their paths
 
 #### Use Case:
 - **As a** lifter reporting a wrong count or a display glitch
@@ -50,7 +50,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Scenario:** Reporting a glitch on screen
 - **Given:** a clip is open and something looks wrong on screen
 - **When:** I shake the phone and send a report
-- **Then:** the report carries a screenshot taken at the moment of the shake and, in playback, the clip's frame at the playhead; `just pull-logs` brings both to the Mac and the issue filed from the report names their paths there under the note (never uploaded: the repo is public, and a screenshot can show anything)
+- **Then:** the report carries a screenshot taken at the moment of the shake and, in playback, the clip's frame at the playhead; the bug-kit listener copies both to the Mac (`~/tmp/agent/bugs/exercise-analyzer/<device>/`) and the issue filed from the report names their paths there under the note (never uploaded: the repo is public, and a screenshot can show anything)
 
 - **Issues:** [#24](https://github.com/idvorkin/exercise-analyzer/issues/24); [#249](https://github.com/idvorkin/exercise-analyzer/issues/249) an ✕ on "Attached automatically" to send a report without its screenshot: the dialog is BugKit's, filed there as [bug-kit#14](https://github.com/idvorkin/bug-kit/issues/14), open
 

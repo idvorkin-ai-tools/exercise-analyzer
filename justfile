@@ -150,7 +150,8 @@ log-summary file:
     @jq -c 'select(.type != "frame")' {{file}}
     @echo "frames: $(grep -c '"type":"frame"' {{file}})"
 
-# File each new shake-to-report bug from the pulled bugs.jsonl as a GitHub issue (skips ones already filed).
+# Fallback for a bug-kit listener that is down: file each report from the pulled bugs.jsonl as a GitHub issue (skips
+# ones already filed). The listener files them itself (docs/DEBUGGING.md); next to a live one this files them twice.
 file-bugs:
     scripts/file-bugs.sh
 
@@ -174,7 +175,8 @@ analyze clip *args:
 pull-tracks:
     scripts/pull-tracks.sh {{device}}
 
-# Quick check for unfiled bug reports on every paired iPhone and iPad, through BugKit's pull-reports.sh --check
-# (exit 1 when there are any, 2 when the issue lookup failed); scripts/bugs-monitor.sh watches it while Igor tests.
+# Cross-check that the bug-kit listener is keeping up: reports on any paired iPhone or iPad with no issue yet, through
+# BugKit's pull-reports.sh --check (exit 1 when there are any, 2 when the issue lookup failed). Not the trigger to
+# file: the listener files, and scripts/bugs-monitor.sh tails its inbox while Igor tests.
 bugs-check:
     scripts/bugs-check.sh
