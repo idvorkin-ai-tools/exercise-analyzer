@@ -62,19 +62,20 @@ model:
 
 # Build output goes through xcbeautify (chop-conventions ios-app/libraries.md): the first real error with its file
 # and line, warnings, and a one-line summary, instead of a grep over everything. The raw output is kept whole at
-# ~/tmp/agent/build/<recipe>.log, and the explicit BUILD SUCCEEDED check on that file stays, because a formatter's
-# exit code is not the build's (#43: a grep alone let a stale bundle install). No xcbeautify: the old grep.
+# Build/<recipe>.log (per checkout, next to the derived data, so concurrent worktrees never share a log), and the
+# explicit BUILD SUCCEEDED check on that file stays, because a formatter's exit code is not the build's (#43: a grep
+# alone let a stale bundle install). No xcbeautify: the old grep.
 beautify := if `command -v xcbeautify >/dev/null 2>&1 && echo yes || echo no` == "yes" { "xcbeautify --quiet --disable-colored-output" } else { "grep -E 'error:|BUILD'" }
 
 build-sim:
     #!/usr/bin/env bash
     set -uo pipefail
-    mkdir -p ~/tmp/agent/build
+    mkdir -p Build
     xcodebuild -project ExerciseAnalyzer.xcodeproj -scheme ExerciseAnalyzer \
       -derivedDataPath Build/ -destination "platform=iOS Simulator,name={{sim}}" \
       CODE_SIGNING_ALLOWED=NO BUGKIT_COMMIT="$(git describe --always --dirty --exclude='*')" build 2>&1 \
-      | tee ~/tmp/agent/build/build-sim.log | {{beautify}}
-    grep -q "BUILD SUCCEEDED" ~/tmp/agent/build/build-sim.log
+      | tee Build/build-sim.log | {{beautify}}
+    grep -q "BUILD SUCCEEDED" Build/build-sim.log
 
 # Build, install, and launch on the simulator; pass a video path to auto-load it.
 run-sim video="": build-sim
@@ -88,12 +89,12 @@ build-device:
     #!/usr/bin/env bash
     # The check on the raw log is what stops run-device from installing the previous bundle on a failed build (#43).
     set -uo pipefail
-    mkdir -p ~/tmp/agent/build
+    mkdir -p Build
     xcodebuild -project ExerciseAnalyzer.xcodeproj -scheme ExerciseAnalyzer \
       -derivedDataPath Build/ -destination "platform=iOS,id={{device}}" \
       -allowProvisioningUpdates -allowProvisioningDeviceRegistration BUGKIT_COMMIT="$(git describe --always --dirty --exclude='*')" build 2>&1 \
-      | tee ~/tmp/agent/build/build-device.log | {{beautify}}
-    grep -q "BUILD SUCCEEDED" ~/tmp/agent/build/build-device.log
+      | tee Build/build-device.log | {{beautify}}
+    grep -q "BUILD SUCCEEDED" Build/build-device.log
 
 # Build, install, and launch on the connected iPhone.
 run-device: build-device
