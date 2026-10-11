@@ -72,6 +72,11 @@ carry only what was decided.
   when the verifying rung already ran, otherwise close it by hand after `just run-device`) with a comment saying
   what was verified where and what Igor should feel; Igor reopens if it is not fixed. Never leave a fixed bug open.
   Never bundle fixes. Never `git add -A` (`.build/`, `Build/`, `.claude/worktrees/` must stay untracked).
+- **Every change goes through the no-mistakes pipeline** (Igor, 2026-10-10). The gate is installed in this repo:
+  commit on a feature branch, `no-mistakes axi run --intent "<what Igor set out to do, with the decisions>"` (or
+  push to the no-mistakes remote), answer its gates, and when it reaches `checks-passed` merge the PR yourself
+  (delete the branch, verify `origin/main`). Do not wait for PR feedback: nobody gives it, the pipeline is the
+  review. Its test step drives the "iPhone 17" simulator, so it counts as the one simulator while it runs.
 - **Analyzer semantics** (details and evidence in `docs/analysis/`): a swing rep is top→top, about 1.2 s; the first
   swing counts too (the hike off the floor, #148): a rep over 4 s drops its walk-in or setup and counts only as a
   hike that flies to the top within 0.4 s; an upswing over 1 s is not a swing; a top over 1 s after the deepest
