@@ -45,7 +45,7 @@ build-sim:
     set -uo pipefail
     out=$(xcodebuild -project ExerciseAnalyzer.xcodeproj -scheme ExerciseAnalyzer \
       -derivedDataPath Build/ -destination "platform=iOS Simulator,name={{sim}}" \
-      CODE_SIGNING_ALLOWED=NO BUGKIT_COMMIT="$(git rev-parse --short HEAD)" build 2>&1)
+      CODE_SIGNING_ALLOWED=NO BUGKIT_COMMIT="$(git describe --always --dirty --exclude='*')" build 2>&1)
     echo "$out" | grep -E "error:|BUILD"
     echo "$out" | grep -q "BUILD SUCCEEDED"
 
@@ -63,7 +63,7 @@ build-device:
     set -uo pipefail
     out=$(xcodebuild -project ExerciseAnalyzer.xcodeproj -scheme ExerciseAnalyzer \
       -derivedDataPath Build/ -destination "platform=iOS,id={{device}}" \
-      -allowProvisioningUpdates -allowProvisioningDeviceRegistration BUGKIT_COMMIT="$(git rev-parse --short HEAD)" build 2>&1)
+      -allowProvisioningUpdates -allowProvisioningDeviceRegistration BUGKIT_COMMIT="$(git describe --always --dirty --exclude='*')" build 2>&1)
     echo "$out" | grep -E "error:|BUILD"
     echo "$out" | grep -q "BUILD SUCCEEDED"
 
@@ -94,10 +94,11 @@ pull-crashes:
     mkdir -p ~/tmp/agent/swing-logs/ips
     cd ~/tmp/agent/swing-logs/ips && idevicecrashreport -k . && ls -t | grep -i exercise | head -5
 
-# Resolve a MetricKit crash JSON's app frames against the last device build (the debug dylib inside the .app, by
-# UUID; a dSYM when the build made one); system frames print as offsets, another build's frames say so.
+# Resolve a MetricKit crash JSON's app frames against the last device build's dSYMs (BugKit's symbolicate.sh, by
+# UUID: Debug builds make dSYMs for the stub and the debug dylib); system frames print as offsets, another build's
+# frames say "(no dSYM)". PRODUCTS=<folder> for another build's dSYMs.
 symbolicate file:
-    scripts/symbolicate.sh {{file}}
+    kit=$(scripts/bugkit-path.sh) && "$kit/scripts/symbolicate.sh" {{file}} "${PRODUCTS:-Build/Build/Products/Debug-iphoneos}"
 
 # Templates: Allocations, Leaks, Time Profiler, Core ML, Activity Monitor. Launch the app first; do the action
 # (reopen the set) inside the window. Open the .trace in Instruments, or `xcrun xctrace export --input <trace>

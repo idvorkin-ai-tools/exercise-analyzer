@@ -87,8 +87,10 @@ the numbers, then fix. Never ship a second guessed fix. Examples that paid off: 
    copies only `bugs.jsonl` from every paired iPhone and iPad (no device ids; the listener's
    `~/.config/bug-kit/apps.json` names the app), prints one stable line per report that is not yet an issue
    (`new exercise-analyzer <device> <reported_at> <note>`) and exits 1 when there are any, 0 when clean, 2 when the
-   issue lookup failed. The agent watches it through `scripts/bugs-monitor.sh`, which polls every minute and prints
-   one line per new report, once (silent otherwise), armed as a persistent `Monitor`:
+   issue lookup failed. The agent watches it through `scripts/bugs-monitor.sh` (BugKit's `bugs-monitor.sh` for
+   this app; `scripts/bugkit-path.sh` finds the checkout), which polls every minute and prints one line per new
+   report, once, plus `check_failed <reason>` once when the check itself breaks and `check_ok` when it recovers
+   (silent otherwise), armed as a persistent `Monitor`:
 
    ```
    Monitor(command: "scripts/bugs-monitor.sh", description: "new shake reports on the phone", persistent: true)
@@ -97,6 +99,10 @@ the numbers, then fix. Never ship a second guessed fix. Examples that paid off: 
    This is cheaper than `/loop 5m just bugs-check` (the fallback when Monitor is not available): a monitor wakes
    the model only when a report appears, a loop wakes it every five minutes to find nothing. An unreachable device
    (locked before its first unlock, or away) is named by the check, not a failure; the monitor stays quiet.
+   `pull-reports.sh exercise-analyzer` (no `--check`) copies every report's folder and, through the app's
+   `pull_extra` list in `apps.json`, the WatchConnectivity inbox
+   (`Documents/Inbox/com.apple.watchconnectivity/`, the watch's transfers waiting for the app, #197) to
+   `~/tmp/agent/bugs/<device>/com.apple.watchconnectivity/`.
 3. **When it exits 1**: `just pull-logs && just file-bugs` (`DEVICE=<iPad udid> just pull-logs` for the iPad). Each
    new report becomes one issue with the note, the context table (screen, clip, exercise, playhead, reps, build and
    commit, the log and its millisecond), and the screenshot's and frame's paths on the Mac, named and never
@@ -184,13 +190,14 @@ MetricKit can take days on a development build, so the app also keeps its own la
 exception, `exception-<epoch>.txt` with the exception's name, reason and symbolized stack (#87; the 2026-09-13
 crash was an AVFCapture exception whose reason the signal file could not carry). Each is announced once as
 `crash_report` (kind signal or exception) and renamed `.reported.txt`.
-`just pull-logs` copies the folder; `just symbolicate ~/tmp/agent/swing-logs/crashes/<stamp>.json` resolves the
-app's frames against the last `just build-device`, by UUID: a Debug build's code is `ExerciseAnalyzer.debug.dylib`
-inside the .app (the main binary is a stub), which is what the payload names, so that dylib is the binary to
-resolve against (a dSYM only when the build made one; Debug makes none, so frames come as symbol and file, line 0).
-Each frame's offset counts from the binary's `__TEXT` start, which the script reads with `otool -l` and passes to
-`atos -l`; `atos -l 0x0` resolves nothing for a binary whose text starts at 0x100000000 (bug-kit PR #10). System
-frames print as offsets; frames from another build say so (match the report's `commit`, rebuild it). The phone's own
+`just pull-logs` copies the folder; `just symbolicate ~/tmp/agent/swing-logs/crashes/<stamp>.json` runs BugKit's
+`symbolicate.sh` (bug-kit PR #10) over the dSYMs of the last `just build-device`, by UUID. A Debug build's code is
+`ExerciseAnalyzer.debug.dylib` inside the .app (the main binary is a stub), which is what the payload names, so
+Debug builds make dSYMs too (`DEBUG_INFORMATION_FORMAT = dwarf-with-dsym` at the project level: one for the stub,
+one for the dylib, one per extension); each frame's offset counts from the binary's `__TEXT` start, which the script
+passes to `atos -l` (`-l 0x0` resolves nothing for a binary whose text starts at 0x100000000). System frames print
+as offsets; frames from another build print "(no dSYM)" (match the report's `commit`, rebuild it, point `PRODUCTS`
+at its products folder). The phone's own
 `.ips` reports are a second source: `just pull-crashes` uses libimobiledevice and needs the phone paired over USB.
 
 A session log that simply stops mid-work is the other crash signature: the last events say what was running. A
