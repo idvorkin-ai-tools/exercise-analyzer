@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Files each shake-to-report bug from a pulled bugs.jsonl as a GitHub issue, once.
-# Each issue body carries `<!-- bug:<reported_at> -->` and, for BugKit reports, `<!-- bug-id:<id> -->`; a report whose
+# Fallback only (since 2026-10-11): the bug-kit listener files every report itself (docs/DEBUGGING.md); run this next
+# to a live listener and the same report is filed twice. Each issue body carries `<!-- bug:<reported_at> -->` and, for BugKit reports, `<!-- bug-id:<id> -->`; a report whose
 # marker already exists is skipped. Reads both line formats: BugKit's (id, screen, build, commit, device, context,
 # files; https://github.com/idvorkin/bug-kit) and this app's older one (clip, exercise, playhead at the top level).
 # The screenshot and the playhead frame are named by their path on the Mac, never uploaded: the repo is public and a

@@ -20,7 +20,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Scenario:** Reporting a miscount
 - **Given:** a clip is open at the rep that was counted wrong
 - **When:** I shake the phone, type "rep 3 isn't a rep" and send
-- **Then:** the report is stored with the clip name, the playhead time and the session log's name, and shows up as a GitHub issue after the developer pulls logs
+- **Then:** the report is stored with the clip name, the playhead time and the session log's name, and shows up as a GitHub issue within about five minutes, filed by the always-on bug-kit listener with nobody pulling anything (since 2026-10-11; before that, after the developer pulled logs)
 
 - **Scenario:** Several problems from one shake
 - **Given:** the report sheet is up and I have typed the first problem
@@ -50,7 +50,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Scenario:** Reporting a glitch on screen
 - **Given:** a clip is open and something looks wrong on screen
 - **When:** I shake the phone and send a report
-- **Then:** the report carries a screenshot taken at the moment of the shake and, in playback, the clip's frame at the playhead; `just pull-logs` brings both to the Mac and the issue filed from the report names their paths there under the note (never uploaded: the repo is public, and a screenshot can show anything)
+- **Then:** the report carries a screenshot taken at the moment of the shake and, in playback, the clip's frame at the playhead; the bug-kit listener copies both to the Mac (`~/tmp/agent/bugs/exercise-analyzer/<device>/`; before 2026-10-11, `just pull-logs`) and the issue filed from the report names their paths there under the note (never uploaded: the repo is public, and a screenshot can show anything)
 
 - **Issues:** [#24](https://github.com/idvorkin/exercise-analyzer/issues/24); [#249](https://github.com/idvorkin/exercise-analyzer/issues/249) an ✕ on "Attached automatically" to send a report without its screenshot: the dialog is BugKit's, filed there as [bug-kit#14](https://github.com/idvorkin/bug-kit/issues/14), open
 
