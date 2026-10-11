@@ -17,56 +17,65 @@
 //  scaleFit like the SDK, and the end2end output ([1, 300, 57]: xyxy, conf, class, 17 × (x, y, conf)) is mapped
 //  back with the SDK's letterbox math, so the poses match the phone's to rounding.
 
+import ArgumentParser
 import AVFoundation
 import CoreML
 import ExerciseCore
 import Foundation
 import Vision
 
-struct Options {
-  var video = ""
+extension ExerciseKind: ExpressibleByArgument {}
+
+/// The flags, parsed by swift-argument-parser (chop-conventions ios-app/libraries.md): `--help` lists them, a
+/// mistyped flag or an unparsable number is an error instead of a silent default.
+struct Options: ParsableCommand {
+  static let configuration = CommandConfiguration(
+    commandName: "posetrack",
+    abstract: "Run the pose model on a clip on the Mac and analyze it as the phone would; optionally write the pose track as a fixture.")
+
+  @Argument(help: "The clip to run the pose model and the analyzers on.")
+  var video: String
+
+  @Option(help: "The pose model, an .mlpackage (compiled once, cached) or an .mlmodelc.")
   var model = "../ExerciseAnalyzer/yolo26n-pose.mlpackage"
+
+  @Option(help: "The exercise, instead of detecting it: \(ExerciseKind.allCases.map(\.rawValue).joined(separator: ", ")).")
   var exercise: ExerciseKind?
+
+  @Option(help: "Write the pose track as a host-test fixture to this path.")
   var fixture: String?
+
+  @Option(name: .customLong("conf"), help: "The pose confidence floor.")
   var confidence: Float = 0.25
-  /// Nil for "the package next to the pose model, if it is there"; `--no-bells` sets it to "".
+
+  /// Nil for "the package next to the pose model, if it is there".
+  @Option(name: .customLong("bell-model"), help: "The bell detector package; the default is the one beside the pose model.")
   var bellModel: String?
+
   /// Detector floor; the tracker gates by wrist and rest anyway, so a low floor is cheap to try.
+  @Option(name: .customLong("bell-conf"), help: "The bell detector's confidence floor.")
   var bellConfidence: Float = 0.15
+
+  @Flag(name: .customLong("no-bells"), help: "Run no bell detector.")
+  var noBells = false
+
+  @Option(name: .customLong("poses-from"), help: "Keep this fixture's poses and boxes (same clip) and only add the bells and benches.")
   var posesFrom: String?
-  /// Nil for "the package next to the pose model, if it is there"; `--no-bench` sets it to "".
+
+  /// Nil for "the package next to the pose model, if it is there".
+  @Option(name: .customLong("bench-model"), help: "The bench detector package; the default is the one beside the pose model.")
   var benchModel: String?
 
-  init(_ args: [String]) {
-    var i = 0
-    while i < args.count {
-      let a = args[i]
-      func value() -> String { i += 1; return i < args.count ? args[i] : "" }
-      switch a {
-      case "--model": model = value()
-      case "--exercise": exercise = ExerciseKind(rawValue: value())
-      case "--fixture": fixture = value()
-      case "--conf": confidence = Float(value()) ?? 0.25
-      case "--bell-model": bellModel = value()
-      case "--bell-conf": bellConfidence = Float(value()) ?? 0.15
-      case "--no-bells": bellModel = ""
-      case "--poses-from": posesFrom = value()
-      case "--bench-model": benchModel = value()
-      case "--no-bench": benchModel = ""
-      default: if video.isEmpty { video = a }
-      }
-      i += 1
-    }
-  }
+  @Flag(name: .customLong("no-bench"), help: "Run no bench detector.")
+  var noBench = false
 }
 
 func fail(_ message: String) -> Never {
-  FileHandle.standardError.write((message + "\n").data(using: .utf8)!)
+  FileHandle.standardError.write(Data((message + "\n").utf8))
   exit(1)
 }
 
-let options = Options(Array(CommandLine.arguments.dropFirst()))
-guard !options.video.isEmpty else { fail("usage: posetrack <video> [--model path] [--exercise kind] [--fixture out.json]") }
+let options = Options.parseOrExit()
 
 // MARK: - Model
 
@@ -95,9 +104,9 @@ let visionModel = try VNCoreMLModel(for: mlModel)
 
 /// The bell detector, when its package is there (a missing default is simply "no bells").
 let bellDetector: BellDetector? = try {
+  if options.noBells { return nil }
   let path: String
   if let given = options.bellModel {
-    if given.isEmpty { return nil }
     path = given
     guard FileManager.default.fileExists(atPath: path) else { fail("bell model not found: \(path)") }
   } else {
@@ -118,9 +127,9 @@ let bellDetector: BellDetector? = try {
 
 /// The bench detector, when its package is there (a missing default is simply "no bench").
 let benchDetector: BellDetector? = try {
+  if options.noBench { return nil }
   let path: String
   if let given = options.benchModel {
-    if given.isEmpty { return nil }
     path = given
     guard FileManager.default.fileExists(atPath: path) else { fail("bench model not found: \(path)") }
   } else {

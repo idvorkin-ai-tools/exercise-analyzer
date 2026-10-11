@@ -91,7 +91,9 @@ few dozen lines), `fflush(stdout)` after it, and write long traces to a file und
 ## Rung 1.5: the model on the Mac
 
 [`ExerciseCore/Sources/posetrack/main.swift`](../ExerciseCore/Sources/posetrack/main.swift) is a macOS executable
-in the package: `just analyze <clip> [--exercise kind] [--fixture out.json]`. It reads the clip through the same
+in the package: `just analyze <clip> [--exercise kind] [--fixture out.json]` (`ExerciseCore/.build/release/posetrack
+--help` lists every flag; the flags are swift-argument-parser's, so a mistyped one is an error, not a silent
+default). It reads the clip through the same
 rotation-applying video composition as the app, letterboxes with Vision's `scaleFit` like the SDK, maps the
 end2end output back with the SDK's letterbox math, and runs the detector and analyzers from `ExerciseCore`. On an
 M4 it runs at 130 fps or more (the simulator does 20). Poses match the phone's to a few pixels (3 px mean on the 4-rep sample), so `--fixture`
