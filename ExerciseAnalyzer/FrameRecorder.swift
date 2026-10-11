@@ -92,7 +92,8 @@ final class FrameRecorder: @unchecked Sendable {
       queue.async { [self] in
         guard let writer, sessionStarted, writer.status == .writing else {
           onError?(
-            "finish with nothing to write: started \(sessionStarted), status \(writer?.status.rawValue ?? -1), \(String(describing: writer?.error))")
+            "finish with nothing to write: started \(sessionStarted), status \(writer?.status.rawValue ?? -1), \(String(describing: writer?.error))"
+          )
           continuation.resume(returning: nil)
           return
         }
@@ -207,7 +208,7 @@ enum VideoFile {
       let duration = try await asset.load(.duration)
       if keptTransform == nil { keptTransform = try await source.load(.preferredTransform) }
       try track.insertTimeRange(CMTimeRange(start: .zero, duration: duration), of: source, at: cursor)
-      cursor = cursor + duration
+      cursor += duration
     }
     guard cursor != .zero else { throw VideoFileError.exportFailed("no video in segments") }
     track.preferredTransform = keptTransform ?? .identity
@@ -266,7 +267,7 @@ enum VideoFile {
       instruction.timeRange = CMTimeRange(start: cursor, duration: duration)
       instruction.layerInstructions = [layer]
       instructions.append(instruction)
-      cursor = cursor + duration
+      cursor += duration
     }
     guard renderSize != .zero else { throw VideoFileError.exportFailed("no video in segments") }
     let videoComposition = AVMutableVideoComposition()
@@ -301,7 +302,9 @@ enum VideoFile {
 
   /// The last video keyframe at or before `seconds`: its presentation time and its decode time (earlier when the
   /// stream has B-frames). Reads compressed samples only (no decode), a fraction of a second even for a long clip.
-  static func syncSampleAtOrBefore(asset: AVAsset, seconds: Double) async throws -> (presentation: Double, decode: Double) {
+  static func syncSampleAtOrBefore(
+    asset: AVAsset, seconds: Double
+  ) async throws -> (presentation: Double, decode: Double) {
     guard let track = try await asset.loadTracks(withMediaType: .video).first else { return (seconds, seconds) }
     return try await Task.detached(priority: .userInitiated) {
       let reader = try AVAssetReader(asset: asset)
@@ -309,7 +312,9 @@ enum VideoFile {
       output.alwaysCopiesSampleData = false
       reader.add(output)
       reader.timeRange = CMTimeRange(start: .zero, end: CMTime(seconds: seconds + 0.001, preferredTimescale: 600))
-      guard reader.startReading() else { throw VideoFileError.exportFailed("sample scan: \(String(describing: reader.error))") }
+      guard reader.startReading() else {
+        throw VideoFileError.exportFailed("sample scan: \(String(describing: reader.error))")
+      }
       var last = (presentation: 0.0, decode: 0.0)
       while let sample = output.copyNextSampleBuffer() {
         let pts = CMSampleBufferGetPresentationTimeStamp(sample).seconds
@@ -319,7 +324,8 @@ enum VideoFile {
         // that carry the sync flag; only real samples count.
         guard pts.isFinite, CMSampleBufferGetTotalSampleSize(sample) > 0 else { continue }
         var sync = true
-        if let attachments = CMSampleBufferGetSampleAttachmentsArray(sample, createIfNecessary: false) as? [[CFString: Any]],
+        if let attachments = CMSampleBufferGetSampleAttachmentsArray(sample, createIfNecessary: false)
+          as? [[CFString: Any]],
           let first = attachments.first, let notSync = first[kCMSampleAttachmentKey_NotSync] as? Bool, notSync
         {
           sync = false
@@ -373,13 +379,16 @@ enum VideoFile {
     }
     let options = PHFetchOptions()
     options.predicate = NSPredicate(format: "title = %@", albumName)
-    if let found = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .albumRegular, options: options).firstObject {
+    if let found = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .albumRegular, options: options)
+      .firstObject
+    {
       UserDefaults.standard.set(found.localIdentifier, forKey: albumIDKey)
       return found
     }
     var placeholder: PHObjectPlaceholder?
     try await PHPhotoLibrary.shared().performChanges {
-      placeholder = PHAssetCollectionChangeRequest.creationRequestForAssetCollection(withTitle: albumName)
+      placeholder =
+        PHAssetCollectionChangeRequest.creationRequestForAssetCollection(withTitle: albumName)
         .placeholderForCreatedAssetCollection
     }
     guard let id = placeholder?.localIdentifier,

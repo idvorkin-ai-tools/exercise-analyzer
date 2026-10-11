@@ -17,16 +17,19 @@ final class RecentsIndexTests: XCTestCase {
     super.tearDown()
   }
 
-  private func tempRoot() -> URL {
+  private func tempRoot() throws -> URL {
     let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
-    try! FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+    try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
     roots.append(root)
     return root
   }
 
-  private func entry(_ id: String, version: String? = AnalysisVersion.current, models: [String]? = ["yolo26n-pose"]) -> RecentEntry {
+  private func entry(
+    _ id: String, version: String? = AnalysisVersion.current, models: [String]? = ["yolo26n-pose"]
+  ) -> RecentEntry {
     RecentEntry(
-      id: id, analyzedAt: Date(timeIntervalSince1970: 1_000_000), recordedAt: nil, duration: 60, repCount: 4, bestScore: 80,
+      id: id, analyzedAt: Date(timeIntervalSince1970: 1_000_000), recordedAt: nil, duration: 60, repCount: 4,
+      bestScore: 80,
       source: .file(name: "clip.mov"), thumbnail: nil, exercise: .kettlebellSwing, originalName: "clip.mov",
       analysisVersion: version, models: models)
   }
@@ -34,17 +37,17 @@ final class RecentsIndexTests: XCTestCase {
   private func writeSnapshot(
     id: String, root: URL, analysisVersion: String? = AnalysisVersion.current,
     models: [String]? = ["yolo26n-pose"]
-  ) {
+  ) throws {
     var snapshot = AnalysisSnapshot(exercise: .kettlebellSwing, frames: [], reps: [])
     snapshot.analysisVersion = analysisVersion
     snapshot.models = models
     let dir = root.appendingPathComponent(id, isDirectory: true)
-    try! FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-    try! JSONEncoder().encode(snapshot).write(to: dir.appendingPathComponent("analysis.json"))
+    try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+    try JSONEncoder().encode(snapshot).write(to: dir.appendingPathComponent("analysis.json"))
   }
 
   func testSaveLoadRoundTripKeepsMetadata() throws {
-    let root = tempRoot()
+    let root = try tempRoot()
     var older = entry("b", version: "old", models: [])
     older.analyzedAt = Date(timeIntervalSince1970: 1)
     try RecentsIndex(entries: [entry("a"), older]).save(root: root)
@@ -56,14 +59,14 @@ final class RecentsIndexTests: XCTestCase {
     XCTAssertEqual(loaded.entries[1].models, [])
   }
 
-  func testMissingIndexLoadsEmpty() {
-    XCTAssertTrue(RecentsIndex.load(root: tempRoot()).entries.isEmpty)
+  func testMissingIndexLoadsEmpty() throws {
+    XCTAssertTrue(RecentsIndex.load(root: try tempRoot()).entries.isEmpty)
   }
 
   /// One row this build cannot read (an exercise it does not know, a downgrade past #158) must not empty the
   /// list: the other rows load, and the file as found is kept beside the index before any save writes over it.
   func testABadRowIsDroppedAndTheFileKeptAside() throws {
-    let root = tempRoot()
+    let root = try tempRoot()
     try RecentsIndex(entries: [entry("a"), entry("b")]).save(root: root)
     let url = root.appendingPathComponent("index.json")
     var rows = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [[String: Any]])
@@ -71,25 +74,29 @@ final class RecentsIndexTests: XCTestCase {
     try JSONSerialization.data(withJSONObject: rows).write(to: url)
     let loaded = RecentsIndex.load(root: root)
     XCTAssertEqual(loaded.entries.map(\.id), ["a"])
-    guard case .droppedRows(1, let kept)? = loaded.damage else { return XCTFail("damage: \(String(describing: loaded.damage))") }
+    guard case .droppedRows(1, let kept)? = loaded.damage else {
+      return XCTFail("damage: \(String(describing: loaded.damage))")
+    }
     XCTAssertTrue(kept.hasPrefix("index.json.bad-"))
     XCTAssertEqual(try Data(contentsOf: root.appendingPathComponent(kept)), try Data(contentsOf: url))
   }
 
   func testAnUnreadableIndexStartsEmptyAndIsKeptAside() throws {
-    let root = tempRoot()
+    let root = try tempRoot()
     let url = root.appendingPathComponent("index.json")
     try Data("[{\"id\": \"a\",".utf8).write(to: url)
     let loaded = RecentsIndex.load(root: root)
     XCTAssertTrue(loaded.entries.isEmpty)
-    guard case .unreadableFile(let kept)? = loaded.damage else { return XCTFail("damage: \(String(describing: loaded.damage))") }
+    guard case .unreadableFile(let kept)? = loaded.damage else {
+      return XCTFail("damage: \(String(describing: loaded.damage))")
+    }
     XCTAssertEqual(try Data(contentsOf: root.appendingPathComponent(kept)), try Data(contentsOf: url))
   }
 
   /// Launch after launch with the same damage keeps one copy, not one per launch (PR #175 review); a new damage
   /// is kept too.
   func testTheSameDamageIsKeptOnce() throws {
-    let root = tempRoot()
+    let root = try tempRoot()
     let url = root.appendingPathComponent("index.json")
     try Data("[{\"id\": \"a\",".utf8).write(to: url)
     guard case .unreadableFile(let first)? = RecentsIndex.load(root: root).damage,
@@ -100,13 +107,15 @@ final class RecentsIndexTests: XCTestCase {
     Thread.sleep(forTimeInterval: 1.1)  // the copy's name carries the second
     guard case .unreadableFile(let third)? = RecentsIndex.load(root: root).damage else { return XCTFail("no damage") }
     XCTAssertNotEqual(third, first)
-    let copies = try FileManager.default.contentsOfDirectory(atPath: root.path).filter { $0.hasPrefix("index.json.bad-") }
+    let copies = try FileManager.default.contentsOfDirectory(atPath: root.path).filter {
+      $0.hasPrefix("index.json.bad-")
+    }
     XCTAssertEqual(copies.count, 2)
   }
 
   func testOldIndexRowsDecodeWithNilFields() throws {
     // An index.json from before step 2 has neither key.
-    let root = tempRoot()
+    let root = try tempRoot()
     let json = """
       [{"id":"a","analyzedAt":778297200.0,"duration":60,"repCount":4,"source":{"file":{"name":"clip.mov"}},"exercise":"kettlebell-swing","originalName":"clip.mov"}]
       """
@@ -118,9 +127,9 @@ final class RecentsIndexTests: XCTestCase {
   }
 
   func testBackfillFillsFromSnapshotAndPersists() throws {
-    let root = tempRoot()
+    let root = try tempRoot()
     try RecentsIndex(entries: [entry("a", version: nil, models: nil)]).save(root: root)
-    writeSnapshot(id: "a", root: root, analysisVersion: "2026-09-12.0", models: ["yolo26n-pose", "det"])
+    try writeSnapshot(id: "a", root: root, analysisVersion: "2026-09-12.0", models: ["yolo26n-pose", "det"])
     var index = RecentsIndex.load(root: root)
     XCTAssertTrue(index.backfill(root: root))
     XCTAssertEqual(index.entries[0].analysisVersion, "2026-09-12.0")
@@ -133,9 +142,9 @@ final class RecentsIndexTests: XCTestCase {
     XCTAssertEqual(reloaded.entries[0].models, ["yolo26n-pose", "det"])
   }
 
-  func testBackfillSkipsUnreadableSnapshots() {
-    let root = tempRoot()
-    try! RecentsIndex(entries: [entry("ghost", version: nil, models: nil)]).save(root: root)
+  func testBackfillSkipsUnreadableSnapshots() throws {
+    let root = try tempRoot()
+    try RecentsIndex(entries: [entry("ghost", version: nil, models: nil)]).save(root: root)
     var index = RecentsIndex.load(root: root)
     XCTAssertFalse(index.backfill(root: root))
     XCTAssertNil(index.entries[0].analysisVersion)
