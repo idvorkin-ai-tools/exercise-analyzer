@@ -17,8 +17,8 @@
 //  scaleFit like the SDK, and the end2end output ([1, 300, 57]: xyxy, conf, class, 17 × (x, y, conf)) is mapped
 //  back with the SDK's letterbox math, so the poses match the phone's to rounding.
 
-import ArgumentParser
 import AVFoundation
+import ArgumentParser
 import CoreML
 import ExerciseCore
 import Foundation
@@ -31,7 +31,9 @@ extension ExerciseKind: ExpressibleByArgument {}
 struct Options: ParsableCommand {
   static let configuration = CommandConfiguration(
     commandName: "posetrack",
-    abstract: "Run the pose model on a clip on the Mac and analyze it as the phone would; optionally write the pose track as a fixture.")
+    abstract:
+      "Run the pose model on a clip on the Mac and analyze it as the phone would; optionally write the pose track as a fixture."
+  )
 
   @Argument(help: "The clip to run the pose model and the analyzers on.")
   var video: String
@@ -39,7 +41,8 @@ struct Options: ParsableCommand {
   @Option(help: "The pose model, an .mlpackage (compiled once, cached) or an .mlmodelc.")
   var model = "../ExerciseAnalyzer/yolo26n-pose.mlpackage"
 
-  @Option(help: "The exercise, instead of detecting it: \(ExerciseKind.allCases.map(\.rawValue).joined(separator: ", ")).")
+  @Option(
+    help: "The exercise, instead of detecting it: \(ExerciseKind.allCases.map(\.rawValue).joined(separator: ", ")).")
   var exercise: ExerciseKind?
 
   @Option(help: "Write the pose track as a host-test fixture to this path.")
@@ -49,7 +52,8 @@ struct Options: ParsableCommand {
   var confidence: Float = 0.25
 
   /// Nil for "the package next to the pose model, if it is there".
-  @Option(name: .customLong("bell-model"), help: "The bell detector package; the default is the one beside the pose model.")
+  @Option(
+    name: .customLong("bell-model"), help: "The bell detector package; the default is the one beside the pose model.")
   var bellModel: String?
 
   /// Detector floor; the tracker gates by wrist and rest anyway, so a low floor is cheap to try.
@@ -59,11 +63,14 @@ struct Options: ParsableCommand {
   @Flag(name: .customLong("no-bells"), help: "Run no bell detector.")
   var noBells = false
 
-  @Option(name: .customLong("poses-from"), help: "Keep this fixture's poses and boxes (same clip) and only add the bells and benches.")
+  @Option(
+    name: .customLong("poses-from"),
+    help: "Keep this fixture's poses and boxes (same clip) and only add the bells and benches.")
   var posesFrom: String?
 
   /// Nil for "the package next to the pose model, if it is there".
-  @Option(name: .customLong("bench-model"), help: "The bench detector package; the default is the one beside the pose model.")
+  @Option(
+    name: .customLong("bench-model"), help: "The bench detector package; the default is the one beside the pose model.")
   var benchModel: String?
 
   @Flag(name: .customLong("no-bench"), help: "Run no bench detector.")
@@ -85,9 +92,12 @@ func compiled(_ modelURL: URL) throws -> URL {
   if modelURL.pathExtension == "mlmodelc" { return modelURL }
   let cacheDir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("tmp/agent/skill/posetrack")
   try? FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
-  let stamp = (try? FileManager.default.attributesOfItem(atPath: modelURL.appendingPathComponent("Manifest.json").path)[.modificationDate] as? Date)
+  let stamp =
+    (try? FileManager.default.attributesOfItem(atPath: modelURL.appendingPathComponent("Manifest.json").path)[
+      .modificationDate] as? Date)
     .map { String(Int($0.timeIntervalSince1970)) } ?? "0"
-  let cached = cacheDir.appendingPathComponent("\(modelURL.deletingPathExtension().lastPathComponent)-\(stamp).mlmodelc")
+  let cached = cacheDir.appendingPathComponent(
+    "\(modelURL.deletingPathExtension().lastPathComponent)-\(stamp).mlmodelc")
   if !FileManager.default.fileExists(atPath: cached.path) {
     let tmp = try MLModel.compileModel(at: modelURL)
     try FileManager.default.moveItem(at: tmp, to: cached)
@@ -121,7 +131,9 @@ let bellDetector: BellDetector? = try {
   }
   let detector = try BellDetector(compiledModelURL: try compiled(URL(fileURLWithPath: path)), computeUnits: units)
   detector.minConfidence = options.bellConfidence
-  if let max = ProcessInfo.processInfo.environment["POSETRACK_BELL_MAX"].flatMap(Int.init) { detector.maxSightings = max }
+  if let max = ProcessInfo.processInfo.environment["POSETRACK_BELL_MAX"].flatMap(Int.init) {
+    detector.maxSightings = max
+  }
   return detector
 }()
 
@@ -160,7 +172,8 @@ func parse(_ array: MLMultiArray, letterbox: Letterbox, confidence: Float) -> (p
     if conf > confidence, conf > (best?.conf ?? 0) { best = (conf, i) }
   }
   guard let best else { return nil }
-  let base = best.index * strides[1], fs = strides[2]
+  let base = best.index * strides[1]
+  let fs = strides[2]
   let r1 = letterbox.point(CGPoint(x: CGFloat(p[base]), y: CGFloat(p[base + fs])))
   let r2 = letterbox.point(CGPoint(x: CGFloat(p[base + 2 * fs]), y: CGFloat(p[base + 3 * fs])))
   let size = letterbox.inputSize
@@ -170,7 +183,8 @@ func parse(_ array: MLMultiArray, letterbox: Letterbox, confidence: Float) -> (p
   var xyn: [PosePoint] = []
   var conf: [Float] = []
   for k in 0..<kpCount {
-    let kx = CGFloat(p[base + (kpStart + 3 * k) * fs]), ky = CGFloat(p[base + (kpStart + 3 * k + 1) * fs])
+    let kx = CGFloat(p[base + (kpStart + 3 * k) * fs])
+    let ky = CGFloat(p[base + (kpStart + 3 * k + 1) * fs])
     let point = letterbox.point(CGPoint(x: kx, y: ky))
     xyn.append(PosePoint(x: Float(point.x / size.width), y: Float(point.y / size.height)))
     conf.append(p[base + (kpStart + 3 * k + 2) * fs])
@@ -184,10 +198,13 @@ if ProcessInfo.processInfo.environment["POSETRACK_PLAN"] == "1" {
   let planSemaphore = DispatchSemaphore(value: 0)
   Task {
     let pose = await ModelPlan.summary(compiledModelURL: poseCompiled)
-    print("plan yolo26n-pose: \(pose.sorted { $0.key < $1.key }.map { "\($0.key) \($0.value)" }.joined(separator: ", "))")
+    print(
+      "plan yolo26n-pose: \(pose.sorted { $0.key < $1.key }.map { "\($0.key) \($0.value)" }.joined(separator: ", "))")
     if let bellDetector {
       let bell = await ModelPlan.summary(compiledModelURL: bellDetector.compiledModelURL)
-      print("plan bell detector: \(bell.sorted { $0.key < $1.key }.map { "\($0.key) \($0.value)" }.joined(separator: ", "))")
+      print(
+        "plan bell detector: \(bell.sorted { $0.key < $1.key }.map { "\($0.key) \($0.value)" }.joined(separator: ", "))"
+      )
     }
     planSemaphore.signal()
   }
@@ -226,8 +243,13 @@ Task {
       let size = CGSize(width: CVPixelBufferGetWidth(pixelBuffer), height: CVPixelBufferGetHeight(pixelBuffer))
       if frames.isEmpty {
         let f = CVPixelBufferGetPixelFormatType(pixelBuffer)
-        let fourcc = String(bytes: [UInt8(f >> 24 & 0xff), UInt8(f >> 16 & 0xff), UInt8(f >> 8 & 0xff), UInt8(f & 0xff)], encoding: .ascii) ?? "?"
-        FileHandle.standardError.write("  first frame \(Int(size.width))×\(Int(size.height)) format \(fourcc) planes \(CVPixelBufferGetPlaneCount(pixelBuffer))\n".data(using: .utf8)!)
+        let fourcc =
+          String(
+            bytes: [UInt8(f >> 24 & 0xff), UInt8(f >> 16 & 0xff), UInt8(f >> 8 & 0xff), UInt8(f & 0xff)],
+            encoding: .ascii) ?? "?"
+        FileHandle.standardError.write(
+          "  first frame \(Int(size.width))×\(Int(size.height)) format \(fourcc) planes \(CVPixelBufferGetPlaneCount(pixelBuffer))\n"
+            .data(using: .utf8)!)
       }
       let request = VNCoreMLRequest(model: visionModel)
       request.imageCropAndScaleOption = .scaleFit
@@ -250,18 +272,25 @@ Task {
       try VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:]).perform([request])
       var person: (pose: Pose, box: CGRect)?
       if let observation = request.results?.first as? VNCoreMLFeatureValueObservation,
-        let array = observation.featureValue.multiArrayValue, let letterbox = Letterbox(inputSize: size, model: modelSize)
+        let array = observation.featureValue.multiArrayValue,
+        let letterbox = Letterbox(inputSize: size, model: modelSize)
       {
         person = parse(array, letterbox: letterbox, confidence: options.confidence)
       }
       lastWrists = BellDetector.wrists(of: person?.pose)
       if parallel {
         await withCheckedContinuation { done in group.notify(queue: .global(qos: .userInitiated)) { done.resume() } }
-      } else { bells = bellDetector?.detect(in: pixelBuffer, wrists: lastWrists) ?? [] }
+      } else {
+        bells = bellDetector?.detect(in: pixelBuffer, wrists: lastWrists) ?? []
+      }
       if ProcessInfo.processInfo.environment["POSETRACK_TRACE"] == "1" {
         let tracked = traceTracker.track(bells, pose: person?.pose)
-        let wrists = person.map { p in [9, 10].map { String(format: "%.2f,%.2f", p.pose.xyn[$0].x, p.pose.xyn[$0].y) }.joined(separator: "/") } ?? "-"
-        let line = "  frame \(frames.count) t=\(String(format: "%.2f", time)) bells=\(bells.count) \(bells.prefix(3).map { String(format: "%.2f@%.2f,%.2f", $0.conf, $0.box.midX, $0.box.midY) }.joined(separator: " ")) wrists \(wrists) tracked \(tracked.map { String(format: "%.2f@%.2f,%.2f", $0.conf, $0.box.midX, $0.box.midY) } ?? "-")\n"
+        let wrists =
+          person.map { p in
+            [9, 10].map { String(format: "%.2f,%.2f", p.pose.xyn[$0].x, p.pose.xyn[$0].y) }.joined(separator: "/")
+          } ?? "-"
+        let line =
+          "  frame \(frames.count) t=\(String(format: "%.2f", time)) bells=\(bells.count) \(bells.prefix(3).map { String(format: "%.2f@%.2f,%.2f", $0.conf, $0.box.midX, $0.box.midY) }.joined(separator: " ")) wrists \(wrists) tracked \(tracked.map { String(format: "%.2f@%.2f,%.2f", $0.conf, $0.box.midX, $0.box.midY) } ?? "-")\n"
         FileHandle.standardError.write(line.data(using: .utf8)!)
       }
       var bench: CGRect?
@@ -270,12 +299,15 @@ Task {
         lastBenchTime = time
       }
       frames.append(
-        FrameRecord(time: time, imageSize: size, pose: person?.pose, box: person?.box, analysis: nil, bells: bells, bench: bench))
+        FrameRecord(
+          time: time, imageSize: size, pose: person?.pose, box: person?.box, analysis: nil, bells: bells, bench: bench))
       if frames.count % 300 == 0 { FileHandle.standardError.write("  \(frames.count) frames…\n".data(using: .utf8)!) }
     }
     // A nil sample can mean a decoding failure, not EOF. Never publish a truncated track as a valid fixture.
     guard reader.status == .completed else {
-      fail("reader stopped after \(frames.count) frames: \(reader.error?.localizedDescription ?? "status \(reader.status.rawValue)")")
+      fail(
+        "reader stopped after \(frames.count) frames: \(reader.error?.localizedDescription ?? "status \(reader.status.rawValue)")"
+      )
     }
     elapsed = Date().timeIntervalSince(started)
   } catch { fail("\(error)") }
@@ -286,15 +318,28 @@ semaphore.wait()
 // MARK: - Poses from an existing fixture
 
 if let path = options.posesFrom {
-  struct OldPoint: Decodable { let x: Float; let y: Float }
-  struct OldPose: Decodable { let xyn: [OldPoint]; let conf: [Float] }
-  struct OldFrame: Decodable { let time: Double; let imageSize: [Double]; let box: [[Double]]?; let pose: OldPose? }
+  struct OldPoint: Decodable {
+    let x: Float
+    let y: Float
+  }
+  struct OldPose: Decodable {
+    let xyn: [OldPoint]
+    let conf: [Float]
+  }
+  struct OldFrame: Decodable {
+    let time: Double
+    let imageSize: [Double]
+    let box: [[Double]]?
+    let pose: OldPose?
+  }
   struct Old: Decodable { let frames: [OldFrame] }
   let old = try JSONDecoder().decode(Old.self, from: Data(contentsOf: URL(fileURLWithPath: path)))
   // A phone-made fixture can differ from the Mac decode by a frame, so bells are matched by time, not index.
   let duration = frames.last?.time ?? 0
   guard abs(Double(old.frames.count - frames.count)) <= 2, abs((old.frames.last?.time ?? 0) - duration) < 0.2 else {
-    fail("--poses-from \(path) has \(old.frames.count) frames to \(old.frames.last?.time ?? 0) s, this clip \(frames.count) to \(duration) s: not the same clip")
+    fail(
+      "--poses-from \(path) has \(old.frames.count) frames to \(old.frames.last?.time ?? 0) s, this clip \(frames.count) to \(duration) s: not the same clip"
+    )
   }
   let byTime = frames
   frames = old.frames.map { o in
@@ -307,7 +352,9 @@ if let path = options.posesFrom {
       box: o.box.map { CGRect(x: $0[0][0], y: $0[0][1], width: $0[1][0], height: $0[1][1]) },
       analysis: nil, bells: matched?.bells ?? [], bench: matched?.bench)
   }
-  print("poses and boxes kept from \(path); bells added to \(frames.filter { !$0.bells.isEmpty }.count) frames, a bench to \(frames.filter { $0.bench != nil }.count)")
+  print(
+    "poses and boxes kept from \(path); bells added to \(frames.filter { !$0.bells.isEmpty }.count) frames, a bench to \(frames.filter { $0.bench != nil }.count)"
+  )
 }
 
 // MARK: - Analysis
@@ -317,15 +364,23 @@ let exercise = options.exercise ?? detection.exercise
 let pipeline = AnalysisPipeline.analyze(frames: frames, exercise: exercise)
 let withPerson = frames.filter { $0.pose != nil }.count
 let withBell = pipeline.track.frames.filter { $0.bell != nil }.count
-print(String(format: "%@: %d frames (%d with a person), %.1f s, %.0f fps", options.video, frames.count, withPerson, elapsed, Double(frames.count) / max(elapsed, 0.001)))
+print(
+  String(
+    format: "%@: %d frames (%d with a person), %.1f s, %.0f fps", options.video, frames.count, withPerson, elapsed,
+    Double(frames.count) / max(elapsed, 0.001)))
 if bellDetector != nil {
   let colors = pipeline.track.frames.compactMap { $0.bell?.color }
   let weights = colors.compactMap(BellColor.weightKg(rgb:))
-  let weight = weights.isEmpty ? "no colour code (cast iron?)" : "\(Dictionary(grouping: weights) { $0 }.max { $0.value.count < $1.value.count }!.key) kg by colour"
+  let weight =
+    weights.isEmpty
+    ? "no colour code (cast iron?)"
+    : "\(Dictionary(grouping: weights) { $0 }.max { $0.value.count < $1.value.count }!.key) kg by colour"
   print("bell in play in \(withBell) frames (\(frames.count > 0 ? 100 * withBell / frames.count : 0)%), \(weight)")
   // Two questions apart: did the detector see a bell at the hands at all (any sighting within 0.2 of a visible
   // wrist), and did the tracker keep it. Frames without a visible wrist are left out of both.
-  var handFrames = 0, seenAtHand = 0, trackedAtHand = 0
+  var handFrames = 0
+  var seenAtHand = 0
+  var trackedAtHand = 0
   for f in pipeline.track.frames {
     guard let pose = f.pose else { continue }
     let wrists = [9, 10].compactMap { i -> CGPoint? in
@@ -338,8 +393,11 @@ if bellDetector != nil {
     if let bell = f.bell, nearHand(bell) { trackedAtHand += 1 }
   }
   if handFrames > 0 {
-    print(String(format: "hands visible in %d frames: detector saw a bell at the hands in %.0f%%, tracker held it in %.0f%%",
-      handFrames, 100.0 * Double(seenAtHand) / Double(handFrames), 100.0 * Double(trackedAtHand) / Double(handFrames)))
+    print(
+      String(
+        format: "hands visible in %d frames: detector saw a bell at the hands in %.0f%%, tracker held it in %.0f%%",
+        handFrames, 100.0 * Double(seenAtHand) / Double(handFrames), 100.0 * Double(trackedAtHand) / Double(handFrames))
+    )
   }
 }
 print("detected: \(detection.exercise.rawValue) \(detection.confidence)% (\(detection.reason))")
@@ -347,30 +405,53 @@ print("analyzed as \(exercise.rawValue): \(pipeline.reps.count) reps")
 for rep in pipeline.reps {
   let positions = rep.positions.values.sorted { $0.time < $1.time }
     .map { String(format: "%@ %.2f", $0.phase.prefix(3).description, $0.time) }.joined(separator: " ")
-  print(String(format: "  #%2d %3d  %@  %@", rep.number, rep.quality.score, positions, rep.quality.feedback.joined(separator: " · ")))
+  print(
+    String(
+      format: "  #%2d %3d  %@  %@", rep.number, rep.quality.score, positions,
+      rep.quality.feedback.joined(separator: " · ")))
 }
 
 if let path = options.fixture {
-  struct StoredPoint: Encodable { let x: Float; let y: Float }
-  struct StoredPose: Encodable { let xyn: [StoredPoint]; let conf: [Float] }
-  struct StoredBell: Encodable { let box: [[Double]]; let conf: Float; let color: [Float]? }
+  struct StoredPoint: Encodable {
+    let x: Float
+    let y: Float
+  }
+  struct StoredPose: Encodable {
+    let xyn: [StoredPoint]
+    let conf: [Float]
+  }
+  struct StoredBell: Encodable {
+    let box: [[Double]]
+    let conf: Float
+    let color: [Float]?
+  }
   struct StoredFrame: Encodable {
-    let time: Double; let imageSize: [Double]; let box: [[Double]]?; let pose: StoredPose?; let bells: [StoredBell]?
+    let time: Double
+    let imageSize: [Double]
+    let box: [[Double]]?
+    let pose: StoredPose?
+    let bells: [StoredBell]?
     let bench: [[Double]]?
   }
-  struct Stored: Encodable { let version = 1; let frames: [StoredFrame] }
-  let stored = Stored(frames: frames.map { f in
-    StoredFrame(
-      time: f.time, imageSize: [Double(f.imageSize.width), Double(f.imageSize.height)],
-      box: f.box.map { [[Double($0.minX), Double($0.minY)], [Double($0.width), Double($0.height)]] },
-      pose: f.pose.map { StoredPose(xyn: $0.xyn.map { StoredPoint(x: $0.x, y: $0.y) }, conf: $0.conf) },
-      bells: f.bells.isEmpty ? nil : f.bells.map {
-        StoredBell(
-          box: [[Double($0.box.minX), Double($0.box.minY)], [Double($0.box.width), Double($0.box.height)]],
-          conf: $0.conf, color: $0.color.map { $0.map { (($0 * 1000).rounded() / 1000) } })
-      },
-      bench: f.bench.map { [[Double($0.minX), Double($0.minY)], [Double($0.width), Double($0.height)]] })
-  })
+  struct Stored: Encodable {
+    let version = 1
+    let frames: [StoredFrame]
+  }
+  let stored = Stored(
+    frames: frames.map { f in
+      StoredFrame(
+        time: f.time, imageSize: [Double(f.imageSize.width), Double(f.imageSize.height)],
+        box: f.box.map { [[Double($0.minX), Double($0.minY)], [Double($0.width), Double($0.height)]] },
+        pose: f.pose.map { StoredPose(xyn: $0.xyn.map { StoredPoint(x: $0.x, y: $0.y) }, conf: $0.conf) },
+        bells: f.bells.isEmpty
+          ? nil
+          : f.bells.map {
+            StoredBell(
+              box: [[Double($0.box.minX), Double($0.box.minY)], [Double($0.box.width), Double($0.box.height)]],
+              conf: $0.conf, color: $0.color.map { $0.map { (($0 * 1000).rounded() / 1000) } })
+          },
+        bench: f.bench.map { [[Double($0.minX), Double($0.minY)], [Double($0.width), Double($0.height)]] })
+    })
   let encoder = JSONEncoder()
   encoder.outputFormatting = [.withoutEscapingSlashes]
   try encoder.encode(stored).write(to: URL(fileURLWithPath: path))
