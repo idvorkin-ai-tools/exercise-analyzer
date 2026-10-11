@@ -4,18 +4,19 @@ commands:
   test: "just test"
   lint: "just lint"
 
-# The test command is rung 1 of the ladder only (host `swift test` over stored pose tracks, ~1s,
-# no simulator/device). The test step's evidence agent may still drive a simulator for a scenario;
-# these instructions reach its prompt (read from main only, like the rest of this file).
+# The test command is rung 1 of the ladder (host `swift test` over stored pose tracks, ~1s, no
+# simulator/device), and the test step stays on that rung: Igor's pipeline rule 1 (2026-10-11,
+# ~/tmp/agent/locks/PIPELINE-RULES.md). Live simulator and device checks happen once, in the driving
+# session's build turn, and go in the PR body. These instructions reach the test agent's prompt
+# (read from main only, like the rest of this file).
 test:
   instructions: |
-    Only one simulator on this Mac at a time (Igor's rule, 2026-10-11; other agents and Igor's own
-    smoke runs share it). Before booting any simulator run `xcrun simctl list devices booted` and
-    wait until it lists none; then boot exactly one, and `xcrun simctl shutdown <udid>` it when the
-    scenario is done, including when the scenario fails. A paired watch and phone count as two: do
-    not boot them together. Never boot while another agent's simulator is up, and if a second one
-    would be needed, skip that scenario and say so instead of booting it. The host test command is
-    the gate; simulator evidence is optional. docs/TESTING.md has the launch hooks.
+    Host rung only: run the touched module's host tests (`cd ExerciseCore && swift test --filter
+    <suite>`) and read the diff. Do not build for, create, or boot a simulator, and do not run
+    xcodebuild against a simulator or device; the driving session owns live evidence under the build
+    turn (one simulator or build on this Mac at a time). List what only the simulator or phone can
+    show as "to verify live" in the report. Do not re-run `just test`: the gate already ran it.
+    docs/TESTING.md says which rung sees which change.
 
 # No GitHub workflows in this repo; `just test` and `just lint` are the whole automated suite.
 no_ci: true

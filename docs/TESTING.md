@@ -150,9 +150,10 @@ A human spot-check of a few frames stays worthwhile; Muse's notes column says wh
 simulators made the checks' startup waits fail. Before booting, `xcrun simctl list devices booted` must list
 none; wait if it does not. Boot one, and `xcrun simctl shutdown <udid>` it when done, failed runs included. A
 watch simulator alone (rung 2b) is the one; the Retry check's paired watch and phone count as two, so it waits
-for a Mac with nothing booted and shuts both down after. The no-mistakes test
-agent follows the same rule through `test.instructions` in `.no-mistakes.yaml`, so a running pipeline is the one
-simulator.
+for a Mac with nothing booted and shuts both down after. The no-mistakes test agent boots nothing
+(`test.instructions` in `.no-mistakes.yaml` keeps it on the host rung and has it list what only a simulator or the
+phone can show): those live checks are run once by the driving session in its build turn and recorded in the PR
+body, so the pipeline never competes for the simulator.
 
 Each check waits for its event in a new launch log, so a slow startup cannot reuse the preceding clip's result.
 The trim check reads the first `display_frame` after `trim`, rather than sampling the last few frame events.
