@@ -124,4 +124,5 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 
 - **Scenario:** Nothing to show
 - **Given:** a build made without git history (the pipeline's clone, an archive)
+- **When:** I open the app
 - **Then:** the feed is empty, there is no line, the list says there is nothing new, and the build did not fail
