@@ -208,7 +208,7 @@ enum VideoFile {
       let duration = try await asset.load(.duration)
       if keptTransform == nil { keptTransform = try await source.load(.preferredTransform) }
       try track.insertTimeRange(CMTimeRange(start: .zero, duration: duration), of: source, at: cursor)
-      cursor += duration
+      cursor = CMTimeAdd(cursor, duration)
     }
     guard cursor != .zero else { throw VideoFileError.exportFailed("no video in segments") }
     track.preferredTransform = keptTransform ?? .identity
@@ -267,7 +267,7 @@ enum VideoFile {
       instruction.timeRange = CMTimeRange(start: cursor, duration: duration)
       instruction.layerInstructions = [layer]
       instructions.append(instruction)
-      cursor += duration
+      cursor = CMTimeAdd(cursor, duration)
     }
     guard renderSize != .zero else { throw VideoFileError.exportFailed("no video in segments") }
     let videoComposition = AVMutableVideoComposition()
