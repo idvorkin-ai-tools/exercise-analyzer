@@ -13,7 +13,7 @@ import UIKit
 
 extension VideoPoseSession {
   /// This session's log as BugKit's logger: its events (bug_report, crash_report, logs_pruned, error…) land beside
-  /// everything else the app did.
+  /// everything else the app did. `JSONValue.foundation` is BugKit's bridge to `[String: Any]` (bug-kit PR #4).
   var bugLogger: BugLogger {
     let log = log
     return { type, fields in log.event(type, fields.mapValues(\.foundation)) }
@@ -80,20 +80,5 @@ extension VideoPoseSession {
     guard let data = UIImage(cgImage: image).jpegData(compressionQuality: 0.8) else { return [] }
     try data.write(to: folder.appendingPathComponent("frame.jpg"))
     return ["frame.jpg"]
-  }
-}
-
-extension JSONValue {
-  /// The value as JSONSerialization takes it, for this app's `[String: Any]` session log.
-  var foundation: Any {
-    switch self {
-    case .null: return NSNull()
-    case .bool(let b): return b
-    case .int(let i): return i
-    case .double(let d): return d
-    case .string(let s): return s
-    case .array(let a): return a.map(\.foundation)
-    case .object(let o): return o.mapValues(\.foundation)
-    }
   }
 }
