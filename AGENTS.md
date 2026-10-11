@@ -57,6 +57,13 @@ carry only what was decided.
   it before fixing anything (a request becomes a story, a bug gets an `Issues:` line, no story means the spec has a
   hole). Evidence and analysis go on the issue as a comment. A bug Igor reports by voice gets an issue too. The whole
   flow: [DEBUGGING.md](docs/DEBUGGING.md).
+- **A bug in BugKit code is fixed in BugKit, not here.** Bug reporting is the shared package
+  [idvorkin/bug-kit](https://github.com/idvorkin/bug-kit) (its README, "Where a bug gets fixed"): the dialog, the
+  shake, dictation, the store and its format, crash capture, pruning, What's new, the listener and the scripts are
+  its code. A bug there is filed there, fixed test-first on a branch there, PR'd, and then BugKit is bumped here.
+  Until then, work around it only through BugKit's hooks or options, with a `ponytail:` comment naming the bug-kit
+  issue, never by copying its code in. Bugs in our own hooks (`ExerciseAnalyzer/BugReport.swift`: the screen, the
+  context, the frame) stay here.
 - **Every feature or behaviour change updates the user stories** (`docs/stories/`) in the same commit or the
   next: a new capability gets a story in its journey (Cohn + Gherkin, `user-story` skill) with a `Status:` line
   naming its commit and where it was verified; a changed behaviour edits the story's acceptance criteria and adds
