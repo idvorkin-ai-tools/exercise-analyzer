@@ -8,7 +8,7 @@ commands:
 # simulator/device). Rungs 2+ (simulator smoke, phone) need a booted sim or attached
 # hardware and are not run here.
 
-# No GitHub workflows in this repo; `just test` is the whole automated suite.
+# No GitHub workflows in this repo; `just test` and `just lint` are the whole automated suite.
 no_ci: true
 
 review:
