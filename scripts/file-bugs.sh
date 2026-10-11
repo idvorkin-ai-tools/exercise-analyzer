@@ -39,8 +39,8 @@ while IFS= read -r line; do
     row("Build"; (.build // "–") + ", commit " + (.commit // "–") + ", " + (.device // "–")) +
     row("Log"; "`" + (.log // "–") + "` at " + ((.session_t_ms // "–") | tostring) + " ms (pull with `just pull-logs`)") +
     (if .screenshot then row("Screenshot"; "`" + $pulled + "/" + .screenshot + "` (on the Mac, not uploaded)") else "" end) +
-    ([(.frame // empty), (.files // [])[] | select(endswith("frame.jpg"))] | first // empty
-      | row("Frame at the playhead"; "`" + $pulled + "/" + . + "`")) // "" +
+    (([(.frame // empty), (.files // [])[] | select(endswith("frame.jpg"))] | first // empty
+      | row("Frame at the playhead"; "`" + $pulled + "/" + . + "`")) // "") +
     "\n<!-- bug:" + .reported_at + " -->" +
     (if .id then "\n<!-- bug-id:" + .id + " -->" else "" end)' <<<"$line")
   url=$(gh issue create -R "$REPO" --title "$title" --body "$body" --label bug)
