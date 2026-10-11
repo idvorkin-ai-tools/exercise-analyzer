@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		5A1A00000000000000000012 /* UltralyticsYOLO in Frameworks */ = {isa = PBXBuildFile; productRef = 5A1A00000000000000000011 /* UltralyticsYOLO */; };
 		5A1A00000000000000000022 /* ExerciseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 5A1A00000000000000000021 /* ExerciseCore */; };
+		5B1A00000000000000000071 /* BugKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5B1A00000000000000000072 /* BugKit */; };
 		5A1A0000000000000000003A /* ExerciseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 5A1A00000000000000000039 /* ExerciseCore */; };
 		5A1A0000000000000000003F /* ExerciseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 5A1A00000000000000000039 /* ExerciseCore */; };
 		5C1A00000000000000000061 /* ExerciseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 5C1A00000000000000000060 /* ExerciseCore */; };
@@ -117,6 +118,7 @@
 			files = (
 				5A1A00000000000000000012 /* UltralyticsYOLO in Frameworks */,
 				5A1A00000000000000000022 /* ExerciseCore in Frameworks */,
+				5B1A00000000000000000071 /* BugKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -180,6 +182,7 @@
 				5A1A0000000000000000000D /* Sources */,
 				5A1A0000000000000000000E /* Frameworks */,
 				5A1A0000000000000000000F /* Resources */,
+				5B1A00000000000000000073 /* What's new */,
 				5A1A0000000000000000003B /* Embed Watch Content */,
 				5C1A00000000000000000052 /* Embed Foundation Extensions */,
 			);
@@ -197,6 +200,7 @@
 			packageProductDependencies = (
 				5A1A00000000000000000011 /* UltralyticsYOLO */,
 				5A1A00000000000000000021 /* ExerciseCore */,
+				5B1A00000000000000000072 /* BugKit */,
 			);
 			productName = ExerciseAnalyzer;
 			productReference = 5A1A0000000000000000000C /* ExerciseAnalyzer.app */;
@@ -310,6 +314,7 @@
 			packageReferences = (
 				5A1A00000000000000000010 /* XCRemoteSwiftPackageReference "yolo-ios-app" */,
 				5A1A00000000000000000020 /* XCLocalSwiftPackageReference "ExerciseCore" */,
+				5B1A00000000000000000070 /* XCRemoteSwiftPackageReference "bug-kit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 5A1A00000000000000000006 /* Products */;
@@ -354,6 +359,28 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		5B1A00000000000000000073 /* What's new */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "What's new";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# BugKit's What's new (story 072): the last 30 days of git log and docs/stories as whats-new.json in the bundle.\n\"$BUILD_DIR/../../SourcePackages/checkouts/bug-kit/scripts/whats-new.sh\" \"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/whats-new.json\" --repo \"$SRCROOT\" --base-url \"https://github.com/idvorkin/exercise-analyzer/blob/main/docs/stories/\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		5A1A0000000000000000000D /* Sources */ = {
@@ -533,6 +560,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 45P6D3439T;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Exercise Analyzer";
@@ -567,6 +595,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 45P6D3439T;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Exercise Analyzer";
@@ -825,6 +854,14 @@
 				revision = 90df40ee2e5e2f30b40ac7518e43712f9a906381;
 			};
 		};
+		5B1A00000000000000000070 /* XCRemoteSwiftPackageReference "bug-kit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/idvorkin/bug-kit";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -844,6 +881,11 @@
 		5C1A00000000000000000060 /* ExerciseCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = ExerciseCore;
+		};
+		5B1A00000000000000000072 /* BugKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5B1A00000000000000000070 /* XCRemoteSwiftPackageReference "bug-kit" */;
+			productName = BugKit;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

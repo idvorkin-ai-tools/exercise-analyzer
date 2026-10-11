@@ -9,7 +9,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 022:
 
 - **Summary:** Report a problem in five seconds with the evidence attached
-- **Status:** implemented in [adc537a](https://github.com/idvorkin/exercise-analyzer/commit/adc537a), [d92c62f](https://github.com/idvorkin/exercise-analyzer/commit/d92c62f); verified on the phone (every issue from #25 on came through it); "Log it and another" (#212) in [8a40d31](https://github.com/idvorkin/exercise-analyzer/commit/8a40d31) (PR #213), verified on the simulator (`bug_again` smoke check: two reports from one capture, both with screenshot and frame; the sheet screenshotted on the iPhone 17 and iPad mini simulators), not on the phone yet
+- **Status:** implemented in [adc537a](https://github.com/idvorkin/exercise-analyzer/commit/adc537a), [d92c62f](https://github.com/idvorkin/exercise-analyzer/commit/d92c62f); verified on the phone (every issue from #25 on came through it); "Log it and another" (#212) in [8a40d31](https://github.com/idvorkin/exercise-analyzer/commit/8a40d31) (PR #213), verified on the simulator (`bug_again` smoke check: two reports from one capture, both with screenshot and frame; the sheet screenshotted on the iPhone 17 and iPad mini simulators), not on the phone yet; the shake, the sheet and the report's files come from [BugKit](https://github.com/idvorkin/bug-kit) since [a87acbb](https://github.com/idvorkin/exercise-analyzer/commit/a87acbb) (this app keeps its hooks: the screen, the context with numbers as numbers, the frame; a locked append and a folder per report, an `id` and the build's commit on every line), verified by build and the `bug_again` smoke check, the phone's first report is the proof
 
 #### Use Case:
 - **As a** lifter who just saw a wrong count
@@ -34,7 +34,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 026:
 
 - **Summary:** Attach what I was looking at to a bug report
-- **Status:** implemented in [523765b](https://github.com/idvorkin/exercise-analyzer/commit/523765b); verified on the simulator (`SWING_BUG` hook: screen.png and frame.jpg written and embedded by `file-bugs`)
+- **Status:** implemented in [523765b](https://github.com/idvorkin/exercise-analyzer/commit/523765b); verified on the simulator (`SWING_BUG` hook: screen.png and frame.jpg written and embedded by `file-bugs`); through BugKit since [a87acbb](https://github.com/idvorkin/exercise-analyzer/commit/a87acbb): the window snapshot is BugKit's, taken before the sheet appears, and `frame.jpg` is this app's extra file, listed under the report's `files`
 
 #### Use Case:
 - **As a** lifter reporting a wrong count or a display glitch
@@ -45,7 +45,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Scenario:** Reporting a glitch on screen
 - **Given:** a clip is open and something looks wrong on screen
 - **When:** I shake the phone and send a report
-- **Then:** the report carries a screenshot taken at the moment of the shake and, in playback, the clip's frame at the playhead; `just pull-logs` brings both to the Mac and the issue filed from the report shows them under the note
+- **Then:** the report carries a screenshot taken at the moment of the shake and, in playback, the clip's frame at the playhead; `just pull-logs` brings both to the Mac and the issue filed from the report names their paths there under the note (never uploaded: the repo is public, and a screenshot can show anything)
 
 - **Issues:** [#24](https://github.com/idvorkin/exercise-analyzer/issues/24)
 
@@ -54,7 +54,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 036:
 
 - **Summary:** A crash comes back with the logs (technical)
-- **Status:** implemented in [42b50ff](https://github.com/idvorkin/exercise-analyzer/commit/42b50ff); verified by build and by the first crash it caught (the Float16 tensor read, fixed in the same commit); the pruning (#72) in [a0a11ba](https://github.com/idvorkin/exercise-analyzer/commit/a0a11ba), on the phone since 2026-09-13; the exception file and the once-only announcement in [183db20](https://github.com/idvorkin/exercise-analyzer/commit/183db20), on the phone since 2026-09-16, verified by the next exception
+- **Status:** implemented in [42b50ff](https://github.com/idvorkin/exercise-analyzer/commit/42b50ff), from [BugKit](https://github.com/idvorkin/bug-kit)'s `CrashReports` and `BugStore.pruneLogs` since [60bd42b](https://github.com/idvorkin/exercise-analyzer/commit/60bd42b) (same files, same events; installed by the session once its log is open), verified by build; verified by build and by the first crash it caught (the Float16 tensor read, fixed in the same commit); the pruning (#72) in [a0a11ba](https://github.com/idvorkin/exercise-analyzer/commit/a0a11ba), on the phone since 2026-09-13; the exception file and the once-only announcement in [183db20](https://github.com/idvorkin/exercise-analyzer/commit/183db20), on the phone since 2026-09-16, verified by the next exception
 
 #### Use Case:
 - **As a** developer reading a session log that stops mid-work
@@ -98,3 +98,31 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Then:** a banner reads "Instrumented run · n of N · <set>" with the frames, fps and per-model milliseconds of the pass under way, a shake shows no report sheet, each set goes through the pose model and the detector from its clip and replaces its own entry, the log carries `debug_run` (start and end, with the mean fps) and per set `offline_pass` (`where: debug`, the detector's floor and cap, thermal state, low power, battery and memory) and `bell_held`; Cancel on the banner stops after the set in progress
 
 - **Issues:** [#18](https://github.com/idvorkin/exercise-analyzer/issues/18)
+
+---
+
+### User Story 072:
+
+- **Summary:** What's new in this build, written by the build itself
+- **Status:** implemented through [BugKit](https://github.com/idvorkin/bug-kit)'s `WhatsNew` (its stories 030–033); the build phase, the row and the list in [265c2e9](https://github.com/idvorkin/exercise-analyzer/commit/265c2e9); verified by `just build-sim` (the bundle's `whats-new.json` lists this month's stories) and on the simulator; the row on the phone is Igor's check
+
+#### Use Case:
+- **As a** lifter who installs a new build most days
+- **I want to** see on the Workouts screen one line about the newest change, and a list of this month's changes by day, each opening its story
+- **so that** I know what to try at the gym without anyone keeping a list up to date
+
+#### Acceptance Criteria:
+- **Scenario:** The home line
+- **Given:** this build's git history holds story commits from the last thirty days (a subject ending "(refs #N)" whose issue a story's Issues line lists, or naming "story NNN")
+- **When:** I open the app
+- **Then:** the top of Workouts reads "What's new · <day> — <the newest change>" with a ✕; tapping the line opens the list, one section per day, newest first, each change once per story per day with its story's summary, and a change opens its story on GitHub; the log has `ui` open_whats_new and open_story
+
+- **Scenario:** Dismissed until something newer
+- **Given:** the line is up
+- **When:** I tap its ✕
+- **Then:** the line goes (`ui` dismiss_whats_new) and stays gone through relaunches, until a build with a newer change; the list stays reachable from the ⋯ menu
+
+- **Scenario:** Nothing to show
+- **Given:** a build made without git history (the pipeline's clone, an archive)
+- **When:** I open the app
+- **Then:** the feed is empty, there is no line, the list says there is nothing new, and the build did not fail

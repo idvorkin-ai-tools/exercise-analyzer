@@ -13,7 +13,7 @@ struct ExerciseAnalyzerApp: App {
     // Never stop the lifter's music: mix with other audio and don't take over the session on playback.
     try? AVAudioSession.sharedInstance().setCategory(.ambient, mode: .default, options: [.mixWithOthers])
     NotificationRouter.shared.install()
-    CrashReports.shared.install()  // last launch's crash arrives here and lands in the session log
+    // Crash capture (BugKit's CrashReports) is installed by the session, once its log is open to announce to.
     _ = WorkoutMirror.shared  // the watch's workout session arrives here, even on a background launch (048)
   }
 

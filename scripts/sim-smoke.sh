@@ -227,13 +227,17 @@ check_bug_again() {  # #212: two reports from one shake ("Log it and another") b
   wait_for bug_report 60 || echo "      (timed out waiting for the reports)"
   sleep 2
   local f; f=$(newest_log)
+  # BugKit's line: id, reported_at with ms, screen, log, screenshot, and the frame among `files`; two folders in one
+  # second differ (-2), so neither report overwrites the other.
   if [ "$(wc -l < "$docs/bugs.jsonl")" -eq $((before + 2)) ] &&
     tail -2 "$docs/bugs.jsonl" | jq -se '
       length == 2 and .[0].note == "first of two" and .[1].note == "second of two" and
-      all(.[]; (.screenshot | type) == "string" and (.frame | type) == "string" and .log != null)
+      all(.[]; (.id | type) == "string" and (.screenshot | type) == "string" and .log != null and
+        (.files | any(endswith("frame.jpg"))) and .context.exercise != null and (.context.reps | type) == "number") and
+      (.[0].folder != .[1].folder)
     ' >/dev/null &&
     [ "$(jq -s '[.[] | select(.type=="bug_report")] | length' "$f")" = "2" ]; then
-    echo "ok    bug_again: two reports from one capture, both with screenshot and frame"
+    echo "ok    bug_again: two reports from one capture, both with screenshot and frame, in separate folders"
   else echo "FAIL  bug_again: $f"; fail=1; fi
   xcrun simctl terminate "$SIM" "$BUNDLE" 2>/dev/null || true
 }

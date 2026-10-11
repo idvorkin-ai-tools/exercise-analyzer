@@ -45,7 +45,7 @@ build-sim:
     set -uo pipefail
     out=$(xcodebuild -project ExerciseAnalyzer.xcodeproj -scheme ExerciseAnalyzer \
       -derivedDataPath Build/ -destination "platform=iOS Simulator,name={{sim}}" \
-      CODE_SIGNING_ALLOWED=NO build 2>&1)
+      CODE_SIGNING_ALLOWED=NO BUGKIT_COMMIT="$(git rev-parse --short HEAD)" build 2>&1)
     echo "$out" | grep -E "error:|BUILD"
     echo "$out" | grep -q "BUILD SUCCEEDED"
 
@@ -63,7 +63,7 @@ build-device:
     set -uo pipefail
     out=$(xcodebuild -project ExerciseAnalyzer.xcodeproj -scheme ExerciseAnalyzer \
       -derivedDataPath Build/ -destination "platform=iOS,id={{device}}" \
-      -allowProvisioningUpdates -allowProvisioningDeviceRegistration build 2>&1)
+      -allowProvisioningUpdates -allowProvisioningDeviceRegistration BUGKIT_COMMIT="$(git rev-parse --short HEAD)" build 2>&1)
     echo "$out" | grep -E "error:|BUILD"
     echo "$out" | grep -q "BUILD SUCCEEDED"
 
@@ -86,7 +86,7 @@ pull-logs:
     ls -t ~/tmp/agent/swing-logs/logs | head -5
     @ls -t ~/tmp/agent/swing-logs/crashes 2>/dev/null | head -3 | sed 's/^/crash report: /' || true
     @echo "--- bug reports (newest last); each names its log file:"
-    @tail -5 ~/tmp/agent/swing-logs/bugs.jsonl 2>/dev/null | jq -c '{reported_at, note, log, clip, exercise, playhead}' || true
+    @tail -5 ~/tmp/agent/swing-logs/bugs.jsonl 2>/dev/null | jq -c '{reported_at, screen, note, log, clip: (.context.clip // .clip), exercise: (.context.exercise // .exercise), playhead: (.context.playhead // .playhead)}' || true
 
 # MetricKit reports (Documents/crashes, pulled by pull-logs) do not need this.
 # The phone's own crash reports (.ips) via libimobiledevice; needs the phone on USB and paired (`idevicepair pair`).
@@ -143,6 +143,7 @@ analyze clip *args:
 pull-tracks:
     scripts/pull-tracks.sh {{device}}
 
-# Quick check for unfiled bug reports on the phone (exit 1 when there are any); `/loop 5m just bugs-check` while testing.
+# Quick check for unfiled bug reports on every paired iPhone and iPad, through BugKit's pull-reports.sh --check
+# (exit 1 when there are any, 2 when the issue lookup failed); scripts/bugs-monitor.sh watches it while Igor tests.
 bugs-check:
-    scripts/bugs-check.sh {{device}}
+    scripts/bugs-check.sh
