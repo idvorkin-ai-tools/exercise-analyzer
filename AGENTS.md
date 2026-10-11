@@ -8,6 +8,7 @@ squats, split squats, Turkish get-ups and pull-ups. `ExerciseCore/` is the platf
 
 | File | What it settles |
 |---|---|
+| [VISION.md](VISION.md) | what this app is and isn't: who it serves, what it owns, and the lines it does not cross |
 | [docs/TESTING.md](docs/TESTING.md) | the test ladder (host → Mac model → simulator → phone), fixtures, simulator launch hooks, which change is verified where |
 | [docs/DEBUGGING.md](docs/DEBUGGING.md) | the session log and every event type, pulling logs, the bug monitor loop, filing and closing reports, device tooling |
 | [docs/analysis/README.md](docs/analysis/README.md) | how poses become phases, reps and scores; one file per exercise with thresholds, fixtures and the experiments behind every rule |
