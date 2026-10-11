@@ -185,7 +185,12 @@ exception, `exception-<epoch>.txt` with the exception's name, reason and symboli
 crash was an AVFCapture exception whose reason the signal file could not carry). Each is announced once as
 `crash_report` (kind signal or exception) and renamed `.reported.txt`.
 `just pull-logs` copies the folder; `just symbolicate ~/tmp/agent/swing-logs/crashes/<stamp>.json` resolves the
-app's frames against the dSYM of the last `just build-device` (system frames print as offsets). The phone's own
+app's frames against the last `just build-device`, by UUID: a Debug build's code is `ExerciseAnalyzer.debug.dylib`
+inside the .app (the main binary is a stub), which is what the payload names, so that dylib is the binary to
+resolve against (a dSYM only when the build made one; Debug makes none, so frames come as symbol and file, line 0).
+Each frame's offset counts from the binary's `__TEXT` start, which the script reads with `otool -l` and passes to
+`atos -l`; `atos -l 0x0` resolves nothing for a binary whose text starts at 0x100000000 (bug-kit PR #10). System
+frames print as offsets; frames from another build say so (match the report's `commit`, rebuild it). The phone's own
 `.ips` reports are a second source: `just pull-crashes` uses libimobiledevice and needs the phone paired over USB.
 
 A session log that simply stops mid-work is the other crash signature: the last events say what was running. A

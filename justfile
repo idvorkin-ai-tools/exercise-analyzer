@@ -94,7 +94,8 @@ pull-crashes:
     mkdir -p ~/tmp/agent/swing-logs/ips
     cd ~/tmp/agent/swing-logs/ips && idevicecrashreport -k . && ls -t | grep -i exercise | head -5
 
-# Resolve a MetricKit crash JSON's addresses with the last device build's dSYM (frames print as symbol +offset).
+# Resolve a MetricKit crash JSON's app frames against the last device build (the debug dylib inside the .app, by
+# UUID; a dSYM when the build made one); system frames print as offsets, another build's frames say so.
 symbolicate file:
     scripts/symbolicate.sh {{file}}
 
