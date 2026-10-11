@@ -99,6 +99,10 @@ the numbers, then fix. Never ship a second guessed fix. Examples that paid off: 
    This is cheaper than `/loop 5m just bugs-check` (the fallback when Monitor is not available): a monitor wakes
    the model only when a report appears, a loop wakes it every five minutes to find nothing. An unreachable device
    (locked before its first unlock, or away) is named by the check, not a failure; the monitor stays quiet.
+   `pull-reports.sh exercise-analyzer` (no `--check`) copies every report's folder and, through the app's
+   `pull_extra` list in `apps.json`, the WatchConnectivity inbox
+   (`Documents/Inbox/com.apple.watchconnectivity/`, the watch's transfers waiting for the app, #197) to
+   `~/tmp/agent/bugs/<device>/com.apple.watchconnectivity/`.
 3. **When it exits 1**: `just pull-logs && just file-bugs` (`DEVICE=<iPad udid> just pull-logs` for the iPad). Each
    new report becomes one issue with the note, the context table (screen, clip, exercise, playhead, reps, build and
    commit, the log and its millisecond), and the screenshot's and frame's paths on the Mac, named and never
