@@ -565,7 +565,9 @@
 				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Exercise Analyzer";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Swing Analyzer uses the camera to analyze your kettlebell swing in real time.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Exercise Analyzer listens only while you dictate a problem report.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Swing Analyzer reads the videos you pick to analyze your swing.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Exercise Analyzer turns what you say into the text of a problem report.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -600,7 +602,9 @@
 				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Exercise Analyzer";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Swing Analyzer uses the camera to analyze your kettlebell swing in real time.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Exercise Analyzer listens only while you dictate a problem report.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Swing Analyzer reads the videos you pick to analyze your swing.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Exercise Analyzer turns what you say into the text of a problem report.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

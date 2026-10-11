@@ -27,7 +27,12 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **When:** I tap "Log it and another", next to "Log it"
 - **Then:** the report is saved as "Log it" saves it, with the shake's screenshot and frame, and the sheet is empty again for the next problem, which I type and send without shaking again (#212)
 
-- **Issues:** [#41](https://github.com/idvorkin/exercise-analyzer/issues/41) a shake from the Workouts sheet replaced that sheet with the report; the report now opens over it; [#212](https://github.com/idvorkin/exercise-analyzer/issues/212) "Log it and another"
+- **Scenario:** Speaking the note (#250)
+- **Given:** the report sheet is up, with chalk on my hands
+- **When:** I tap the microphone next to the note, say "rep 3 isn't a rep" and tap stop (or Log it)
+- **Then:** what I said is the note, after anything I had typed; the first tap asks for the microphone and speech recognition once; music pauses only while I dictate and resumes after; the log has `dictation_start` and `dictation_stop`
+
+- **Issues:** [#41](https://github.com/idvorkin/exercise-analyzer/issues/41) a shake from the Workouts sheet replaced that sheet with the report; the report now opens over it; [#212](https://github.com/idvorkin/exercise-analyzer/issues/212) "Log it and another"; [#250](https://github.com/idvorkin/exercise-analyzer/issues/250) no voice input on the sheet (BugKit's dictation was off: the usage strings were missing)
 
 ---
 
