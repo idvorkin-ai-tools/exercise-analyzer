@@ -52,7 +52,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **When:** I shake the phone and send a report
 - **Then:** the report carries a screenshot taken at the moment of the shake and, in playback, the clip's frame at the playhead; `just pull-logs` brings both to the Mac and the issue filed from the report names their paths there under the note (never uploaded: the repo is public, and a screenshot can show anything)
 
-- **Issues:** [#24](https://github.com/idvorkin/exercise-analyzer/issues/24)
+- **Issues:** [#24](https://github.com/idvorkin/exercise-analyzer/issues/24); [#249](https://github.com/idvorkin/exercise-analyzer/issues/249) an ✕ on "Attached automatically" to send a report without its screenshot: the dialog is BugKit's, filed there as [bug-kit#14](https://github.com/idvorkin/bug-kit/issues/14), open
 
 ---
 
