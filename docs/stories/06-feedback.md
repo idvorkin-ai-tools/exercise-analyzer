@@ -9,7 +9,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 022:
 
 - **Summary:** Report a problem in five seconds with the evidence attached
-- **Status:** implemented in [adc537a](https://github.com/idvorkin/exercise-analyzer/commit/adc537a), [d92c62f](https://github.com/idvorkin/exercise-analyzer/commit/d92c62f); verified on the phone (every issue from #25 on came through it); "Log it and another" (#212) in [8a40d31](https://github.com/idvorkin/exercise-analyzer/commit/8a40d31) (PR #213), verified on the simulator (`bug_again` smoke check: two reports from one capture, both with screenshot and frame; the sheet screenshotted on the iPhone 17 and iPad mini simulators), not on the phone yet; the shake, the sheet and the report's files come from [BugKit](https://github.com/idvorkin/bug-kit) since [a87acbb](https://github.com/idvorkin/exercise-analyzer/commit/a87acbb) (this app keeps its hooks: the screen, the context with numbers as numbers, the frame; a locked append and a folder per report, an `id` and the build's commit on every line), verified by build and the `bug_again` smoke check, the phone's first report is the proof
+- **Status:** implemented in [adc537a](https://github.com/idvorkin/exercise-analyzer/commit/adc537a), [d92c62f](https://github.com/idvorkin/exercise-analyzer/commit/d92c62f); verified on the phone (every issue from #25 on came through it); "Log it and another" (#212) in [8a40d31](https://github.com/idvorkin/exercise-analyzer/commit/8a40d31) (PR #213), verified on the simulator (`bug_again` smoke check: two reports from one capture, both with screenshot and frame; the sheet screenshotted on the iPhone 17 and iPad mini simulators), not on the phone yet; the shake, the sheet and the report's files come from [BugKit](https://github.com/idvorkin/bug-kit) since [a87acbb](https://github.com/idvorkin/exercise-analyzer/commit/a87acbb) (this app keeps its hooks: the screen, the context with numbers as numbers, the frame; a locked append and a folder per report, an `id` and the build's commit on every line), verified by build and the `bug_again` smoke check, and by the phone's first two reports on 2026-10-10 (#249, #250: screen, build, commit, device and context on both lines); dictation on (#250) in [ff2cbbf](https://github.com/idvorkin/exercise-analyzer/commit/ff2cbbf), verified by the simulator build, the mic button and its first-tap prompts are the phone's to feel
 
 #### Use Case:
 - **As a** lifter who just saw a wrong count
@@ -27,7 +27,12 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **When:** I tap "Log it and another", next to "Log it"
 - **Then:** the report is saved as "Log it" saves it, with the shake's screenshot and frame, and the sheet is empty again for the next problem, which I type and send without shaking again (#212)
 
-- **Issues:** [#41](https://github.com/idvorkin/exercise-analyzer/issues/41) a shake from the Workouts sheet replaced that sheet with the report; the report now opens over it; [#212](https://github.com/idvorkin/exercise-analyzer/issues/212) "Log it and another"
+- **Scenario:** Speaking the note (#250)
+- **Given:** the report sheet is up, with chalk on my hands
+- **When:** I tap the microphone next to the note, say "rep 3 isn't a rep" and tap stop (or Log it)
+- **Then:** what I said is the note, after anything I had typed; the first tap asks for the microphone and speech recognition once; music keeps playing, mixed with the microphone, and the app lets the session go when I stop; the log has `dictation_start` and `dictation_stop`
+
+- **Issues:** [#41](https://github.com/idvorkin/exercise-analyzer/issues/41) a shake from the Workouts sheet replaced that sheet with the report; the report now opens over it; [#212](https://github.com/idvorkin/exercise-analyzer/issues/212) "Log it and another"; [#250](https://github.com/idvorkin/exercise-analyzer/issues/250) no voice input on the sheet (BugKit's dictation was off: the usage strings were missing)
 
 ---
 
@@ -47,7 +52,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **When:** I shake the phone and send a report
 - **Then:** the report carries a screenshot taken at the moment of the shake and, in playback, the clip's frame at the playhead; `just pull-logs` brings both to the Mac and the issue filed from the report names their paths there under the note (never uploaded: the repo is public, and a screenshot can show anything)
 
-- **Issues:** [#24](https://github.com/idvorkin/exercise-analyzer/issues/24)
+- **Issues:** [#24](https://github.com/idvorkin/exercise-analyzer/issues/24); [#249](https://github.com/idvorkin/exercise-analyzer/issues/249) an ✕ on "Attached automatically" to send a report without its screenshot: the dialog is BugKit's, filed there as [bug-kit#14](https://github.com/idvorkin/bug-kit/issues/14), open
 
 ---
 

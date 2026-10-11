@@ -26,6 +26,9 @@ extension VideoPoseSession {
     options.gentleShake = false  // a phone carried between sets flicks; iOS's own shake is the report gesture here
     options.launchHookPrefix = "SWING"  // SWING_BUG="a|b", SWING_SHAKE_AFTER=8 in the simulator checks
     options.placeholder = "e.g. counted 1 rep, there were 13"
+    // #250: the mic button on the sheet (the usage strings are in the project's INFOPLIST_KEYs). Nothing of ours
+    // holds the microphone (the camera captures video only), so the busy hook stays BugKit's default.
+    options.dictation = true
     let log = log
     let reporter = BugReporter(
       hooks: BugReporterHooks(
