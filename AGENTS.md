@@ -29,8 +29,9 @@ carry only what was decided.
   watch build) is running: the checks' startup waits fail under contention and a check can read the previous
   clip's result; treat such a run as failed and rerun it once the build is done. **Only one simulator on this Mac
   at a time** (Igor, 2026-10-11): before booting, check `xcrun simctl list devices booted` and wait until it is
-  empty; shut yours down when done, failed runs included. A paired watch and phone count as two, and the
-  no-mistakes test agent counts as one (it reads this file and `test.instructions` in `.no-mistakes.yaml`). A new
+  empty; shut yours down when done, failed runs included. A paired watch and phone count as two. The no-mistakes
+  test agent boots nothing (`test.instructions` in `.no-mistakes.yaml` keeps it on the host rung): live checks are
+  the driving session's, once, in its build turn, recorded in the PR body. A new
   model (a detector, a bigger pose model) is tried on the Mac first with Core ML over the sample clips
   (`scripts/model-trials/`), never straight in the app.
 - **Bump `AnalysisVersion.current`** (ExerciseCore/Sources/ExerciseCore/AnalysisVersion.swift) in any commit that
@@ -81,9 +82,17 @@ carry only what was decided.
   commit on a feature branch, `no-mistakes axi run --intent "<what Igor set out to do, with the decisions>"` (or
   push to the no-mistakes remote), answer its gates, and when it reaches `checks-passed` merge the PR yourself
   (delete the branch, verify `origin/main`). Do not wait for PR feedback: nobody gives it, the pipeline is the
-  review. The gate's test command is `just test` (the host rung only); after it passes, the test step's evidence
-  agent may build and drive the "iPhone 17" simulator, so a running pipeline counts as the one simulator, and a
-  pipeline pass never replaces `just test-sim` or the phone rung.
+  review. The gate's test command is `just test` (the host rung only), and the test step stays on the host
+  (`test.instructions` in `.no-mistakes.yaml`): it boots no simulator and lists what only a simulator or the phone
+  can show. Igor's pipeline rules (2026-10-11, `~/tmp/agent/locks/PIPELINE-RULES.md`):
+  - **One pipeline run per train.** Finish the whole stack before the first push; do not push while a run is in
+    flight unless its review or test step asked for that fix; never restart the no-mistakes daemon or reboot
+    while runs are active.
+  - **Review settles in one fix round.** Round 1 fixes every error and warning together; later rounds fix errors
+    only and decide the info findings in one pass; review is capped at two rounds, the rest become issues.
+  - **Live checks once, in the build turn.** The driving session runs the simulator and device checks itself,
+    once per train, under the build lock, and records them in the PR body; a pipeline pass never replaces
+    `just test-sim` or the phone rung.
 - **Analyzer semantics** (details and evidence in `docs/analysis/`): a swing rep is top→top, about 1.2 s; the first
   swing counts too (the hike off the floor, #148): a rep over 4 s drops its walk-in or setup and counts only as a
   hike that flies to the top within 0.4 s; an upswing over 1 s is not a swing; a top over 1 s after the deepest
