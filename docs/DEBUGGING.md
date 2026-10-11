@@ -184,13 +184,14 @@ MetricKit can take days on a development build, so the app also keeps its own la
 exception, `exception-<epoch>.txt` with the exception's name, reason and symbolized stack (#87; the 2026-09-13
 crash was an AVFCapture exception whose reason the signal file could not carry). Each is announced once as
 `crash_report` (kind signal or exception) and renamed `.reported.txt`.
-`just pull-logs` copies the folder; `just symbolicate ~/tmp/agent/swing-logs/crashes/<stamp>.json` resolves the
-app's frames against the last `just build-device`, by UUID: a Debug build's code is `ExerciseAnalyzer.debug.dylib`
-inside the .app (the main binary is a stub), which is what the payload names, so that dylib is the binary to
-resolve against (a dSYM only when the build made one; Debug makes none, so frames come as symbol and file, line 0).
-Each frame's offset counts from the binary's `__TEXT` start, which the script reads with `otool -l` and passes to
-`atos -l`; `atos -l 0x0` resolves nothing for a binary whose text starts at 0x100000000 (bug-kit PR #10). System
-frames print as offsets; frames from another build say so (match the report's `commit`, rebuild it). The phone's own
+`just pull-logs` copies the folder; `just symbolicate ~/tmp/agent/swing-logs/crashes/<stamp>.json` runs BugKit's
+`symbolicate.sh` (bug-kit PR #10) over the dSYMs of the last `just build-device`, by UUID. A Debug build's code is
+`ExerciseAnalyzer.debug.dylib` inside the .app (the main binary is a stub), which is what the payload names, so
+Debug builds make dSYMs too (`DEBUG_INFORMATION_FORMAT = dwarf-with-dsym` at the project level: one for the stub,
+one for the dylib, one per extension); each frame's offset counts from the binary's `__TEXT` start, which the script
+passes to `atos -l` (`-l 0x0` resolves nothing for a binary whose text starts at 0x100000000). System frames print
+as offsets; frames from another build print "(no dSYM)" (match the report's `commit`, rebuild it, point `PRODUCTS`
+at its products folder). The phone's own
 `.ips` reports are a second source: `just pull-crashes` uses libimobiledevice and needs the phone paired over USB.
 
 A session log that simply stops mid-work is the other crash signature: the last events say what was running. A
