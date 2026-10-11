@@ -146,6 +146,14 @@ A human spot-check of a few frames stays worthwhile; Muse's notes column says wh
 
 [`scripts/sim-smoke.sh`](../scripts/sim-smoke.sh), run by `just test-sim` after `just build-sim`.
 
+**One simulator on this Mac at a time** (Igor, 2026-10-11): several agents share the machine, and two booted
+simulators made the checks' startup waits fail. Before booting, `xcrun simctl list devices booted` must list
+none; wait if it does not. Boot one, and `xcrun simctl shutdown <udid>` it when done, failed runs included. A
+watch simulator alone (rung 2b) is the one; the Retry check's paired watch and phone count as two, so it waits
+for a Mac with nothing booted and shuts both down after. The no-mistakes test
+agent follows the same rule through `test.instructions` in `.no-mistakes.yaml`, so a running pipeline is the one
+simulator.
+
 Each check waits for its event in a new launch log, so a slow startup cannot reuse the preceding clip's result.
 The trim check reads the first `display_frame` after `trim`, rather than sampling the last few frame events.
 

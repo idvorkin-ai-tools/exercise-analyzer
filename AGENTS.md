@@ -26,9 +26,12 @@ carry only what was decided.
   (~20 fps); it has no camera, no HDR, no taps: drive it with `SIMCTL_CHILD_SWING_*` hooks and wait on log events
   ([TESTING.md](docs/TESTING.md)). Never run `just test-sim` while another `xcodebuild` (a signed device or
   watch build) is running: the checks' startup waits fail under contention and a check can read the previous
-  clip's result; treat such a run as failed and rerun it once the build is done. A new model (a detector, a
-  bigger pose model) is tried on the Mac first with Core ML over the sample clips (`scripts/model-trials/`),
-  never straight in the app.
+  clip's result; treat such a run as failed and rerun it once the build is done. **Only one simulator on this Mac
+  at a time** (Igor, 2026-10-11): before booting, check `xcrun simctl list devices booted` and wait until it is
+  empty; shut yours down when done, failed runs included. A paired watch and phone count as two, and the
+  no-mistakes test agent counts as one (it reads this file and `test.instructions` in `.no-mistakes.yaml`). A new
+  model (a detector, a bigger pose model) is tried on the Mac first with Core ML over the sample clips
+  (`scripts/model-trials/`), never straight in the app.
 - **Bump `AnalysisVersion.current`** (ExerciseCore/Sources/ExerciseCore/AnalysisVersion.swift) in any commit that
   changes an analyzer, the detector, or the skeleton math: stored sets re-analyze themselves against it (#19).
 - **Analysis notes live in `docs/analysis/`**. Read the exercise's file before touching its analyzer; every rule
