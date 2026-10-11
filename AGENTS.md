@@ -76,7 +76,9 @@ carry only what was decided.
   commit on a feature branch, `no-mistakes axi run --intent "<what Igor set out to do, with the decisions>"` (or
   push to the no-mistakes remote), answer its gates, and when it reaches `checks-passed` merge the PR yourself
   (delete the branch, verify `origin/main`). Do not wait for PR feedback: nobody gives it, the pipeline is the
-  review. Its test step drives the "iPhone 17" simulator, so it counts as the one simulator while it runs.
+  review. The gate's test command is `just test` (the host rung only); after it passes, the test step's evidence
+  agent may build and drive the "iPhone 17" simulator, so a running pipeline counts as the one simulator, and a
+  pipeline pass never replaces `just test-sim` or the phone rung.
 - **Analyzer semantics** (details and evidence in `docs/analysis/`): a swing rep is top→top, about 1.2 s; the first
   swing counts too (the hike off the floor, #148): a rep over 4 s drops its walk-in or setup and counts only as a
   hike that flies to the top within 0.4 s; an upswing over 1 s is not a swing; a top over 1 s after the deepest
