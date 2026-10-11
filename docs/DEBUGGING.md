@@ -87,8 +87,10 @@ the numbers, then fix. Never ship a second guessed fix. Examples that paid off: 
    copies only `bugs.jsonl` from every paired iPhone and iPad (no device ids; the listener's
    `~/.config/bug-kit/apps.json` names the app), prints one stable line per report that is not yet an issue
    (`new exercise-analyzer <device> <reported_at> <note>`) and exits 1 when there are any, 0 when clean, 2 when the
-   issue lookup failed. The agent watches it through `scripts/bugs-monitor.sh`, which polls every minute and prints
-   one line per new report, once (silent otherwise), armed as a persistent `Monitor`:
+   issue lookup failed. The agent watches it through `scripts/bugs-monitor.sh` (BugKit's `bugs-monitor.sh` for
+   this app; `scripts/bugkit-path.sh` finds the checkout), which polls every minute and prints one line per new
+   report, once, plus `check_failed <reason>` once when the check itself breaks and `check_ok` when it recovers
+   (silent otherwise), armed as a persistent `Monitor`:
 
    ```
    Monitor(command: "scripts/bugs-monitor.sh", description: "new shake reports on the phone", persistent: true)
