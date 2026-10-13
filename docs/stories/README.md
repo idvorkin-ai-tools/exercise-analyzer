@@ -41,6 +41,8 @@ and `docs/analysis/`. The vocabulary:
 - `…; on the phone since <date>, Igor's check pending` when the build is installed but the behaviour needs an
   eye or a wrist that the rungs do not have.
 - `not implemented (#N)` when only the issue exists.
+- `not built (#N)` for a story, or `<what> (#N) not built` at the end of a longer Status, when the proposal is
+  written and on the issue and waits for Igor's "do it".
 - `superseded by <story> in <commit>; before that implemented in <commits>` when another story replaced it. The
   story shrinks to its Summary, Status, a one-line Notes pointer and its Issues; the number stays.
 - `parked (#N)` when Igor decided not to build it for now; the story keeps its criteria as the plan.
