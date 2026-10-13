@@ -44,7 +44,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 026:
 
 - **Summary:** Attach what I was looking at to a bug report
-- **Status:** implemented in [523765b](https://github.com/idvorkin/exercise-analyzer/commit/523765b); verified on the simulator (`SWING_BUG` hook: screen.png and frame.jpg written and embedded by `file-bugs`); through BugKit since [a87acbb](https://github.com/idvorkin/exercise-analyzer/commit/a87acbb): the window snapshot is BugKit's, taken before the sheet appears, and `frame.jpg` is this app's extra file, listed under the report's `files`; since 2026-10-11 the bug-kit listener copies the pictures to the Mac and files the issue naming their paths
+- **Status:** implemented in [523765b](https://github.com/idvorkin/exercise-analyzer/commit/523765b); verified on the simulator (`SWING_BUG` hook: screen.png and frame.jpg written and embedded by `file-bugs`); through BugKit since [a87acbb](https://github.com/idvorkin/exercise-analyzer/commit/a87acbb): the window snapshot is BugKit's, taken before the sheet appears, and `frame.jpg` is this app's extra file, listed under the report's `files`; since 2026-10-11 the bug-kit listener copies the pictures to the Mac and files the issue naming their paths; the ✕ to send a report without its screenshot (#249) is BugKit's, here since the v0.3.0 pin in [6ea186b](https://github.com/idvorkin/exercise-analyzer/commit/6ea186b) (scenario in [4c2b738](https://github.com/idvorkin/exercise-analyzer/commit/4c2b738)), verified by build, not on the phone yet
 
 #### Use Case:
 - **As a** lifter reporting a wrong count or a display glitch
