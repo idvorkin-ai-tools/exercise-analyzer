@@ -47,6 +47,8 @@ struct ContentView: View {
   /// What's new (story 072): the feed the build wrote into the bundle, and its list.
   private static let whatsNew = WhatsNewSeen.bundledFeed()
   @State private var showWhatsNew = false
+  /// About / version (BugKit 0.3.3, bug-kit #45): the build's version, commit and repository from Info.plist.
+  @State private var showAbout = false
   @State private var showGallery = false
   /// The clip copied for the share sheet, while the sheet is up (#162).
   @State private var sharing: SharedClip?
@@ -128,6 +130,17 @@ struct ContentView: View {
         NavigationStack {
           WhatsNewView(feed: Self.whatsNew, logger: session.bugLogger)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showWhatsNew = false } } }
+        }
+      }
+      .sheet(isPresented: $showAbout) {
+        NavigationStack {
+          // The models this build runs on a clip (ModelSet.names: the pose model first, then the detectors).
+          BugKitAboutView(
+            extraRows: session.models.names.enumerated().map { index, name in
+              BugKitAboutRow(title: index == 0 ? "Pose model" : "Detector", value: name)
+            }
+          )
+          .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showAbout = false } } }
         }
       }
       .confirmationDialog(
@@ -359,6 +372,11 @@ struct ContentView: View {
         showWhatsNew = true
       } label: {
         Label("What's new", systemImage: "sparkles")
+      }
+      Button {
+        showAbout = true
+      } label: {
+        Label("About / version", systemImage: "info.circle")
       }
       Button {
         openURL(URL(string: "https://github.com/idvorkin/exercise-analyzer")!)

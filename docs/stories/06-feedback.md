@@ -141,3 +141,31 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Given:** a build made without git history (the pipeline's clone, an archive)
 - **When:** I open the app
 - **Then:** the feed is empty, there is no line, the list says there is nothing new, and the build did not fail
+
+---
+
+### User Story 074:
+
+- **Summary:** See which build and which models the phone is running
+- **Status:** implemented through [BugKit](https://github.com/idvorkin/bug-kit) 0.3.3's About / version screen (bug-kit #45, #49), the row, the sheet and the Info.plist keys in this repo's `chore/2026-10-13-bugkit-0.3.3` train; verified by build, to verify on device (the two links open)
+- **Why:** Igor, 2026-10-13 (every app, through the helper pane): a shared About / version row so a report or a question can name the build.
+
+#### Use Case:
+- **As a** lifter asking why the phone and the Mac disagree
+- **I want to** open About / version from the ⋯ menu and read the version, the commit and the models this build runs
+- **so that** I can say which build I am on, and tap through to its commit on GitHub
+
+#### Acceptance Criteria:
+- **Scenario:** The build on the phone
+- **Given:** a build installed by `just run-device` from commit d04ae24
+- **When:** I open ⋯ › About / version
+- **Then:** a sheet lists Exercise Analyzer, "1.0 (1)", the commit "d04ae24" as a link to that commit on GitHub, "Repository on GitHub", and under them the models this build runs on a clip: "Pose model yolo26n-pose" and a "Detector" row per bundled detector with its name and settings (the names `ModelSet.names` stores with every analysis); Done closes it
+
+- **Scenario:** A build Xcode made by hand
+- **Given:** a build run from Xcode, where nothing passed `BUGKIT_COMMIT`
+- **When:** I open About / version
+- **Then:** the commit reads "unknown" with no link, and the repository link still opens; a `-dirty` build links its base commit and says so
+
+- **Notes:** BugKit's `BugKitAboutView` in a sheet from the ⋯ menu (this app has no Settings screen; the menu is its settings, story 058), with `extraRows` from `ModelSet.names`. The values come from the built app's Info.plist: `BugKitCommit` (`$(BUGKIT_COMMIT)`, set by `just build-*`) and `BugKitRepositoryURL`; BugKit reads no git at runtime.
+
+- **Issues:** bug-kit [#45](https://github.com/idvorkin/bug-kit/issues/45), [#49](https://github.com/idvorkin/bug-kit/issues/49)
