@@ -71,7 +71,7 @@ carry only what was decided.
   issue, never by copying its code in. Bugs in our own hooks (`ExerciseAnalyzer/BugReport.swift`: the screen, the
   context, the frame) stay here. Shared practices for all apps live in
   [idvorkin/bug-kit](https://github.com/idvorkin/bug-kit) (README: "Shared practices for every app"); a practice
-  that applies to every app is filed there, and this issue links to it (Igor, 2026-10-13).
+  that applies to every app is filed there, and our issue links to it (Igor, 2026-10-13).
 - **Every feature or behaviour change updates the user stories** (`docs/stories/`) in the same commit or the
   next: a new capability gets a story in its journey (Cohn + Gherkin, `user-story` skill) with a `Status:` line
   naming its commit and where it was verified; a changed behaviour edits the story's acceptance criteria and adds

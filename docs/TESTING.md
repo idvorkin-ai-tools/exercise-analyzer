@@ -281,4 +281,5 @@ session state, and bug reports. `just log-summary <file>` prints everything exce
 Shake the phone → `bug_report` event + `Documents/bugs.jsonl` → the bug-kit listener (always on, every five
 minutes) files each new report as a GitHub issue once (marker `<!-- bug:<reported_at> -->`) and appends a line to
 `~/tmp/agent/bugs/inbox.jsonl`, which `scripts/bugs-monitor.sh` tails → analysis and evidence go on the issue as a
-comment → one commit per issue with a closing keyword (`Fixes #N`) once the right rung has verified it.
+comment → one commit per issue, verified on the right rung → the issue closes when the fix merges to main, with a
+comment naming the merge commit and any device check still pending as "to verify on device".
