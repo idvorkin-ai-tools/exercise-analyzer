@@ -70,12 +70,12 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Scenario:** A day with all its videos wears a diamond (#242)
 - **Given:** Saturday, Sep 19 had three sets, every one filmed, and Thursday had nine filmed sets and two typed on the wrist
 - **When:** I read the day list, on the phone or the iPad
-- **Then:** Saturday's title ends in a small cyan diamond ("Saturday, Sep 19 ’26 ◆", VoiceOver "Every set on video") and Thursday's does not; a day with only a wrist workout and no sets has none; the diamond is a mark to pick the day to demo, not a filter (Igor, 2026-10-10, from the phone: "Add a diamond to a workout that has all its videos … when I wanna demo it, I can show the right one")
+- **Then:** Saturday's title ends in a small cyan diamond ("Saturday, Sep 19 ’26 ◆", VoiceOver "Every set on video") and Thursday's does not; a day with only a wrist workout and no sets has none; the diamond on the title is a mark to pick the day to demo, not a filter (showing only those days is 073's row) (Igor, 2026-10-10, from the phone: "Add a diamond to a workout that has all its videos … when I wanna demo it, I can show the right one")
 
 - **Scenario:** The day list is tight (#266)
 - **Given:** six workout days on the phone, each a title line and one green workout line
 - **When:** I read the day list
-- **Then:** the days sit close: about 76 pt per workout day (the title, 4 pt, the 36 pt workout line, 4 pt above and below the day, 4 pt between days) instead of today's 98 pt (8 pt above and below, 14 pt between), so seven workout days fit on the screen where five did; every line is still a full-width target and nothing else moves (Igor, 2026-10-13, from the phone: "tighten up the vertical spacing, there's a lot of dead space between the workouts")
+- **Then:** the days sit close: about 77 pt per workout day (the 25 pt title, 4 pt, the 36 pt workout line, 4 pt above and below the day, 4 pt between days) instead of today's 95 pt (8 pt above and below, 14 pt between), so six workout days fit where five did; every line is still a full-width target and nothing else moves (Igor, 2026-10-13, from the phone: "tighten up the vertical spacing, there's a lot of dead space between the workouts")
 
 - **Notes:** Where the history lives ([#159](https://github.com/idvorkin/exercise-analyzer/issues/159), decided 2026-09-27, nothing to build): every set, its analysis and pictures, and `workouts.json` sit in the app's Documents folder with nothing excluded from backup, so iCloud Backup and Quick Start carry the whole list to a new phone; Photos clips travel with iCloud Photos, workouts and heart rate with Health. The issue stays open until Igor confirms iCloud Backup is on.
 
@@ -786,7 +786,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 073:
 
 - **Summary:** Find the days I did an exercise, and the days on video, by tapping the drawings
-- **Status:** not implemented ([#265](https://github.com/idvorkin/exercise-analyzer/issues/265)); A and B are on the issue, waiting for Igor's pick
+- **Status:** not built ([#265](https://github.com/idvorkin/exercise-analyzer/issues/265)); A, the row, is chosen over B on the issue, waiting for Igor's "do it"
 - **Why:** Igor, 2026-10-13, from the phone on Workouts: "some kind of search thing where I can search for a workout by what I did and if I had a video; the pretty icons, I like them"
 
 #### Use Case:
@@ -815,6 +815,6 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
   already computes each day's exercises and its diamond, so the filter is a predicate over the days the gallery draws,
   nothing new is stored, and the strip, What's new and the Live button stay where they are.
 
-- **Issues:** [#265](https://github.com/idvorkin/exercise-analyzer/issues/265)
+- **Issues:** [#265](https://github.com/idvorkin/exercise-analyzer/issues/265) the row of drawings and the diamond, not built
 
 ---
