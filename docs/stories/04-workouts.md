@@ -783,6 +783,8 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 
 - **Issues:** [#209](https://github.com/idvorkin/exercise-analyzer/issues/209); [#53](https://github.com/idvorkin/exercise-analyzer/issues/53) the iPad it serves; [#231](https://github.com/idvorkin/exercise-analyzer/issues/231) the iPad never read a set (the watchdog); [#239](https://github.com/idvorkin/exercise-analyzer/issues/239) the iPad never asked Health
 
+---
+
 ### User Story 073:
 
 - **Summary:** Find the days I did an exercise, and the days on video, by tapping the drawings
