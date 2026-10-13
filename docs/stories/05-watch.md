@@ -580,7 +580,7 @@ the first frame (story 001).
 ### User Story 050:
 
 - **Summary:** Rest time stays on the wrist in Preview and beside the workout clock
-- **Status:** implemented in [bda4c00](https://github.com/idvorkin/exercise-analyzer/commit/bda4c00); verified on the watch simulator (`just watch-screens`: viewfinder, workout, workoutStart); on the watch since 2026-09-18, Igor's check pending
+- **Status:** implemented in [bda4c00](https://github.com/idvorkin/exercise-analyzer/commit/bda4c00); verified on the watch simulator (`just watch-screens`: viewfinder, workout, workoutStart); on the watch since 2026-09-18, Igor's check pending; the drop from the last set's peak (#195) not built
 - **Why:** Igor, 2026-09-18, from the gym: "When in watch preview keep time since last rep on small. On watch. Include time since last rep not just total work out time."
 
 #### Use Case:
@@ -599,14 +599,19 @@ the first frame (story 001).
 - **When:** I look at the workout page
 - **Then:** the head reads "REST · 1:30" over "1:42", large, orange because it is past the rest length (white before it), and under it "♥ 128 BPM · 42:13" with the workout clock small and green; there is no second rest line further down
 
+- **Scenario:** How far the heart has come down from the set (#195)
+- **Given:** a workout is running, the last recorded set peaked at 157 and ended 1:42 ago, and the wrist reads 128 now
+- **When:** I look at the workout page's rest head
+- **Then:** its heart line reads "♥ 128 · −29 BPM · 42:13": the rate now and its drop from that set's peak, so the wrist tells me how recovered I am the way the phone's row says "♥ 157 · −8" afterwards (053); before the first recorded set, while a set records, and when the heart has risen above the peak since, the line is the plain "♥ 128 BPM" of 048; a set typed by hand changes no peak (Igor, 2026-10-05: "Heart rate in watch shown delta from last set peak")
+
 - **Scenario:** No rest, no flip
 - **Given:** a workout is running and no set has ended yet, or a set is recording, or the workout is ending
 - **When:** I look at the workout page
 - **Then:** the head is WORKOUT over the session clock, as in story 048, and ENDING… while the workout is ending
 
-- **Notes:** The rest is the timer of story 046, which starts at Done, a few seconds after the last rep; no second clock, and watch only. Igor picked 91B on the board of 2026-09-18 ("agreed"): between sets the rest is the number acted on, so it is the large one; 91A kept it small on the heart-rate line. Outside a workout the idle page keeps its "Rest 1:42" line under the buttons (046).
+- **Notes:** The rest is the timer of story 046, which starts at Done, a few seconds after the last rep; no second clock, and watch only. Igor picked 91B on the board of 2026-09-18 ("agreed"): between sets the rest is the number acted on, so it is the large one; 91A kept it small on the heart-rate line. Outside a workout the idle page keeps its "Rest 1:42" line under the buttons (046). The set's peak for the drop (#195) would be the wrist's own: the highest reading from Record to 30 s after Done (the phone's rule for a set's peak, 053), kept until the next Record; the watch already keeps the workout's max for Health.
 
-- **Issues:** [#91](https://github.com/idvorkin/exercise-analyzer/issues/91)
+- **Issues:** [#91](https://github.com/idvorkin/exercise-analyzer/issues/91); [#195](https://github.com/idvorkin/exercise-analyzer/issues/195) the drop from the last set's peak on the rest head, not built
 
 ---
 
