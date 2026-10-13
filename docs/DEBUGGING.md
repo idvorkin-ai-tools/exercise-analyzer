@@ -88,7 +88,9 @@ the numbers, then fix. Never ship a second guessed fix. Examples that paid off: 
    bundle, its repo and its tracker (GitHub, `idvorkin/exercise-analyzer`). Each poll copies new reports and crash
    files to `~/tmp/agent/bugs/exercise-analyzer/<device>/`, files one issue per report with the note, the context
    table (screen, clip, exercise, playhead, reps, build and commit, the log and its millisecond) and the
-   screenshot's and frame's paths on the Mac, named and never uploaded (the repo is public; BugKit principle 13;
+   screenshot's and frame's paths on the Mac, named and never posted to GitHub (they reach the Mac only through
+   the private CloudKit container `iCloud.com.idvorkin.BugKitReports`, Igor's own iCloud in the Development
+   environment, or the device pull; the repo is public; BugKit principle 13;
    the markers `<!-- bug:<reported_at> -->` and `<!-- bug-id:<id> -->` make filing idempotent), then appends a line
    to `~/tmp/agent/bugs/inbox.jsonl` (`t`, `app`, `device`, `key`, `kind`, `reported_at`, `note`, `ref` the issue
    URL, `dir`) and sends a Herdr notification. Nobody else files: `just file-bugs` is the fallback for a listener
