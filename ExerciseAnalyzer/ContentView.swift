@@ -112,121 +112,130 @@ struct ContentView: View {
   /// the flow for B"). The app-wide dialogs, pickers and hooks hang here, so they work on every screen.
   private var mainBody: some View {
     navigation
-    // A shake, ⌘I or the menu's "Report a problem" opens BugKit's sheet over whatever is up (#41). A shake mid-run
-    // is the phone being carried, not a report (story 037), so shakes follow the run. The report names its screen.
-    .bugReporting(session.bugReporter)
-    .onChange(of: session.instrumentedRun == nil, initial: true) { _, idle in session.bugReporter.shakeEnabled = idle }
-    .onChange(of: path, initial: true) { _, path in session.bugScreen = Self.bugScreen(path: path, source: session.source) }
-    .onChange(of: session.source) { _, source in session.bugScreen = Self.bugScreen(path: path, source: source) }
-    .sheet(isPresented: $showSyncStatus) {
-      if let sync = session.sync { SyncStatusView(sync: sync) } else { Text("No sync store").padding() }
-    }
-    .sheet(isPresented: $showWhatsNew) {
-      NavigationStack {
-        WhatsNewView(feed: Self.whatsNew, logger: session.bugLogger)
-          .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showWhatsNew = false } } }
+      // A shake, ⌘I or the menu's "Report a problem" opens BugKit's sheet over whatever is up (#41). A shake mid-run
+      // is the phone being carried, not a report (story 037), so shakes follow the run. The report names its screen.
+      .bugReporting(session.bugReporter)
+      .onChange(of: session.instrumentedRun == nil, initial: true) { _, idle in session.bugReporter.shakeEnabled = idle
       }
-    }
-    .confirmationDialog(
-      "No reps found in this recording", isPresented: $session.emptyRecordingPrompt, titleVisibility: .visible
-    ) {
-      Button("Delete recording", role: .destructive) { session.deleteCurrentRecording() }
-      Button("Keep it", role: .cancel) {}
-    } message: {
-      Text("Nothing was saved to Photos. Delete the recording, or keep it to look at?")
-    }
-    .setDeletionDialog($deleting) { session.delete(set: $0, from: "review") }
-    // Story 070, step 3: the sets recorded before recordings went to Photos by themselves, asked about once.
-    // An alert, not a confirmation dialog: iOS 26+ draws the dialog as a popover that hides its cancel button,
-    // so "Not now" never showed and a tap outside closed it without deferring.
-    .alert(
-      "Save \(session.photosBacklog.count) recordings to Photos?", isPresented: $session.photosExportPrompt
-    ) {
-      Button("Save them") { session.answerPhotosExport(save: true) }
-      Button("Not now", role: .cancel) { session.answerPhotosExport(save: false) }
-    } message: {
-      Text(
-        "\(ByteCountFormatter.string(fromByteCount: Int64(session.photosBacklog.bytes), countStyle: .file)) of sets recorded before this version live only in the app. In Photos, iCloud carries them to the iPad; their counts and pictures stay here either way."
-      )
-    }
-    // A Photos clip was just trimmed to its set: offer the replace right away instead of leaving it to the
-    // Save button (#90). Replace is story 011's save: the trimmed clip goes in, iOS asks once to delete the
-    // original, Undo trim brings it back.
-    .confirmationDialog(
-      "Replace the original in Photos?", isPresented: $session.replaceOriginalPrompt, titleVisibility: .visible
-    ) {
-      Button("Replace with the trimmed set") {
-        session.log.event("ui", ["action": "replace_original", "choice": "replace"])
-        session.saveToPhotos()
+      .onChange(of: path, initial: true) { _, path in
+        session.bugScreen = Self.bugScreen(path: path, source: session.source)
       }
-      Button("Keep both for now", role: .cancel) {
-        session.log.event("ui", ["action": "replace_original", "choice": "keep"])
+      .onChange(of: session.source) { _, source in session.bugScreen = Self.bugScreen(path: path, source: source) }
+      .sheet(isPresented: $showSyncStatus) {
+        if let sync = session.sync { SyncStatusView(sync: sync) } else { Text("No sync store").padding() }
       }
-    } message: {
-      Text("The trimmed set goes into Photos and iOS asks once to delete the original. Undo trim brings it back. Save to Photos does the same later.")
-    }
-    .onAppear(perform: loadFromEnvironment)
-    // Story 069: another app (Grabber Native) opened us with exerciseanalyzer://; it only brings the app forward.
-    .onOpenURL { url in session.log.event("open_url", ["url": url.absoluteString]) }
-    .onChange(of: pickerItem) { _, item in
-      guard let item else { return }
-      // The player comes up here, as for Files: with a set already loaded the source stays `.file`, so the
-      // source change that opens the player never fires (Codex's review of PR #187).
-      showPlayer(fromLog: true)
-      Task {
-        await session.importPicked(item: item)
-        pickerItem = nil
+      .sheet(isPresented: $showWhatsNew) {
+        NavigationStack {
+          WhatsNewView(feed: Self.whatsNew, logger: session.bugLogger)
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showWhatsNew = false } } }
+        }
       }
-    }
-    .onChange(of: session.currentTime) { _, time in
-      if isScrubbing && !session.isPlaying {
-        // A seek from outside the slider landed while a drag looked live (gallery, pills, steps, or the
-        // full-screen viewer's buttons): the drag is stale, so end it and follow the playhead (#54). An
-        // active drag while paused never moves currentTime, and the slider's own seek already cleared the
-        // flag, so this only fires for someone else's seek.
-        isScrubbing = false
+      .confirmationDialog(
+        "No reps found in this recording", isPresented: $session.emptyRecordingPrompt, titleVisibility: .visible
+      ) {
+        Button("Delete recording", role: .destructive) { session.deleteCurrentRecording() }
+        Button("Keep it", role: .cancel) {}
+      } message: {
+        Text("Nothing was saved to Photos. Delete the recording, or keep it to look at?")
       }
-      if !isScrubbing { scrubTime = time }
-      // Why the slider might not follow the clock (#23): log the view's side every 5 s.
-      if Date().timeIntervalSince(lastClockLog) > 5 {
-        lastClockLog = Date()
-        session.log.event(
-          "clock",
-          ["current": time, "slider": scrubTime, "scrubbing": isScrubbing, "duration": session.duration, "playing": session.isPlaying])
+      .setDeletionDialog($deleting) { session.delete(set: $0, from: "review") }
+      // Story 070, step 3: the sets recorded before recordings went to Photos by themselves, asked about once.
+      // An alert, not a confirmation dialog: iOS 26+ draws the dialog as a popover that hides its cancel button,
+      // so "Not now" never showed and a tap outside closed it without deferring.
+      .alert(
+        "Save \(session.photosBacklog.count) recordings to Photos?", isPresented: $session.photosExportPrompt
+      ) {
+        Button("Save them") { session.answerPhotosExport(save: true) }
+        Button("Not now", role: .cancel) { session.answerPhotosExport(save: false) }
+      } message: {
+        Text(
+          "\(ByteCountFormatter.string(fromByteCount: Int64(session.photosBacklog.bytes), countStyle: .file)) of sets recorded before this version live only in the app. In Photos, iCloud carries them to the iPad; their counts and pictures stay here either way."
+        )
       }
-    }
-    .photosPicker(
-      isPresented: $showPhotosPicker, selection: $pickerItem, matching: .videos,
-      photoLibrary: .shared())
-    .fileImporter(
-      isPresented: $showFileImporter, allowedContentTypes: [.movie, .video, .mpeg4Movie]
-    ) { result in
-      guard case .success(let url) = result else { return }
-      let accessed = url.startAccessingSecurityScopedResource()
-      defer { if accessed { url.stopAccessingSecurityScopedResource() } }
-      let dest = FileManager.default.temporaryDirectory.appendingPathComponent(
-        url.lastPathComponent)
-      try? FileManager.default.removeItem(at: dest)
-      if (try? FileManager.default.copyItem(at: url, to: dest)) != nil {
-        session.load(url: dest)
+      // A Photos clip was just trimmed to its set: offer the replace right away instead of leaving it to the
+      // Save button (#90). Replace is story 011's save: the trimmed clip goes in, iOS asks once to delete the
+      // original, Undo trim brings it back.
+      .confirmationDialog(
+        "Replace the original in Photos?", isPresented: $session.replaceOriginalPrompt, titleVisibility: .visible
+      ) {
+        Button("Replace with the trimmed set") {
+          session.log.event("ui", ["action": "replace_original", "choice": "replace"])
+          session.saveToPhotos()
+        }
+        Button("Keep both for now", role: .cancel) {
+          session.log.event("ui", ["action": "replace_original", "choice": "keep"])
+        }
+      } message: {
+        Text(
+          "The trimmed set goes into Photos and iOS asks once to delete the original. Undo trim brings it back. Save to Photos does the same later."
+        )
+      }
+      .onAppear(perform: loadFromEnvironment)
+      // Story 069: another app (Grabber Native) opened us with exerciseanalyzer://; it only brings the app forward.
+      .onOpenURL { url in session.log.event("open_url", ["url": url.absoluteString]) }
+      .onChange(of: pickerItem) { _, item in
+        guard let item else { return }
+        // The player comes up here, as for Files: with a set already loaded the source stays `.file`, so the
+        // source change that opens the player never fires (Codex's review of PR #187).
         showPlayer(fromLog: true)
+        Task {
+          await session.importPicked(item: item)
+          pickerItem = nil
+        }
       }
-    }
-    .fullScreenCover(isPresented: $showKeyframeViewer) {
-      KeyframeViewer(session: session)
-    }
-    .sheet(isPresented: $showGallery) {
-      RepGallerySheet(
-        reps: session.reps, columns: session.exercise.definition.galleryOrder,
-        currentRep: session.currentRep?.number
-      ) { position in
-        chromeSeek(to: position.time, from: "keyframe_viewer")
+      .onChange(of: session.currentTime) { _, time in
+        if isScrubbing && !session.isPlaying {
+          // A seek from outside the slider landed while a drag looked live (gallery, pills, steps, or the
+          // full-screen viewer's buttons): the drag is stale, so end it and follow the playhead (#54). An
+          // active drag while paused never moves currentTime, and the slider's own seek already cleared the
+          // flag, so this only fires for someone else's seek.
+          isScrubbing = false
+        }
+        if !isScrubbing { scrubTime = time }
+        // Why the slider might not follow the clock (#23): log the view's side every 5 s.
+        if Date().timeIntervalSince(lastClockLog) > 5 {
+          lastClockLog = Date()
+          session.log.event(
+            "clock",
+            [
+              "current": time, "slider": scrubTime, "scrubbing": isScrubbing, "duration": session.duration,
+              "playing": session.isPlaying,
+            ])
+        }
       }
-    }
-    .sheet(item: $sharing) { clip in
-      ShareSheet(items: [clip.url]) { session.sharedClip(activity: $0, completed: $1) }
-        .presentationDetents([.medium, .large])
-    }
+      .photosPicker(
+        isPresented: $showPhotosPicker, selection: $pickerItem, matching: .videos,
+        photoLibrary: .shared()
+      )
+      .fileImporter(
+        isPresented: $showFileImporter, allowedContentTypes: [.movie, .video, .mpeg4Movie]
+      ) { result in
+        guard case .success(let url) = result else { return }
+        let accessed = url.startAccessingSecurityScopedResource()
+        defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+        let dest = FileManager.default.temporaryDirectory.appendingPathComponent(
+          url.lastPathComponent)
+        try? FileManager.default.removeItem(at: dest)
+        if (try? FileManager.default.copyItem(at: url, to: dest)) != nil {
+          session.load(url: dest)
+          showPlayer(fromLog: true)
+        }
+      }
+      .fullScreenCover(isPresented: $showKeyframeViewer) {
+        KeyframeViewer(session: session)
+      }
+      .sheet(isPresented: $showGallery) {
+        RepGallerySheet(
+          reps: session.reps, columns: session.exercise.definition.galleryOrder,
+          currentRep: session.currentRep?.number
+        ) { position in
+          chromeSeek(to: position.time, from: "keyframe_viewer")
+        }
+      }
+      .sheet(item: $sharing) { clip in
+        ShareSheet(items: [clip.url]) { session.sharedClip(activity: $0, completed: $1) }
+          .presentationDetents([.medium, .large])
+      }
   }
 
   /// The phone: the log at the root with pages pushed over it. The iPad (#53, story 068): the log stays in a
@@ -240,8 +249,9 @@ struct ContentView: View {
         NavigationStack(path: $path) {
           ContentUnavailableView(
             "Pick a workout", systemImage: "figure.strengthtraining.traditional",
-            description: Text("Its page and its sets open here."))
-            .navigationDestination(for: AppRoute.self, destination: page)
+            description: Text("Its page and its sets open here.")
+          )
+          .navigationDestination(for: AppRoute.self, destination: page)
         }
       }
     } else {
@@ -262,13 +272,14 @@ struct ContentView: View {
       },
       onEvent: { session.log.event($0, $1) }, session: session,
       whatsNew: Self.whatsNew, onWhatsNew: { showWhatsNew = true },
-      onOpenWorkout: { workout in fromLog { path = [.workout(WorkoutIdentity(start: workout.start))] } })
-      .toolbar {
-        ToolbarItem(placement: .topBarTrailing) { moreMenu.disabled(session.source == .camera) }
-      }
-      // On the iPad the log can be swiped back in over the camera: a second Live would drop the recording, and an
-      // import would replace it (Codex's recheck of PR #187).
-      .safeAreaInset(edge: .bottom) { liveButton.disabled(session.source == .camera) }
+      onOpenWorkout: { workout in fromLog { path = [.workout(WorkoutIdentity(start: workout.start))] } }
+    )
+    .toolbar {
+      ToolbarItem(placement: .topBarTrailing) { moreMenu.disabled(session.source == .camera) }
+    }
+    // On the iPad the log can be swiped back in over the camera: a second Live would drop the recording, and an
+    // import would replace it (Codex's recheck of PR #187).
+    .safeAreaInset(edge: .bottom) { liveButton.disabled(session.source == .camera) }
   }
 
   @ViewBuilder private func page(_ route: AppRoute) -> some View {
@@ -325,15 +336,33 @@ struct ContentView: View {
         PHPhotoLibrary.requestAuthorization(for: .readWrite) { _ in
           Task { @MainActor in showPhotosPicker = true }
         }
-      } label: { Label("Photos", systemImage: "photo.on.rectangle") }
-      Button { showFileImporter = true } label: { Label("Files", systemImage: "folder") }
+      } label: {
+        Label("Photos", systemImage: "photo.on.rectangle")
+      }
+      Button {
+        showFileImporter = true
+      } label: {
+        Label("Files", systemImage: "folder")
+      }
       BugReportButton(reporter: session.bugReporter)
-      Button { Task { await session.startInstrumentedRun() } } label: {
+      Button {
+        Task { await session.startInstrumentedRun() }
+      } label: {
         Label("Instrumented run", systemImage: "waveform.path.ecg")
       }
-      Button { showSyncStatus = true } label: { Label("Sync status", systemImage: "gearshape") }
-      Button { showWhatsNew = true } label: { Label("What's new", systemImage: "sparkles") }
-      Button { openURL(URL(string: "https://github.com/idvorkin/exercise-analyzer")!) } label: {
+      Button {
+        showSyncStatus = true
+      } label: {
+        Label("Sync status", systemImage: "gearshape")
+      }
+      Button {
+        showWhatsNew = true
+      } label: {
+        Label("What's new", systemImage: "sparkles")
+      }
+      Button {
+        openURL(URL(string: "https://github.com/idvorkin/exercise-analyzer")!)
+      } label: {
         Label("GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
       }
     } label: {
@@ -373,7 +402,8 @@ struct ContentView: View {
     GeometryReader { geo in
       let hasGallery = !session.reps.isEmpty && session.source != .camera
       // An iPad only: a Pro Max phone held sideways is regular width too, and the phone stays as it is.
-      let beside = hasGallery && UIDevice.current.userInterfaceIdiom == .pad && sizeClass == .regular
+      let beside =
+        hasGallery && UIDevice.current.userInterfaceIdiom == .pad && sizeClass == .regular
         && geo.size.width > geo.size.height
       HStack(spacing: 0) {
         VStack(spacing: 0) {
@@ -456,7 +486,9 @@ struct ContentView: View {
       hud
         .sheet(item: $weighingLoadedSet) { entry in
           let weight = loadedSetKg(entry)
-          BellWeightSheet(kg: weight.kg, inherited: weight.inherited) { session.setBellKg($0, for: entry, from: "playback") }
+          BellWeightSheet(kg: weight.kg, inherited: weight.inherited) {
+            session.setBellKg($0, for: entry, from: "playback")
+          }
         }
       if let run = session.instrumentedRun {
         instrumentedRunBanner(run)
@@ -493,7 +525,9 @@ struct ContentView: View {
   private func loadedSetKg(_ entry: RecentEntry) -> (kg: Int?, inherited: Bool) {
     if let kg = entry.bellKg { return (kg, false) }
     guard let workout = workoutOfLoadedSet,
-      let row = WorkoutTimeline(workout: workout, sets: session.recents.entries, heartRate: nil).rows.first(where: { $0.id == entry.id })
+      let row = WorkoutTimeline(workout: workout, sets: session.recents.entries, heartRate: nil).rows.first(where: {
+        $0.id == entry.id
+      })
     else { return (nil, false) }
     return (row.kg, row.kgInherited)
   }
@@ -516,7 +550,9 @@ struct ContentView: View {
   /// ponytail: rebuilt on every HUD render, a sort of the stored sets; keep it in state if Workouts grows large.
   private func heartStats(in workout: StoredWorkout) -> WorkoutTimeline.SetRow? {
     guard let id = session.currentEntry?.id, let series = session.heartRate else { return nil }
-    return WorkoutTimeline(workout: workout, sets: session.recents.entries, heartRate: series).rows.first { $0.id == id }
+    return WorkoutTimeline(workout: workout, sets: session.recents.entries, heartRate: series).rows.first {
+      $0.id == id
+    }
   }
 
   /// The workout's page: popped back to when the set was opened from it, else put on screen in the set's place.
@@ -615,7 +651,8 @@ struct ContentView: View {
           .buttonStyle(.plain)
           .accessibilityLabel(
             weight.kg.map { "Bell weight \($0) kilograms" + (weight.inherited ? ", carried from the set before" : "") }
-              ?? "Set the bell's weight")
+              ?? "Set the bell's weight"
+          )
           .alignmentGuide(.top, computeValue: Self.capTop(.preferredFont(forTextStyle: .subheadline)))
         }
         if session.source == .camera, !session.viewfinder {
@@ -697,7 +734,8 @@ struct ContentView: View {
         }
         .buttonStyle(.plain)
         .disabled(session.source != .file)
-        .accessibilityLabel("Workout on the watch, \(sets) sets, heart rate \(live.heartRate.map(String.init) ?? "unknown")")
+        .accessibilityLabel(
+          "Workout on the watch, \(sets) sets, heart rate \(live.heartRate.map(String.init) ?? "unknown")")
       }
       HStack(spacing: 5) {
         ForEach(definition.phases, id: \.id) { phase in
@@ -721,7 +759,11 @@ struct ContentView: View {
       }
       // Where the header ends in the picture area: it may lie over the top of the zoomed lifter's head, not over
       // his eyes (#98).
-      .onGeometryChange(for: CGFloat.self) { $0.frame(in: .named("hud")).maxY } action: { hudHeaderBottom = $0 }
+      .onGeometryChange(for: CGFloat.self) {
+        $0.frame(in: .named("hud")).maxY
+      } action: {
+        hudHeaderBottom = $0
+      }
 
       Spacer()
 
@@ -750,7 +792,11 @@ struct ContentView: View {
         }
       }
       // Where the HUD's bottom text begins in the picture area: the zoomed lifter's feet stop above it (#98).
-      .onGeometryChange(for: CGFloat.self) { $0.frame(in: .named("hud")).minY } action: { hudAngleLineTop = $0 }
+      .onGeometryChange(for: CGFloat.self) {
+        $0.frame(in: .named("hud")).minY
+      } action: {
+        hudAngleLineTop = $0
+      }
       if session.analysisInterrupted, let message = session.statusMessage {
         // An interrupted pass offers its re-run right on the status line, big enough for the gym (#57).
         Button(action: { session.retryAnalysis() }) {
@@ -908,22 +954,25 @@ struct ContentView: View {
     GeometryReader { geo in
       let inset = geo.size.height * 0.16
       ZStack {
-          PlaybackHold(
-            onFire: { side, key, repeatIndex, atEnd in
-              fireHold(side: side, key: key, repeatIndex: repeatIndex, atEnd: atEnd)
-            },
-            onTap: { side in
-              if let side { chromeAction { session.stepFrame(side == .next ? 1 : -1) } }
-              else if session.source == .file { session.togglePlayback() }
-            },
-            onDismiss: {
-              session.log.event("ui", ["action": "hold", "key": "none"])
-              stacksUp = false
-            },
-            clock: { session.currentTime },
-            stacksUp: $stacksUp,
-            leftLit: $middleLeftLit, rightLit: $middleRightLit, pulse: $middlePulse
-          )
+        PlaybackHold(
+          onFire: { side, key, repeatIndex, atEnd in
+            fireHold(side: side, key: key, repeatIndex: repeatIndex, atEnd: atEnd)
+          },
+          onTap: { side in
+            if let side {
+              chromeAction { session.stepFrame(side == .next ? 1 : -1) }
+            } else if session.source == .file {
+              session.togglePlayback()
+            }
+          },
+          onDismiss: {
+            session.log.event("ui", ["action": "hold", "key": "none"])
+            stacksUp = false
+          },
+          clock: { session.currentTime },
+          stacksUp: $stacksUp,
+          leftLit: $middleLeftLit, rightLit: $middleRightLit, pulse: $middlePulse
+        )
         if stacksUp {
           MiddleStacks(leftLit: $middleLeftLit, rightLit: $middleRightLit, pulse: middlePulse)
             .allowsHitTesting(false)
@@ -952,8 +1001,10 @@ struct ContentView: View {
     }
     session.log.event(
       "ui",
-      ["action": "hold", "key": key.logKey, "side": side == .next ? "next" : "previous",
-       "delta": delta, "repeat": repeatIndex, "at_end": atEnd])
+      [
+        "action": "hold", "key": key.logKey, "side": side == .next ? "next" : "previous",
+        "delta": delta, "repeat": repeatIndex, "at_end": atEnd,
+      ])
   }
 
   private var cameraControls: some View {
@@ -1010,7 +1061,9 @@ struct ContentView: View {
     Group {
       // Frame and position steps get big, captioned targets; reps are navigated from the gallery (issue #11).
       HStack(spacing: 6) {
-        navButton("chevron.left.2", "position", "Previous position") { chromeAction { session.seekToCheckpoint(offset: -1) } }
+        navButton("chevron.left.2", "position", "Previous position") {
+          chromeAction { session.seekToCheckpoint(offset: -1) }
+        }
         navButton("chevron.left", "frame", "Previous frame") { chromeAction { session.stepFrame(-1) } }
         Button(action: session.togglePlayback) {
           Image(systemName: session.isPlaying ? "pause.fill" : "play.fill")
@@ -1019,7 +1072,9 @@ struct ContentView: View {
         }
         .disabled(session.duration == 0)
         navButton("chevron.right", "frame", "Next frame") { chromeAction { session.stepFrame(1) } }
-        navButton("chevron.right.2", "position", "Next position") { chromeAction { session.seekToCheckpoint(offset: 1) } }
+        navButton("chevron.right.2", "position", "Next position") {
+          chromeAction { session.seekToCheckpoint(offset: 1) }
+        }
       }
       .frame(maxWidth: .infinity)
 
@@ -1177,7 +1232,11 @@ struct ContentView: View {
         if env["SWING_BACK_TO_WORKOUT"] == "1" {
           Task { @MainActor in
             try? await Task.sleep(for: .seconds(4))
-            if let workout = workoutOfLoadedSet { backToWorkout(workout) } else { session.log.event("ui", ["action": "back_to_workout_missing"]) }
+            if let workout = workoutOfLoadedSet {
+              backToWorkout(workout)
+            } else {
+              session.log.event("ui", ["action": "back_to_workout_missing"])
+            }
           }
         }
         // Test hook (#111): 4 s after the set opens, what a tap on the trash does ("prompt": the dialog is up
@@ -1197,7 +1256,11 @@ struct ContentView: View {
           Task { @MainActor in
             try? await Task.sleep(for: .seconds(4))
             guard let current = session.currentEntry ?? session.recents.entry(id: entry.id) else { return }
-            if let kg = Int(weight) { session.setBellKg(kg, for: current, from: "hook") } else { weighingLoadedSet = current }
+            if let kg = Int(weight) {
+              session.setBellKg(kg, for: current, from: "hook")
+            } else {
+              weighingLoadedSet = current
+            }
           }
         }
         return
