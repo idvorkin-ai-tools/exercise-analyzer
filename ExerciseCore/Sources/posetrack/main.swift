@@ -216,7 +216,7 @@ if ProcessInfo.processInfo.environment["POSETRACK_PLAN"] == "1" {
 let asset = AVURLAsset(url: URL(fileURLWithPath: options.video))
 let semaphore = DispatchSemaphore(value: 0)
 var frames: [FrameRecord] = []
-var lastWrists: [CGPoint] = []  // previous frame's wrists, for the parallel bell path below
+var lastWrists: [CGPoint] = []  // previous frame's wrists, for the bell reserve on both paths below
 var lastBenchTime = -Double.infinity
 var elapsed = 0.0
 let traceTracker: BellTracker = {  // trace only: what the pipeline's tracker will pick
@@ -248,8 +248,9 @@ Task {
             bytes: [UInt8(f >> 24 & 0xff), UInt8(f >> 16 & 0xff), UInt8(f >> 8 & 0xff), UInt8(f & 0xff)],
             encoding: .ascii) ?? "?"
         FileHandle.standardError.write(
-          "  first frame \(Int(size.width))×\(Int(size.height)) format \(fourcc) planes \(CVPixelBufferGetPlaneCount(pixelBuffer))\n"
-            .data(using: .utf8)!)
+          Data(
+            "  first frame \(Int(size.width))×\(Int(size.height)) format \(fourcc) planes \(CVPixelBufferGetPlaneCount(pixelBuffer))\n"
+              .utf8))
       }
       let request = VNCoreMLRequest(model: visionModel)
       request.imageCropAndScaleOption = .scaleFit
@@ -277,12 +278,15 @@ Task {
       {
         person = parse(array, letterbox: letterbox, confidence: options.confidence)
       }
-      lastWrists = BellDetector.wrists(of: person?.pose)
       if parallel {
         await withCheckedContinuation { done in group.notify(queue: .global(qos: .userInitiated)) { done.resume() } }
       } else {
+        // Sequential too takes the previous frame's wrists for the reserve, as the phone's offline overlap and
+        // live ingest do (#77): a fixture written here then reproduces the phone at the cap. One frame of lag
+        // is far under the 0.2 reach.
         bells = bellDetector?.detect(in: pixelBuffer, wrists: lastWrists) ?? []
       }
+      lastWrists = BellDetector.wrists(of: person?.pose)
       if ProcessInfo.processInfo.environment["POSETRACK_TRACE"] == "1" {
         let tracked = traceTracker.track(bells, pose: person?.pose)
         let wrists =
@@ -291,7 +295,7 @@ Task {
           } ?? "-"
         let line =
           "  frame \(frames.count) t=\(String(format: "%.2f", time)) bells=\(bells.count) \(bells.prefix(3).map { String(format: "%.2f@%.2f,%.2f", $0.conf, $0.box.midX, $0.box.midY) }.joined(separator: " ")) wrists \(wrists) tracked \(tracked.map { String(format: "%.2f@%.2f,%.2f", $0.conf, $0.box.midX, $0.box.midY) } ?? "-")\n"
-        FileHandle.standardError.write(line.data(using: .utf8)!)
+        FileHandle.standardError.write(Data(line.utf8))
       }
       var bench: CGRect?
       if let benchDetector, time - lastBenchTime >= BellDetector.benchInterval {
@@ -301,7 +305,7 @@ Task {
       frames.append(
         FrameRecord(
           time: time, imageSize: size, pose: person?.pose, box: person?.box, analysis: nil, bells: bells, bench: bench))
-      if frames.count % 300 == 0 { FileHandle.standardError.write("  \(frames.count) frames…\n".data(using: .utf8)!) }
+      if frames.count % 300 == 0 { FileHandle.standardError.write(Data("  \(frames.count) frames…\n".utf8)) }
     }
     // A nil sample can mean a decoding failure, not EOF. Never publish a truncated track as a valid fixture.
     guard reader.status == .completed else {
@@ -371,10 +375,8 @@ print(
 if bellDetector != nil {
   let colors = pipeline.track.frames.compactMap { $0.bell?.color }
   let weights = colors.compactMap(BellColor.weightKg(rgb:))
-  let weight =
-    weights.isEmpty
-    ? "no colour code (cast iron?)"
-    : "\(Dictionary(grouping: weights) { $0 }.max { $0.value.count < $1.value.count }!.key) kg by colour"
+  let commonest = Dictionary(grouping: weights) { $0 }.max { $0.value.count < $1.value.count }?.key
+  let weight = commonest.map { "\($0) kg by colour" } ?? "no colour code (cast iron?)"
   print("bell in play in \(withBell) frames (\(frames.count > 0 ? 100 * withBell / frames.count : 0)%), \(weight)")
   // Two questions apart: did the detector see a bell at the hands at all (any sighting within 0.2 of a visible
   // wrist), and did the tracker keep it. Frames without a visible wrist are left out of both.

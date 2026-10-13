@@ -136,7 +136,8 @@ public final class PistolSquatAnalyzer: ExerciseAnalyzer {
         machine.transition(to: Self.bottom)
       }
     case Self.bottom:
-      if machine.canTransition, kneeHistory.count >= 2, kneeHistory[kneeHistory.count - 1] > kneeHistory[kneeHistory.count - 2],
+      if machine.canTransition, kneeHistory.count >= 2,
+        kneeHistory[kneeHistory.count - 1] > kneeHistory[kneeHistory.count - 2],
         workingKnee > thresholds.ascendingKneeThreshold
       {
         machine.transition(to: Self.ascending)
@@ -165,10 +166,10 @@ public final class PistolSquatAnalyzer: ExerciseAnalyzer {
   private func updateBottomCandidate(_ frame: SingleLegFrame, image: () -> CGImage?) {
     if let candidate = bottomCandidate, frame.earY < candidate.earY - 5 {
       framesAscendingAfterBottom += 1
-    } else if bottomCandidate == nil || frame.earY >= bottomCandidate!.earY {
+    } else if frame.earY >= (bottomCandidate?.earY ?? -.infinity) {
       framesAscendingAfterBottom = 0
     }
-    if bottomCandidate == nil || frame.earY > bottomCandidate!.earY {
+    if frame.earY > (bottomCandidate?.earY ?? -.infinity) {
       bottomCandidate = frame
       bottomImage = image()
       framesAscendingAfterBottom = 0

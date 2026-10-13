@@ -88,7 +88,9 @@ the numbers, then fix. Never ship a second guessed fix. Examples that paid off: 
    bundle, its repo and its tracker (GitHub, `idvorkin/exercise-analyzer`). Each poll copies new reports and crash
    files to `~/tmp/agent/bugs/exercise-analyzer/<device>/`, files one issue per report with the note, the context
    table (screen, clip, exercise, playhead, reps, build and commit, the log and its millisecond) and the
-   screenshot's and frame's paths on the Mac, named and never uploaded (the repo is public; BugKit principle 13;
+   screenshot's and frame's paths on the Mac, named and never posted to GitHub (they reach the Mac only through
+   the private CloudKit container `iCloud.com.idvorkin.BugKitReports`, Igor's own iCloud in the Development
+   environment, or the device pull; the repo is public; BugKit principle 13;
    the markers `<!-- bug:<reported_at> -->` and `<!-- bug-id:<id> -->` make filing idempotent), then appends a line
    to `~/tmp/agent/bugs/inbox.jsonl` (`t`, `app`, `device`, `key`, `kind`, `reported_at`, `note`, `ref` the issue
    URL, `dir`) and sends a Herdr notification. Nobody else files: `just file-bugs` is the fallback for a listener
@@ -96,7 +98,14 @@ the numbers, then fix. Never ship a second guessed fix. Examples that paid off: 
    pending for the next poll; `listener/bug-listener status --json` in the bug-kit checkout shows the last poll and
    what is pending. Through the app's `pull_extra` list in `apps.json` the listener also copies the
    WatchConnectivity inbox (`Documents/Inbox/com.apple.watchconnectivity/`, the watch's transfers waiting for the
-   app, #197).
+   app, #197). Since the 2026-10-11 bug-kit bump the phone also uploads each report to the private CloudKit
+   container `iCloud.com.idvorkin.BugKitReports` (BugKit's `CloudKitReportDelivery`, made in `BugReport.swift`,
+   restarted on every foreground; not in the simulator), and the listener reads that container too
+   (`cloudkit_config` in its config, the Mac reader app under `~/Applications/BugKitCloudReader.app`): a report
+   from the gym is filed before the phone is back on the Wi-Fi. The log says what happened to the upload:
+   `bug_delivery_queued`, `bug_delivery_uploading`, `bug_delivery_uploaded`, `bug_delivery_retry` (with the
+   backoff), `bug_delivery_pending` (evidence missing or oversized, left to the device pull) and
+   `bug_delivery_stopped` (a permanent error; needs attention).
 3. **Monitor while Igor tests**: arm `scripts/bugs-monitor.sh` as a persistent `Monitor`. It tails the inbox and
    prints one line per issue the listener filed for this app (`filed <kind> <device> <issue url> <note>`), and it
    watches the listener itself: `listener_stale <age>` when `status.json` shows no completed poll for three
