@@ -69,20 +69,24 @@ carry only what was decided.
   its code. A bug there is filed there, fixed test-first on a branch there, PR'd, and then BugKit is bumped here.
   Until then, work around it only through BugKit's hooks or options, with a `ponytail:` comment naming the bug-kit
   issue, never by copying its code in. Bugs in our own hooks (`ExerciseAnalyzer/BugReport.swift`: the screen, the
-  context, the frame) stay here.
+  context, the frame) stay here. Shared practices for all apps live in
+  [idvorkin/bug-kit](https://github.com/idvorkin/bug-kit) (README: "Shared practices for every app"); a practice
+  that applies to every app is filed there, and this issue links to it (Igor, 2026-10-13).
 - **Every feature or behaviour change updates the user stories** (`docs/stories/`) in the same commit or the
   next: a new capability gets a story in its journey (Cohn + Gherkin, `user-story` skill) with a `Status:` line
   naming its commit and where it was verified; a changed behaviour edits the story's acceptance criteria and adds
   its commit to the `Status:` line. Status lives only on the stories. No story, not done.
-- **One commit per issue**, referencing it. Close the issue once the fix is on the phone (`Fixes #N` in the commit
-  when the verifying rung already ran, otherwise close it by hand after `just run-device`) with a comment saying
-  what was verified where and what Igor should feel; Igor reopens if it is not fixed. Never leave a fixed bug open.
+- **One commit per issue**, referencing it. Close the issue when its fix merges to main (Igor, 2026-10-13; it
+  used to wait for the phone): at once, with a comment naming the merge commit, what was verified where, what
+  Igor should feel, and any device check still pending as "to verify on device"; Igor reopens if it is not
+  fixed. Never leave a fixed bug open.
   Never bundle fixes. Never `git add -A` (`.build/`, `Build/`, `.claude/worktrees/` must stay untracked).
 - **Every change goes through the no-mistakes pipeline** (Igor, 2026-10-10). The gate is installed in this repo:
   commit on a feature branch, `no-mistakes axi run --intent "<what Igor set out to do, with the decisions>"` (or
   push to the no-mistakes remote), answer its gates, and when it reaches `checks-passed` merge the PR yourself
   (delete the branch, verify `origin/main`). Do not wait for PR feedback: nobody gives it, the pipeline is the
-  review. The gate's test command is `just test` (the host rung only), and the test step stays on the host
+  review. Never block on CI (Igor, 2026-10-13): once review and test have passed and the run only waits on CI
+  checks, merge; a CI failure afterwards is a follow-up PR. The gate's test command is `just test` (the host rung only), and the test step stays on the host
   (`test.instructions` in `.no-mistakes.yaml`): it boots no simulator and lists what only a simulator or the phone
   can show. Igor's pipeline rules (2026-10-11, `~/tmp/agent/locks/PIPELINE-RULES.md`):
   - **One pipeline run per train.** Finish the whole stack before the first push; do not push while a run is in
