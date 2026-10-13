@@ -124,10 +124,10 @@ the numbers, then fix. Never ship a second guessed fix. Examples that paid off: 
 4. **Before fixing**: find or write the story in [stories/](stories/README.md) that the report belongs to (a bug gets an
    `Issues:` line, a request becomes a story). Then open the report's log at its `session_t_ms` and read what the
    app was doing; put that evidence on the issue as a comment.
-5. **Fix on the cheapest rung** that can see it ([TESTING.md](TESTING.md)), one commit per issue. Deploy with
-   `just run-device` (a locked phone fails the launch step only; the install is done), then **close the issue**:
-   `Fixes #N` in the commit when the verifying rung already ran, otherwise by hand once the build is on the phone,
-   with a comment saying what was verified where and what Igor should feel. Igor reopens if it is not fixed.
+5. **Fix on the cheapest rung** that can see it ([TESTING.md](TESTING.md)), one commit per issue. **Close the issue
+   when the fix merges to main**, at once, with a comment naming the merge commit, what was verified where, what
+   Igor should feel, and any device check still pending as "to verify on device". Deploy with `just run-device`
+   (a locked phone fails the launch step only; the install is done). Igor reopens if it is not fixed.
 6. **Reports that arrive by voice** (Igor says it in the session rather than shaking) still get an issue, filed by
    hand with the same evidence, so the trail is complete.
 
