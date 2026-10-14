@@ -5,7 +5,7 @@
 # script prints those lines for exercise-analyzer as they land (`filed <kind> <device> <issue url> <note>`), so the
 # agent is woken to fix, never to file (`just file-bugs` next to a live listener files the same report twice).
 # It also watches the listener itself, once on arming and then every poll interval, one line per change:
-# `listener_stale <age>` when status.json shows no completed poll for three intervals, `listener_missing` when there
+# `listener_stale <age>` when status.json shows no poll started or completed for three intervals, `listener_missing` when there
 # is no status at all, `listener_error <text>` when its last poll failed (status.json's `last_error`), `listener_ok`
 # when it is back; a dead or failing listener must not look like a quiet phone.
 # Usage: scripts/bugs-monitor.sh          (BUGS_STATE=<dir> points at another state folder, for tests)
@@ -16,11 +16,14 @@ APP=exercise-analyzer
 listener_state() {
   local status="$STATE/status.json" last every age error
   [ -f "$status" ] || { echo "missing no $status"; return; }
-  last=$(jq -r '.last_poll_completed // empty' "$status")
+  # The later of the last poll's start and completion: a poll of two locked devices takes ~6.5 min, so completions
+  # land ~18 min apart and a healthy listener would read stale three intervals after the previous completion
+  # (ea-5k0, 2026-10-14); a hung poll still goes stale three intervals after it started.
+  last=$(jq -r '[.last_poll_started, .last_poll_completed] | map(select(. != null)) | max // empty' "$status")
   every=$(jq -r '.poll_seconds // 300' "$status")
-  [ -n "$last" ] || { echo "missing no completed poll in $status"; return; }
+  [ -n "$last" ] || { echo "missing no poll in $status"; return; }
   age=$(( $(date +%s) - $(date -j -u -f '%Y-%m-%dT%H:%M:%S' "${last%%.*}" +%s) ))
-  if [ "$age" -gt $(( every * 3 )) ]; then echo "stale ${age}s since the last poll (every ${every}s)"; return; fi
+  if [ "$age" -gt $(( every * 3 )) ]; then echo "stale ${age}s since the last poll activity (every ${every}s)"; return; fi
   error=$(jq -r '.last_error // empty | tostring | gsub("\n"; " ")' "$status")
   if [ -n "$error" ]; then echo "error $error"; else echo ok; fi
 }
