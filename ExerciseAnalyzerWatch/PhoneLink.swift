@@ -35,7 +35,8 @@ final class PhoneLink: NSObject, ObservableObject {
   private static let lastTypedKey = "lastTypedSet"
   /// The last few sets typed here, sent in the application context as the second road (#197): the phone takes
   /// each once by id, so repeats cost nothing.
-  private var typedRecent: [HandSet] = UserDefaults.standard.data(forKey: PhoneLink.typedRecentKey)
+  private var typedRecent: [HandSet] =
+    UserDefaults.standard.data(forKey: PhoneLink.typedRecentKey)
     .flatMap { try? JSONDecoder().decode([HandSet].self, from: $0) } ?? []
   {
     didSet { UserDefaults.standard.set(try? JSONEncoder().encode(typedRecent), forKey: Self.typedRecentKey) }
@@ -148,8 +149,10 @@ final class PhoneLink: NSObject, ObservableObject {
     let session = WCSession.default
     logEvent(
       "retry",
-      ["reachable": session.isReachable, "activation": session.activationState.rawValue, "workout": workout.running,
-       "silent_s": receivedAt.map { Int(Date().timeIntervalSince($0)) } ?? -1])
+      [
+        "reachable": session.isReachable, "activation": session.activationState.rawValue, "workout": workout.running,
+        "silent_s": receivedAt.map { Int(Date().timeIntervalSince($0)) } ?? -1,
+      ])
     WKInterfaceDevice.current().play(.click)
     guard session.activationState == .activated else {
       session.activate()
@@ -174,7 +177,8 @@ final class PhoneLink: NSObject, ObservableObject {
   override init() {
     super.init()
     rest = RestTimer { [weak self] type, fields in self?.logEvent(type, fields) }
-    workout = WorkoutController(log: { [weak self] type, fields in self?.logEvent(type, fields) }, screenshot: WatchScreenshotState.launch)
+    workout = WorkoutController(
+      log: { [weak self] type, fields in self?.logEvent(type, fields) }, screenshot: WatchScreenshotState.launch)
     // The view observes the link; the workout's changes (heart rate, sets) redraw through it.
     workout.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
     // The phone's status also comes through the workout session while one runs (#189).
@@ -259,16 +263,17 @@ final class PhoneLink: NSObject, ObservableObject {
           self.heartbeat.rttMaxMs = max(self.heartbeat.rttMaxMs, rtt)
           self.heartbeatFailedLogged = false
         }
+      },
+      errorHandler: { [weak self] error in
+        Task { @MainActor in
+          guard let self else { return }
+          self.heartbeat.failed += 1
+          guard !self.heartbeatFailedLogged else { return }  // once per spell, like the phone's send failures
+          self.heartbeatFailedLogged = true
+          self.logEvent("heartbeat_failed", ["seq": seq, "message": error.localizedDescription])
+        }
       }
-    ) { [weak self] error in
-      Task { @MainActor in
-        guard let self else { return }
-        self.heartbeat.failed += 1
-        guard !self.heartbeatFailedLogged else { return }  // once per spell, like the phone's send failures
-        self.heartbeatFailedLogged = true
-        self.logEvent("heartbeat_failed", ["seq": seq, "message": error.localizedDescription])
-      }
-    }
+    )
   }
 
   /// The minute's tally to the phone's log, then a fresh minute.
@@ -319,7 +324,10 @@ final class PhoneLink: NSObject, ObservableObject {
   func send(_ command: WatchCommand) {
     guard screenshot == nil else { return }
     let session = WCSession.default
-    var fields: [String: Any] = ["command": command.rawValue, "reachable": session.isReachable, "activation": session.activationState.rawValue, "live": isLive]
+    var fields: [String: Any] = [
+      "command": command.rawValue, "reachable": session.isReachable, "activation": session.activationState.rawValue,
+      "live": isLive,
+    ]
     // What the camera button read when it was tapped (#188): whether the wrist showed the level the phone was at.
     if command == .switchCamera {
       fields["shown_camera"] = status.camera
@@ -332,14 +340,18 @@ final class PhoneLink: NSObject, ObservableObject {
     // when the phone reports the recorder rolling.
     if command == .start { rest.clear() }
     if command != .status { WKInterfaceDevice.current().play(.click) }
-    session.sendMessage(["command": command.rawValue], replyHandler: { [weak self] reply in
-      Task { @MainActor in self?.logEvent("command_reply", ["command": command.rawValue, "reply": "\(reply)"]) }
-    }) { [weak self] error in
-      Task { @MainActor in
-        self?.lastError = error.localizedDescription
-        self?.logEvent("command_failed", ["command": command.rawValue, "message": error.localizedDescription])
+    session.sendMessage(
+      ["command": command.rawValue],
+      replyHandler: { [weak self] reply in
+        Task { @MainActor in self?.logEvent("command_reply", ["command": command.rawValue, "reply": "\(reply)"]) }
+      },
+      errorHandler: { [weak self] error in
+        Task { @MainActor in
+          self?.lastError = error.localizedDescription
+          self?.logEvent("command_failed", ["command": command.rawValue, "message": error.localizedDescription])
+        }
       }
-    }
+    )
   }
 
   /// Start on the workout page (048): the wrist's own session, no phone needed.
@@ -352,7 +364,8 @@ final class PhoneLink: NSObject, ObservableObject {
 
   /// End writes the workout to Health; Discard writes nothing. Either way the wrist goes back to idle.
   func endWorkout(discard: Bool) {
-    logEvent("command", ["command": discard ? "workout_discard" : "workout_end", "reachable": reachable, "live": isLive])
+    logEvent(
+      "command", ["command": discard ? "workout_discard" : "workout_end", "reachable": reachable, "live": isLive])
     guard screenshot == nil else { return }
     WKInterfaceDevice.current().play(discard ? .failure : .success)
     workout.end(discard: discard)
@@ -373,8 +386,10 @@ final class PhoneLink: NSObject, ObservableObject {
     let session = WCSession.default
     logEvent(
       "set_by_hand",
-      ["id": set.id, "exercise": exercise.rawValue, "reps": set.reps, "reachable": reachable,
-       "outstanding": session.outstandingUserInfoTransfers.count, "activation": session.activationState.rawValue])
+      [
+        "id": set.id, "exercise": exercise.rawValue, "reps": set.reps, "reachable": reachable,
+        "outstanding": session.outstandingUserInfoTransfers.count, "activation": session.activationState.rawValue,
+      ])
     WKInterfaceDevice.current().play(.success)
     typedRecent = Array((typedRecent + [set]).suffix(Self.typedRecentCount))
     guard session.activationState == .activated else { return }
@@ -416,7 +431,8 @@ final class PhoneLink: NSObject, ObservableObject {
     // Which channel ends a silence, and how long it was (#137): says whether the application context still
     // gets through when the phone's messages do not.
     if let last = receivedAt, Date().timeIntervalSince(last) >= Self.maxStatusAge {
-      logEvent("status_back", ["via": channel, "silent_s": Int(Date().timeIntervalSince(last)), "reachable": reachable])
+      logEvent(
+        "status_back", ["via": channel, "silent_s": Int(Date().timeIntervalSince(last)), "reachable": reachable])
     }
     // An application context can be hours old when it is delivered (at activation, on a wake): date it by the
     // phone's send, so a phone that quit mid-set does not read as live for 8 s. Messages are dated on arrival.
@@ -460,8 +476,9 @@ final class PhoneLink: NSObject, ObservableObject {
         previous: previous, next: next, now: now, lastWrite: lastFaceWrite)
     else { return }
     do {
-      guard let dir = FileManager.default.containerURL(
-        forSecurityApplicationGroupIdentifier: FaceState.groupID)
+      guard
+        let dir = FileManager.default.containerURL(
+          forSecurityApplicationGroupIdentifier: FaceState.groupID)
       else { throw FaceStoreError.noGroupContainer }
       try JSONEncoder().encode(face).write(
         to: dir.appendingPathComponent(FaceState.fileName), options: .atomic)
@@ -507,7 +524,9 @@ extension PhoneLink: WCSessionDelegate {
     _ session: WCSession, activationDidCompleteWith state: WCSessionActivationState, error: Error?
   ) {
     let context = session.receivedApplicationContext
-    let fields: [String: Any] = ["state": state.rawValue, "reachable": session.isReachable, "error": error.map { "\($0)" } ?? ""]
+    let fields: [String: Any] = [
+      "state": state.rawValue, "reachable": session.isReachable, "error": error.map { "\($0)" } ?? "",
+    ]
     Task { @MainActor in
       self.reachable = session.isReachable
       self.apply(context, via: "stored_context")
@@ -543,7 +562,8 @@ extension PhoneLink: WCSessionDelegate {
     logEvent("command", ["command": "exercise", "exercise": mode])
     guard WCSession.default.activationState == .activated else { return }
     WKInterfaceDevice.current().play(.click)
-    WCSession.default.sendMessage(["command": WatchCommand.exercise.rawValue, "exercise": mode], replyHandler: nil) { [weak self] error in
+    WCSession.default.sendMessage(["command": WatchCommand.exercise.rawValue, "exercise": mode], replyHandler: nil) {
+      [weak self] error in
       Task { @MainActor in self?.lastError = error.localizedDescription }
     }
   }
