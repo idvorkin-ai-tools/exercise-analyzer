@@ -147,7 +147,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 074:
 
 - **Summary:** See which build and which models the phone is running
-- **Status:** implemented through [BugKit](https://github.com/idvorkin/bug-kit) 0.3.3's About / version screen (bug-kit #45, #49), the row, the sheet and the Info.plist keys in this repo's `chore/2026-10-13-bugkit-0.3.3` train; verified by build, to verify on device (the two links open)
+- **Status:** implemented through [BugKit](https://github.com/idvorkin/bug-kit) 0.3.3's About / version screen (bug-kit #45, #49), the row, the sheet and the Info.plist keys in [0d6e33f](https://github.com/idvorkin/exercise-analyzer/commit/0d6e33f) (PR #274, main ea99e61); verified by the simulator build, on the phone and the iPad since 2026-10-15, Igor's check pending (the two links open, the commit reads ea99e61)
 - **Why:** Igor, 2026-10-13 (every app, through the helper pane): a shared About / version row so a report or a question can name the build.
 
 #### Use Case:
