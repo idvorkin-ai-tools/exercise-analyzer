@@ -43,8 +43,18 @@ watch_listener &
 WATCH=$!
 
 mkdir -p "$STATE" && touch "$STATE/inbox.jsonl"
-( tail -n 0 -F "$STATE/inbox.jsonl" | jq --unbuffered -r --arg app "$APP" \
-  'select(.app == $app) | "filed \(.kind) \(.device) \(.ref // "no-ref") \(.note // "" | gsub("\n"; " "))"' ) &
+# The inbox lines this app's monitor has read, so a re-arm replays what was filed while no monitor ran (three
+# reports were lost in such a gap on 2026-10-15). With no marker yet it starts at the end, as before.
+MARK="$STATE/monitor-$APP.lines"
+read_lines=$(cat "$MARK" 2>/dev/null || wc -l < "$STATE/inbox.jsonl")
+[ "$read_lines" -le "$(wc -l < "$STATE/inbox.jsonl")" ] || read_lines=0  # the inbox was rotated
+( tail -n "+$((read_lines + 1))" -F "$STATE/inbox.jsonl" | while IFS= read -r line; do
+    read_lines=$((read_lines + 1))
+    jq -r --arg app "$APP" \
+      'select(.app == $app) | "filed \(.kind) \(.device) \(.ref // "no-ref") \(.note // "" | gsub("\n"; " "))"' \
+      <<<"$line" 2>/dev/null
+    echo "$read_lines" > "$MARK"
+  done ) &
 PIPE=$!
 # The Monitor harness ends the watch by killing this script: take the watcher and the tail pipeline (the subshell's
 # children) along, or every expired monitor leaves a `tail -F` behind.
