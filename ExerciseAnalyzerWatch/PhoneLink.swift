@@ -358,6 +358,9 @@ final class PhoneLink: NSObject, ObservableObject {
   func startWorkout() {
     logEvent("command", ["command": "workout_start", "reachable": reachable, "live": isLive])
     guard screenshot == nil else { return }
+    // A new workout starts with no rest: the count from the last workout's final set carried over and read as
+    // a rest of hours (#273; Igor: "the rest needs to reset when I started a workout").
+    rest.clear()
     WKInterfaceDevice.current().play(.click)
     workout.start()
   }
