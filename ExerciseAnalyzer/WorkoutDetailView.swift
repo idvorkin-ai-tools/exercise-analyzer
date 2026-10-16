@@ -43,21 +43,22 @@ struct WorkoutDetailView: View {
         WorkoutPageView(
           snapshot: snapshot, sets: store.entries, heartRate: series, onOpen: onOpen,
           thumbnail: thumbnail, onEvent: onEvent, onDelete: onDelete, onKeepByHand: onKeepByHand,
-          onAddByHand: onAddByHand, onSetBellKg: onSetBellKg)
-          // A fresh page per workout: the reused iPad page kept the last workout's chart window, so this one's
-          // series drew off the plot (#244). The identity holds across the live → saved hand-over.
-          .id(identity)
-          // Twenty seconds matches the set page's Health re-ask (#107). A saved id triggers one final read.
-          .task(id: HeartRateRequest(workout: snapshot.workout, active: scenePhase == .active)) {
-            guard scenePhase == .active else { return }
-            if heartRateFor != identity {
-              heartRate = nil
-              heartRateFor = identity
-            }
-            let read = await workouts.heartRate(for: snapshot.workout)
-            guard !Task.isCancelled else { return }
-            if let read, read.samples.count > (heartRate?.samples.count ?? 0) { heartRate = read }
+          onAddByHand: onAddByHand, onSetBellKg: onSetBellKg
+        )
+        // A fresh page per workout: the reused iPad page kept the last workout's chart window, so this one's
+        // series drew off the plot (#244). The identity holds across the live → saved hand-over.
+        .id(identity)
+        // Twenty seconds matches the set page's Health re-ask (#107). A saved id triggers one final read.
+        .task(id: HeartRateRequest(workout: snapshot.workout, active: scenePhase == .active)) {
+          guard scenePhase == .active else { return }
+          if heartRateFor != identity {
+            heartRate = nil
+            heartRateFor = identity
           }
+          let read = await workouts.heartRate(for: snapshot.workout)
+          guard !Task.isCancelled else { return }
+          if let read, read.samples.count > (heartRate?.samples.count ?? 0) { heartRate = read }
+        }
       } else {
         Text("This workout is no longer available.").foregroundStyle(.secondary)
       }
@@ -66,21 +67,22 @@ struct WorkoutDetailView: View {
       guard scenePhase == .active else { return }
       tick = Date()
       while !Task.isCancelled {
-        guard identity.resolve(live: workouts.live, saved: workouts.sessions, now: Date())?.id == WorkoutMirror.liveID else { return }
+        guard identity.resolve(live: workouts.live, saved: workouts.sessions, now: Date())?.id == WorkoutMirror.liveID
+        else { return }
         do { try await Task.sleep(for: .seconds(20)) } catch { return }
         tick = Date()
       }
     }
     #if targetEnvironment(simulator)
-    .task {
-      guard ProcessInfo.processInfo.environment["SWING_WORKOUT_EVOLVE"] == "1" else { return }
-      store.seedWorkoutPageSet(id: "live-page-first", start: identity.start.addingTimeInterval(10))
-      do { try await Task.sleep(for: .seconds(3)) } catch { return }
-      store.seedWorkoutPageSet(id: "live-page-second", start: Date())
-      // Leave the page up beyond one refresh, then exercise the real save/clear hand-over.
-      do { try await Task.sleep(for: .seconds(22)) } catch { return }
-      workouts.endSeededWorkout()
-    }
+      .task {
+        guard ProcessInfo.processInfo.environment["SWING_WORKOUT_EVOLVE"] == "1" else { return }
+        store.seedWorkoutPageSet(id: "live-page-first", start: identity.start.addingTimeInterval(10))
+        do { try await Task.sleep(for: .seconds(3)) } catch { return }
+        store.seedWorkoutPageSet(id: "live-page-second", start: Date())
+        // Leave the page up beyond one refresh, then exercise the real save/clear hand-over.
+        do { try await Task.sleep(for: .seconds(22)) } catch { return }
+        workouts.endSeededWorkout()
+      }
     #endif
   }
 
@@ -134,7 +136,11 @@ private struct WorkoutPageView: View {
   /// The simulator hooks' next step (see the chart overlay), set by a timer task, run by the current render.
   @State private var hookStep = HookStep.none
   private enum HookStep: Equatable {
-    case none, zoom(Double), zoomed, pan(Double), tap(Double)
+    case none
+    case zoom(Double)
+    case zoomed
+    case pan(Double)
+    case tap(Double)
   }
 
   private var timeline: WorkoutTimeline { snapshot.timeline }
@@ -157,62 +163,26 @@ private struct WorkoutPageView: View {
     return f
   }()
 
+  /// The iPad keeps the totals, the chart, its legend and the switch above the rows, so a scroll through a long
+  /// workout keeps the heart rate in view (#269; Igor: "when I'm scrolling Workouts don't move the heart rate");
+  /// the phone scrolls them with the rows, its screen too short to give the chart a fixed third.
+  private static let pinsHeader = UIDevice.current.userInterfaceIdiom == .pad
+
   var body: some View {
     let timeline = timeline
-    ScrollView {
-      VStack(alignment: .leading, spacing: 14) {
-        totals(timeline)
-        chart(timeline)
-        if timeline.rows.contains(where: { $0.peak != nil }) {
-          Text("♥ peak · drop in the 60 s after the set, or in the rest when it was shorter (−20/30s) · rest before the next")
-            .font(.caption).foregroundStyle(.secondary)
-        }
-        if timeline.groups.count > 1 {
-          // Time or Grouped (#164; Igor: "let me switch from grouped to time"): the sets in the order they came,
-          // or by exercise with each exercise's reps; the choice stays for the next workout.
-          Picker("Order", selection: $grouped) {
-            Text("Time").tag(false)
-            Text("Grouped").tag(true)
-          }
-          .pickerStyle(.segmented)
-        }
-        VStack(spacing: 8) {
-          if grouped && timeline.groups.count > 1 {
-            ForEach(timeline.groups) { group in
-              HStack(spacing: 8) {
-                ExerciseGlyph(kind: group.exercise, size: 20)
-                Text("\(group.sets.count) set\(group.sets.count == 1 ? "" : "s") · \(group.reps) \(group.exercise.repWord(group.reps))")
-                  .font(.subheadline.bold()).monospacedDigit()
-                Spacer()
-              }
-              .padding(.top, 6)
-              ForEach(group.sets, id: \.row.id) { set in setRow(number: set.number, row: set.row) }
-            }
-          } else {
-            ForEach(Array(timeline.rows.enumerated()), id: \.element.id) { index, row in
-              setRow(number: index + 1, row: row)
-            }
-          }
-        }
-        .setDeletionDialog($deleting) { onDelete?($0) }
-        .setByHandSheet(
-          $editing, onSave: { onKeepByHand?($0, $1, $2) },
-          onDelete: onDelete)
-        .sheet(item: $weighing) { entry in
-          let row = timeline.rows.first { $0.id == entry.id }
-          BellWeightSheet(kg: row?.kg, inherited: row?.kgInherited ?? false) { onSetBellKg?(entry, $0) }
-        }
-        .sheet(item: $adding) { draft in
-          SetByHandSheet(entry: draft, title: "Add a set at \(Self.clock.string(from: draft.analyzedAt))") {
-            add(draft, exercise: $0, reps: $1)
-          }
-        }
-        if timeline.rows.isEmpty {
-          Text("No sets were recorded inside this workout.").font(.subheadline).foregroundStyle(.secondary)
-        }
+    VStack(alignment: .leading, spacing: 0) {
+      if Self.pinsHeader {
+        header(timeline).padding(.horizontal, 14).padding(.bottom, 10)
+        Divider()
       }
-      .padding(.horizontal, 14)
-      .padding(.bottom, 24)
+      ScrollView {
+        VStack(alignment: .leading, spacing: 14) {
+          if !Self.pinsHeader { header(timeline) }
+          rows(timeline)
+        }
+        .padding(.horizontal, 14)
+        .padding(.bottom, 24)
+      }
     }
     .navigationTitle("Workout · \(Self.day.string(from: workout.start))")
     .navigationBarTitleDisplayMode(.inline)
@@ -223,8 +193,12 @@ private struct WorkoutPageView: View {
     .toolbar {
       if zoomed {
         ToolbarItem(placement: .navigationBarLeading) {
-          Button { dismiss() } label: { Image(systemName: "chevron.left") }
-            .accessibilityLabel("Back to Workouts")
+          Button {
+            dismiss()
+          } label: {
+            Image(systemName: "chevron.left")
+          }
+          .accessibilityLabel("Back to Workouts")
         }
       }
     }
@@ -232,17 +206,22 @@ private struct WorkoutPageView: View {
       if windowStart == .distantPast { windowStart = workout.start }
       // The rows' pictures once: read per render they would be re-read on every tick of a pan or a pinch (#128).
       for row in timeline.rows where thumbnails[row.id] == nil {
-        if let entry = sets.first(where: { $0.id == row.id }), let image = thumbnail(entry) { thumbnails[row.id] = image }
+        if let entry = sets.first(where: { $0.id == row.id }), let image = thumbnail(entry) {
+          thumbnails[row.id] = image
+        }
       }
     }
     .onChange(
-      of: PageLog(workout: workout, timeline: timeline, samples: heartRate?.samples.count ?? 0, grouped: grouped), initial: true
+      of: PageLog(workout: workout, timeline: timeline, samples: heartRate?.samples.count ?? 0, grouped: grouped),
+      initial: true
     ) { _, value in
       onEvent?(
         "workout_page",
-        ["sets": value.sets, "reps": value.reps, "heart_rate_samples": value.samples,
-         "live": workout.id == WorkoutMirror.liveID, "workout_id": workout.id,
-         "duration_s": workout.duration, "window_s": visibleSeconds, "grouped": value.grouped])
+        [
+          "sets": value.sets, "reps": value.reps, "heart_rate_samples": value.samples,
+          "live": workout.id == WorkoutMirror.liveID, "workout_id": workout.id,
+          "duration_s": workout.duration, "window_s": visibleSeconds, "grouped": value.grouped,
+        ])
     }
   }
 
@@ -257,12 +236,12 @@ private struct WorkoutPageView: View {
       }
       .buttonStyle(.plain)
       .contextMenu {
-          if let entry = sets.first(where: { $0.id == row.id }) {
-            if onKeepByHand != nil { Button("Set exercise and reps…") { editing = entry } }
-            if onSetBellKg != nil { Button("Set the bell's weight…") { weighing = entry } }
-            if onDelete != nil { Button("Remove from Workouts…", role: .destructive) { deleting = entry } }
-          }
+        if let entry = sets.first(where: { $0.id == row.id }) {
+          if onKeepByHand != nil { Button("Set exercise and reps…") { editing = entry } }
+          if onSetBellKg != nil { Button("Set the bell's weight…") { weighing = entry } }
+          if onDelete != nil { Button("Remove from Workouts…", role: .destructive) { deleting = entry } }
         }
+      }
     } else {
       Button {
         if let entry = sets.first(where: { $0.id == row.id }) { onOpen(entry) }
@@ -295,11 +274,77 @@ private struct WorkoutPageView: View {
     }
   }
 
+  /// The page's head: the totals, the chart, its legend and the Time / Grouped switch.
+  private func header(_ timeline: WorkoutTimeline) -> some View {
+    VStack(alignment: .leading, spacing: 14) {
+      totals(timeline)
+      chart(timeline)
+      if timeline.rows.contains(where: { $0.peak != nil }) {
+        Text(
+          "♥ peak · drop in the 60 s after the set, or in the rest when it was shorter (−20/30s) · rest before the next"
+        )
+        .font(.caption).foregroundStyle(.secondary)
+      }
+      if timeline.groups.count > 1 {
+        // Time or Grouped (#164; Igor: "let me switch from grouped to time"): the sets in the order they came,
+        // or by exercise with each exercise's reps; the choice stays for the next workout.
+        Picker("Order", selection: $grouped) {
+          Text("Time").tag(false)
+          Text("Grouped").tag(true)
+        }
+        .pickerStyle(.segmented)
+      }
+    }
+  }
+
+  /// The sets, by time or grouped, with their sheets; or the line that says there are none.
+  @ViewBuilder private func rows(_ timeline: WorkoutTimeline) -> some View {
+    VStack(spacing: 8) {
+      if grouped && timeline.groups.count > 1 {
+        ForEach(timeline.groups) { group in
+          HStack(spacing: 8) {
+            ExerciseGlyph(kind: group.exercise, size: 20)
+            Text(
+              "\(group.sets.count) set\(group.sets.count == 1 ? "" : "s") · \(group.reps) \(group.exercise.repWord(group.reps))"
+            )
+            .font(.subheadline.bold()).monospacedDigit()
+            Spacer()
+          }
+          .padding(.top, 6)
+          ForEach(group.sets, id: \.row.id) { set in setRow(number: set.number, row: set.row) }
+        }
+      } else {
+        ForEach(Array(timeline.rows.enumerated()), id: \.element.id) { index, row in
+          setRow(number: index + 1, row: row)
+        }
+      }
+    }
+    .setDeletionDialog($deleting) { onDelete?($0) }
+    .setByHandSheet(
+      $editing, onSave: { onKeepByHand?($0, $1, $2) },
+      onDelete: onDelete
+    )
+    .sheet(item: $weighing) { entry in
+      let row = timeline.rows.first { $0.id == entry.id }
+      BellWeightSheet(kg: row?.kg, inherited: row?.kgInherited ?? false) { onSetBellKg?(entry, $0) }
+    }
+    .sheet(item: $adding) { draft in
+      SetByHandSheet(entry: draft, title: "Add a set at \(Self.clock.string(from: draft.analyzedAt))") {
+        add(draft, exercise: $0, reps: $1)
+      }
+    }
+    if timeline.rows.isEmpty {
+      Text("No sets were recorded inside this workout.").font(.subheadline).foregroundStyle(.secondary)
+    }
+  }
+
   /// "8:43–9:00 AM · 17 min", "9 sets · 78 reps · work 3:40 · rest 11:20", "♥ 129 avg · 153 max".
   private func totals(_ timeline: WorkoutTimeline) -> some View {
     VStack(alignment: .leading, spacing: 3) {
-      Text("\(Self.clock.string(from: workout.start))–\(Self.clock.string(from: workout.end)) · \(Int(workout.duration / 60)) min")
-        .font(.title3.bold()).monospacedDigit()
+      Text(
+        "\(Self.clock.string(from: workout.start))–\(Self.clock.string(from: workout.end)) · \(Int(workout.duration / 60)) min"
+      )
+      .font(.title3.bold()).monospacedDigit()
       Text(
         "\(timeline.rows.count) set\(timeline.rows.count == 1 ? "" : "s") · \(timeline.rows.reduce(0) { $0 + $1.reps }) reps · work \(Self.minutes(timeline.workSeconds)) · rest \(Self.minutes(timeline.restSeconds))"
       )
@@ -325,8 +370,11 @@ private struct WorkoutPageView: View {
     let whole = heartRate?.slice(from: workout.start, to: workout.end).samples ?? []
     let low = (whole.map(\.bpm).min() ?? 80) - 5
     let high = (whole.map(\.bpm).max() ?? 160) + 5
-    let samples = zoomed
-      ? whole.filter { $0.at >= windowStart.timeIntervalSince1970 - 60 && $0.at <= windowEnd.timeIntervalSince1970 + 60 }
+    let samples =
+      zoomed
+      ? whole.filter {
+        $0.at >= windowStart.timeIntervalSince1970 - 60 && $0.at <= windowEnd.timeIntervalSince1970 + 60
+      }
       : whole
     return Chart {
       ForEach(timeline.rows) { row in
@@ -351,7 +399,10 @@ private struct WorkoutPageView: View {
     }
     // Pinch to zoom, drag to pan (#125; Igor: "I need to be able to zoom, have it be nice and smooth and
     // usable"): the plot is the window, from a minute to the whole workout, and the page moves it.
-    .chartXScale(domain: windowStart == .distantPast ? workout.start...workout.start.addingTimeInterval(wholeSeconds) : windowStart...windowEnd)
+    .chartXScale(
+      domain: windowStart == .distantPast
+        ? workout.start...workout.start.addingTimeInterval(wholeSeconds) : windowStart...windowEnd
+    )
     .chartYScale(domain: low...high)
     .chartYAxis(whole.isEmpty ? .hidden : .automatic)
     // Time into the workout, not time of day (#165): "15 min", or "12:30" zoomed in.
@@ -378,20 +429,24 @@ private struct WorkoutPageView: View {
           let slop = 24 * visibleSeconds / max(plot.width, 1)
           let row = moment(x).flatMap { timeline.row(near: $0, slop: slop) }
           // A typed set's mark opens its by-hand sheet to check or correct it (#178).
-          let typed = row == nil && onKeepByHand != nil
+          let typed =
+            row == nil && onKeepByHand != nil
             ? moment(x).flatMap { timeline.typedRow(near: $0, slop: slop) }
               .flatMap { mark in sets.first { $0.id == mark.id } } : nil
           // A tap where no set is adds one there (#178), from the set before it, in the by-hand sheet. Only
           // inside the workout: a workout under a minute still draws a minute, and a tap past its end has no
           // time to give the set (it used to land at the end, wherever the finger was). `contains`, not a range:
           // `start...end` traps on a row whose end is before its start (#201).
-          let draft = row == nil && typed == nil && onAddByHand != nil
+          let draft =
+            row == nil && typed == nil && onAddByHand != nil
             ? moment(x).flatMap { workout.contains($0) ? timeline.handSet(at: $0).entry : nil }
             : nil
           onEvent?(
             "ui",
-            ["action": "workout_bar_tap", "hit": row != nil, "window_s": Int(visibleSeconds),
-             "editing": typed != nil, "adding": draft != nil])
+            [
+              "action": "workout_bar_tap", "hit": row != nil, "window_s": Int(visibleSeconds),
+              "editing": typed != nil, "adding": draft != nil,
+            ])
           if let row, let entry = sets.first(where: { $0.id == row.id }) { onOpen(entry) }
           if let typed { editing = typed }
           adding = draft
@@ -409,7 +464,8 @@ private struct WorkoutPageView: View {
               }
               .onEnded { _ in
                 pinchBase = nil
-                onEvent?("ui", ["action": "workout_zoom", "window_s": Int(visibleSeconds), "whole_s": Int(wholeSeconds)])
+                onEvent?(
+                  "ui", ["action": "workout_zoom", "window_s": Int(visibleSeconds), "whole_s": Int(wholeSeconds)])
               }
           )
           // A sideways drag pans the window (#128); an up-and-down one is the page's scroll and is left alone.
@@ -430,7 +486,10 @@ private struct WorkoutPageView: View {
                 if panIsSideways == true {
                   onEvent?(
                     "ui",
-                    ["action": "workout_pan", "window_s": Int(visibleSeconds), "start_s": Int(windowStart.timeIntervalSince(workout.start))])
+                    [
+                      "action": "workout_pan", "window_s": Int(visibleSeconds),
+                      "start_s": Int(windowStart.timeIntervalSince(workout.start)),
+                    ])
                 }
                 panBase = nil
                 panIsSideways = nil
@@ -454,14 +513,18 @@ private struct WorkoutPageView: View {
             case .zoomed:
               onEvent?(
                 "ui",
-                ["action": "workout_zoom", "window_s": Int(visibleSeconds), "whole_s": Int(wholeSeconds),
-                 "start_s": Int(windowStart.timeIntervalSince(workout.start)), "hook": true].merging(edges()) { a, _ in a })
+                [
+                  "action": "workout_zoom", "window_s": Int(visibleSeconds), "whole_s": Int(wholeSeconds),
+                  "start_s": Int(windowStart.timeIntervalSince(workout.start)), "hook": true,
+                ].merging(edges()) { a, _ in a })
             case .pan(let points):
               pan(to: windowStart.addingTimeInterval(-points * visibleSeconds / max(plot.width, 1)))
               onEvent?(
                 "ui",
-                ["action": "workout_pan", "window_s": Int(visibleSeconds),
-                 "start_s": Int(windowStart.timeIntervalSince(workout.start)), "hook": true])
+                [
+                  "action": "workout_pan", "window_s": Int(visibleSeconds),
+                  "start_s": Int(windowStart.timeIntervalSince(workout.start)), "hook": true,
+                ])
             case .tap(let share):
               open(plot.minX + plot.width * share)
             case .none: break
@@ -585,7 +648,8 @@ private struct SetTimelineRow: View {
       .accessibilityElement(children: .combine)
       .accessibilityLabel(
         "\(row.reps) \(row.exercise.repWord(row.reps))" + (row.byHand ? ", by hand" : "")
-          + (row.kg.map { ", \($0) kilograms" + (row.kgInherited ? " carried from the set before" : "") } ?? "") + (row.score.map { ", score \($0)" } ?? "") + ", set \(number) at \(Self.clock.string(from: row.start))")
+          + (row.kg.map { ", \($0) kilograms" + (row.kgInherited ? " carried from the set before" : "") } ?? "")
+          + (row.score.map { ", score \($0)" } ?? "") + ", set \(number) at \(Self.clock.string(from: row.start))")
       Spacer(minLength: 8)
       VStack(alignment: .trailing, spacing: 2) {
         if let peak = row.peak {

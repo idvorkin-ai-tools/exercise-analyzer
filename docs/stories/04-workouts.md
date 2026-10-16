@@ -170,7 +170,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 031:
 
 - **Summary:** Open an old set whose clip now lives only in iCloud
-- **Status:** implemented in [f8633a8](https://github.com/idvorkin/exercise-analyzer/commit/f8633a8); on the phone, Igor's check pending (needs an iCloud-only clip)
+- **Status:** implemented in [f8633a8](https://github.com/idvorkin/exercise-analyzer/commit/f8633a8); on the phone, Igor's check pending (needs an iCloud-only clip); a set whose video is not on this device opens nothing (#270) on `fix/2026-10-15-missing-clip-270`, by build, to verify on the iPad
 
 #### Use Case:
 - **As a** lifter looking back at a set from months ago
@@ -183,7 +183,12 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **When:** I tap it
 - **Then:** the screen shows "Downloading from iCloud" with its progress until the clip plays, or says the clip is no longer in Photos, and the session log records the fetch (`recents_tap`, `photos_fetch` with seconds, in_cloud and any error)
 
-- **Issues:** [#35](https://github.com/idvorkin/exercise-analyzer/issues/35)
+- **Scenario:** A set whose video is not on this device (#270)
+- **Given:** on the iPad, a set recorded on the phone before iCloud sync, its clip an in-app file the phone never uploaded (`in_photos: false` in the log)
+- **When:** I tap it on a workout's page or in the day list
+- **Then:** the page I tapped on says "That set's video is not on this device" and nothing opens; what was playing stays as it was, paused. It used to push the player first and look up the file after, so the previous set's video stayed on screen under the tapped set's header with a one-line "That clip's file is missing" (Igor, 2026-10-15: "Wrong video got loaded. I clicked on something else from the workout."). The log says `recents_missing` with `where: page`
+
+- **Issues:** [#35](https://github.com/idvorkin/exercise-analyzer/issues/35), [#270](https://github.com/idvorkin/exercise-analyzer/issues/270)
 
 ---
 
@@ -315,7 +320,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 053:
 
 - **Summary:** See a whole workout on one page: the sets in time, the rests between them, the heart rate across them
-- **Status:** implemented in [20f99e3](https://github.com/idvorkin/exercise-analyzer/commit/20f99e3), [c97cf1d](https://github.com/idvorkin/exercise-analyzer/commit/c97cf1d), [48f8daf](https://github.com/idvorkin/exercise-analyzer/commit/48f8daf); verified on the host (`WorkoutTimelineTests`), the simulator (`SWING_OPEN_WORKOUT=1`) and the phone (the Health read, 2026-09-18); "‹ Workout" on any set (#99) in [ebbcdf8](https://github.com/idvorkin/exercise-analyzer/commit/ebbcdf8) and the bar tap (#101) in [caa6407](https://github.com/idvorkin/exercise-analyzer/commit/caa6407), verified on the simulator, on the phone since 2026-09-19; the A drawings (#120) in [d6a139f](https://github.com/idvorkin/exercise-analyzer/commit/d6a139f), on the phone since 2026-09-20; the row's drawing (#127) in [90d5ffa](https://github.com/idvorkin/exercise-analyzer/commit/90d5ffa), the pinch and pan (#125) in [3070998](https://github.com/idvorkin/exercise-analyzer/commit/3070998), the live landing (#123) in [6579404](https://github.com/idvorkin/exercise-analyzer/commit/6579404), the swipe while zoomed (#128) in [92da327](https://github.com/idvorkin/exercise-analyzer/commit/92da327), verified on the simulator, on the phone since 2026-09-22; the live page (#52) in [bdcfda4](https://github.com/idvorkin/exercise-analyzer/commit/bdcfda4), [b639300](https://github.com/idvorkin/exercise-analyzer/commit/b639300), verified on the host and the simulator (`live_workout`), on the phone since 2026-09-26; the axis in time into the workout (#165) in [1a3d625](https://github.com/idvorkin/exercise-analyzer/commit/1a3d625), verified on the host (`WorkoutTests`) and the simulator, and about four ticks on a workout left running (#165) in [f63a0af](https://github.com/idvorkin/exercise-analyzer/commit/f63a0af), verified on the host; the Time / Grouped switch (#164) in [5bf8ded](https://github.com/idvorkin/exercise-analyzer/commit/5bf8ded), verified on the host (`WorkoutTimelineTests`) and the simulator; a workout day opens, it does not expand (#163) in [a98d4c5](https://github.com/idvorkin/exercise-analyzer/commit/a98d4c5), verified on the simulator; all three installed on the phone 2026-09-28, Igor's check pending; workouts under 30 minutes apart are one (#169) in [96a7de3](https://github.com/idvorkin/exercise-analyzer/commit/96a7de3), verified on the host (`WorkoutTests`) and the simulator, on the phone since 2026-09-28; Igor's check pending (the pinch, the swipe, the landing mid-workout, the axis, the switch, the merged sessions); a workout day's header a label, not a do-nothing button, and the grouped switch logged, in [d80c7ed](https://github.com/idvorkin/exercise-analyzer/commit/d80c7ed), verified by build; a set added from a tap on the chart (#178) in [902986e](https://github.com/idvorkin/exercise-analyzer/commit/902986e), verified on the host (`HandSetTests`) and the simulator (`add_from_chart`), not yet on the phone; no set from a tap past the workout's end in [8ff97e6](https://github.com/idvorkin/exercise-analyzer/commit/8ff97e6), simulator (`add_from_chart`, which now reads the page's counts); on the iPad's reused page (#244) the series reset when the workout changes in [08bcc67](https://github.com/idvorkin/exercise-analyzer/commit/08bcc67), keyed on the page's workout identity so the live → saved hand-over keeps it in [9171b56](https://github.com/idvorkin/exercise-analyzer/commit/9171b56), a fresh page and chart window per workout in [f1dd7fd](https://github.com/idvorkin/exercise-analyzer/commit/f1dd7fd), and no other workout's series drawn or logged before the reset in [38412ac](https://github.com/idvorkin/exercise-analyzer/commit/38412ac); the stale chart window reproduced live on the simulator, the series reset (08bcc67) on the iPad by device build 2026-10-10, the rest awaiting the iPad; the heart now on the running workout's page (#194) not built
+- **Status:** implemented in [20f99e3](https://github.com/idvorkin/exercise-analyzer/commit/20f99e3), [c97cf1d](https://github.com/idvorkin/exercise-analyzer/commit/c97cf1d), [48f8daf](https://github.com/idvorkin/exercise-analyzer/commit/48f8daf); verified on the host (`WorkoutTimelineTests`), the simulator (`SWING_OPEN_WORKOUT=1`) and the phone (the Health read, 2026-09-18); "‹ Workout" on any set (#99) in [ebbcdf8](https://github.com/idvorkin/exercise-analyzer/commit/ebbcdf8) and the bar tap (#101) in [caa6407](https://github.com/idvorkin/exercise-analyzer/commit/caa6407), verified on the simulator, on the phone since 2026-09-19; the A drawings (#120) in [d6a139f](https://github.com/idvorkin/exercise-analyzer/commit/d6a139f), on the phone since 2026-09-20; the row's drawing (#127) in [90d5ffa](https://github.com/idvorkin/exercise-analyzer/commit/90d5ffa), the pinch and pan (#125) in [3070998](https://github.com/idvorkin/exercise-analyzer/commit/3070998), the live landing (#123) in [6579404](https://github.com/idvorkin/exercise-analyzer/commit/6579404), the swipe while zoomed (#128) in [92da327](https://github.com/idvorkin/exercise-analyzer/commit/92da327), verified on the simulator, on the phone since 2026-09-22; the live page (#52) in [bdcfda4](https://github.com/idvorkin/exercise-analyzer/commit/bdcfda4), [b639300](https://github.com/idvorkin/exercise-analyzer/commit/b639300), verified on the host and the simulator (`live_workout`), on the phone since 2026-09-26; the axis in time into the workout (#165) in [1a3d625](https://github.com/idvorkin/exercise-analyzer/commit/1a3d625), verified on the host (`WorkoutTests`) and the simulator, and about four ticks on a workout left running (#165) in [f63a0af](https://github.com/idvorkin/exercise-analyzer/commit/f63a0af), verified on the host; the Time / Grouped switch (#164) in [5bf8ded](https://github.com/idvorkin/exercise-analyzer/commit/5bf8ded), verified on the host (`WorkoutTimelineTests`) and the simulator; a workout day opens, it does not expand (#163) in [a98d4c5](https://github.com/idvorkin/exercise-analyzer/commit/a98d4c5), verified on the simulator; all three installed on the phone 2026-09-28, Igor's check pending; workouts under 30 minutes apart are one (#169) in [96a7de3](https://github.com/idvorkin/exercise-analyzer/commit/96a7de3), verified on the host (`WorkoutTests`) and the simulator, on the phone since 2026-09-28; Igor's check pending (the pinch, the swipe, the landing mid-workout, the axis, the switch, the merged sessions); a workout day's header a label, not a do-nothing button, and the grouped switch logged, in [d80c7ed](https://github.com/idvorkin/exercise-analyzer/commit/d80c7ed), verified by build; a set added from a tap on the chart (#178) in [902986e](https://github.com/idvorkin/exercise-analyzer/commit/902986e), verified on the host (`HandSetTests`) and the simulator (`add_from_chart`), not yet on the phone; no set from a tap past the workout's end in [8ff97e6](https://github.com/idvorkin/exercise-analyzer/commit/8ff97e6), simulator (`add_from_chart`, which now reads the page's counts); on the iPad's reused page (#244) the series reset when the workout changes in [08bcc67](https://github.com/idvorkin/exercise-analyzer/commit/08bcc67), keyed on the page's workout identity so the live → saved hand-over keeps it in [9171b56](https://github.com/idvorkin/exercise-analyzer/commit/9171b56), a fresh page and chart window per workout in [f1dd7fd](https://github.com/idvorkin/exercise-analyzer/commit/f1dd7fd), and no other workout's series drawn or logged before the reset in [38412ac](https://github.com/idvorkin/exercise-analyzer/commit/38412ac); the stale chart window reproduced live on the simulator, the series reset (08bcc67) on the iPad by device build 2026-10-10, the rest awaiting the iPad; the heart now on the running workout's page (#194) not built; the chart pinned above the rows on the iPad (#269) on `fix/2026-10-15-ipad-269`, by build, to verify on the iPad
 - **Why:** Igor, 2026-09-18: "I probably have a workout view where I look at the whole workout together. That's probably an interesting view I need as well."
 
 #### Use Case:
@@ -328,6 +333,11 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Given:** today has an ended workout (8:43–9:00 AM, 9 sets, ♥ 129 avg, 153 max) on the day's green line
 - **When:** I tap the green line
 - **Then:** a page shows the heart rate from 8:43 to 9:00 with each set marked on the same time axis, and under it the sets in order with reps, score, peak heart rate and the rest that followed; tapping a set opens it
+
+- **Scenario:** The chart stays while the sets scroll on the iPad (#269)
+- **Given:** a fourteen-set workout's page on the iPad
+- **When:** I scroll down the sets
+- **Then:** the totals, the chart, its legend and the Time / Grouped switch stay above the rows and only the rows move (Igor, 2026-10-15: "when I'm scrolling Workouts don't move the heart rate"); on the phone the page scrolls as one, its screen too short to keep the chart
 
 - **Scenario:** The chart counts from the workout's start (#165)
 - **Given:** a 48-minute workout's page
@@ -666,7 +676,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 068:
 
 - **Summary:** On an iPad, Workouts stays beside what I opened
-- **Status:** implemented in [adb4576](https://github.com/idvorkin/exercise-analyzer/commit/adb4576), [31c8683](https://github.com/idvorkin/exercise-analyzer/commit/31c8683) (a sidebar set replaces the page), [5bd29ee](https://github.com/idvorkin/exercise-analyzer/commit/5bd29ee) (a tap pauses the set, the camera hides the log), [0511fbe](https://github.com/idvorkin/exercise-analyzer/commit/0511fbe) (Live and "…" dimmed under the camera); verified by iPad Pro 13-inch simulator screenshots (landscape, the log alone and with a set open; portrait, the log) and the phone's navigation checks (`ONLY=live_workout`, `ONLY=cancel_reopen`); the camera case is traced in the code only, the simulator has no camera; no real iPad yet
+- **Status:** implemented in [adb4576](https://github.com/idvorkin/exercise-analyzer/commit/adb4576), [31c8683](https://github.com/idvorkin/exercise-analyzer/commit/31c8683) (a sidebar set replaces the page), [5bd29ee](https://github.com/idvorkin/exercise-analyzer/commit/5bd29ee) (a tap pauses the set, the camera hides the log), [0511fbe](https://github.com/idvorkin/exercise-analyzer/commit/0511fbe) (Live and "…" dimmed under the camera); verified by iPad Pro 13-inch simulator screenshots (landscape, the log alone and with a set open; portrait, the log) and the phone's navigation checks (`ONLY=live_workout`, `ONLY=cancel_reopen`); the camera case is traced in the code only, the simulator has no camera; on Igor's iPad since 2026-10-08; no Live button on the iPad (#269) on `fix/2026-10-15-ipad-269`, by build, to verify on the iPad
 
 #### Use Case:
 - **As a** lifter looking back over my workouts on an iPad
@@ -677,8 +687,9 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Scenario:** Nothing open yet
 - **Given:** the app opens on an iPad in landscape
 - **When:** I look at the screen
-- **Then:** Workouts, with its "…" menu and the red Live button, is a sidebar on the left; the right says "Pick a
-  workout" until I tap something
+- **Then:** Workouts, with its "…" menu and no Live button (the iPad views, it does not record; Igor, 2026-10-15:
+  "on the iPad get rid of the live button", [#269](https://github.com/idvorkin/exercise-analyzer/issues/269)), is
+  a sidebar on the left; the right says "Pick a workout" until I tap something
 
 - **Scenario:** Opening from the sidebar
 - **Given:** the sidebar is up
@@ -691,8 +702,8 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Given:** a set is playing beside the sidebar, or the camera is up
 - **When:** I tap a workout or a set in the log
 - **Then:** the playing set pauses first, as "‹" pauses it; while the camera is up the log is hidden and, swiped
-  back in, its taps do nothing and its Live button and "…" menu are dimmed, so the recording keeps its screen
-  and Done's set lands under its own workout
+  back in, its taps do nothing and its "…" menu is dimmed (its Live button was dimmed too, until #269 took Live
+  off the iPad), so the recording keeps its screen and Done's set lands under its own workout
 
 - **Scenario:** The phone, and a narrow iPad window
 - **Given:** an iPhone, or the app in a narrow split-view window on an iPad

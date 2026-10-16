@@ -88,12 +88,19 @@ run-sim video="": build-sim
 build-device:
     #!/usr/bin/env bash
     # The check on the raw log is what stops run-device from installing the previous bundle on a failed build (#43).
+    # The build runs through bug-kit's signing guard (bug-kit #53, docs/ops/signing.md): a provisioning build while
+    # the Mac's screen is locked makes Xcode discard the Apple ID, so the guard waits for the unlock and holds the
+    # display awake; it exits 78 on "No Accounts" even when xcodebuild reports success, and then nothing installs:
+    # stop, tell the driver, never retry. The caller holds build.lock and xcode-signing.lock around the whole recipe.
     set -uo pipefail
     mkdir -p Build
-    xcodebuild -project ExerciseAnalyzer.xcodeproj -scheme ExerciseAnalyzer \
+    kit=$(scripts/bugkit-path.sh) || exit 2
+    "$kit/scripts/signing-guard.sh" xcodebuild -project ExerciseAnalyzer.xcodeproj -scheme ExerciseAnalyzer \
       -derivedDataPath Build/ -destination "platform=iOS,id={{device}}" \
       -allowProvisioningUpdates -allowProvisioningDeviceRegistration BUGKIT_COMMIT="$(git describe --always --dirty --exclude='*')" build 2>&1 \
       | tee Build/build-device.log | {{beautify}}
+    rc=${PIPESTATUS[0]}
+    [ "$rc" -eq 0 ] || { echo "build-device: guarded build exit $rc (78: Xcode account access failed; stop, do not retry)" >&2; exit "$rc"; }
     grep -q "BUILD SUCCEEDED" Build/build-device.log
 
 # Build, install, and launch on the connected iPhone.

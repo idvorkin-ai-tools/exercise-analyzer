@@ -111,6 +111,10 @@ carry only what was decided.
 - **Audio session** stays `.ambient` + `.mixWithOthers`: the app never interrupts music.
 - **Device tooling**: builds need the sandbox off and `-allowProvisioningUpdates -allowProvisioningDeviceRegistration`,
   never `-sdk` (breaks the watch target). "No provider was found" is noise. A locked phone fails launch, not install.
+  `just build-device` runs xcodebuild through bug-kit's signing guard (bug-kit #53): a provisioning build while the
+  Mac's screen is locked makes Xcode discard the Apple ID, so the guard waits for the unlock and exits 78 on "No
+  Accounts"; then stop and tell the driver, never retry. Run the recipe whole under `~/tmp/agent/locks/build.lock`
+  and `xcode-signing.lock`.
   Install the watch app separately when the watch target changed ([DEBUGGING.md](docs/DEBUGGING.md)); the watch
   takes an install only awake on the wrist: tunnel errors 1011/4000, a "usage assertion" failure or a timeout mean
   it is asleep, not that the build is bad. Say so in the handoff instead of retrying.
