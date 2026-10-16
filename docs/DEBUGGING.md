@@ -111,6 +111,9 @@ the numbers, then fix. Never ship a second guessed fix. Examples that paid off: 
    watches the listener itself: `listener_stale <age>` when `status.json` shows no poll started or completed for
    three intervals, `listener_missing` when there is no status at all, `listener_error <text>` when its last poll failed
    (`last_error` in `status.json`), `listener_ok` when it is back, so a dead or failing listener is not silence.
+   It keeps the count of inbox lines it has read in `monitor-exercise-analyzer.lines` next to the inbox, so a
+   re-arm first prints what was filed while no monitor ran; with no count yet it starts at the end, and an inbox
+   shorter than the count is read from the top.
 
    ```
    Monitor(command: "scripts/bugs-monitor.sh", description: "issues the bug-kit listener filed for this app", persistent: true)

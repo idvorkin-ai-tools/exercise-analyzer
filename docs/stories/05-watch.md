@@ -429,7 +429,7 @@ the first frame (story 001).
 ### User Story 046:
 
 - **Summary:** Rest timer on the wrist
-- **Status:** implemented in [da516fd](https://github.com/idvorkin/exercise-analyzer/commit/da516fd); on phone + watch since 2026-09-13, Igor's check pending; the late permission reply (#52) in [88768f5](https://github.com/idvorkin/exercise-analyzer/commit/88768f5), verified on the host and the watch simulator; the log names (#145) in [6a17b25](https://github.com/idvorkin/exercise-analyzer/commit/6a17b25), verified by build; on the watch since 2026-09-26, Igor's check pending (the tap at the rest length, the names in the next pulled log); no late double tap on a raise after the rest ended (#171) in [535b964](https://github.com/idvorkin/exercise-analyzer/commit/535b964), verified by the watch simulator build, the wrist pending
+- **Status:** implemented in [da516fd](https://github.com/idvorkin/exercise-analyzer/commit/da516fd); on phone + watch since 2026-09-13, Igor's check pending; the late permission reply (#52) in [88768f5](https://github.com/idvorkin/exercise-analyzer/commit/88768f5), verified on the host and the watch simulator; the log names (#145) in [6a17b25](https://github.com/idvorkin/exercise-analyzer/commit/6a17b25), verified by build; on the watch since 2026-09-26, Igor's check pending (the tap at the rest length, the names in the next pulled log); no late double tap on a raise after the rest ended (#171) in [535b964](https://github.com/idvorkin/exercise-analyzer/commit/535b964), verified by the watch simulator build, the wrist pending; the rest cleared when a workout starts (#273) in [972b563](https://github.com/idvorkin/exercise-analyzer/commit/972b563), verified by the simulator build (the watch target compiled), the wrist pending
 - **Why:** rest length is the one number between sets, and the watch is the only screen on the lifter; it showed nothing between Done and the next Record.
 
 #### Use Case:
@@ -463,12 +463,17 @@ the first frame (story 001).
 - **When:** I raise the wrist three minutes after Done
 - **Then:** the notification tapped at 90 s, and the raise brings no second, late double tap (the 2026-09-28 review, #171)
 
+- **Scenario:** A new workout starts with no rest (#273)
+- **Given:** yesterday's workout ended with a set, so the wrist still counts a rest from it
+- **When:** I start a workout on the watch
+- **Then:** the rest count is gone and no tap is pending; the first rest of this workout starts at its first Done or saved set (Igor, 2026-10-15: "the rest needs to reset when I started a workout")
+
 - **Notes:** Watch only, no phone change; the rest length is a watch setting (60, 90, 120, 180 s). With the wrist
   down the app is suspended, so the tap at 90 s is a scheduled local notification on the watch (one permission
   prompt, on the watch, the first time; the notification is scheduled once the answer is known, so the first
   rest taps too if the answer precedes its deadline); without that permission the count still shows, the tap does not come, and the log says so.
 
-- **Issues:** [#67](https://github.com/idvorkin/exercise-analyzer/issues/67); [#52](https://github.com/idvorkin/exercise-analyzer/issues/52) a late permission reply must not schedule a tap for another rest; [#145](https://github.com/idvorkin/exercise-analyzer/issues/145) the rest events were double-prefixed in the phone log
+- **Issues:** [#67](https://github.com/idvorkin/exercise-analyzer/issues/67); [#52](https://github.com/idvorkin/exercise-analyzer/issues/52) a late permission reply must not schedule a tap for another rest; [#145](https://github.com/idvorkin/exercise-analyzer/issues/145) the rest events were double-prefixed in the phone log; [#272](https://github.com/idvorkin/exercise-analyzer/issues/272), [#273](https://github.com/idvorkin/exercise-analyzer/issues/273) a new workout showed the last workout's rest
 
 ---
 

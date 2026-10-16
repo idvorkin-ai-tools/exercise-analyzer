@@ -662,6 +662,11 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **When:** I tap the weight on the playback screen's top line ("kg?" when nothing says, "24 kg" dimmer when carried), or long-press its row on the workout page (the only way for a set typed by hand)
 - **Then:** "The bell's weight" opens with eight big buttons, 8 … 32 kg in the competition bell's own colour and "Other" (±2 kg steps), the current weight marked; one tap saves it and closes; "No weight" clears the set's own weight (a carried one has none to clear, so it is not offered); a re-analysis or keeping the set by hand keeps it
 
+- **Scenario:** The weight in the by-hand pickers, remembered per exercise (#271, not built, awaiting Igor's pick)
+- **Given:** my last swing set, in any workout, was 24 kg
+- **When:** I add a swing set by hand, on the watch's count page or the phone's "Set exercise and reps" sheet
+- **Then:** the picker shows a weight next to the reps, already on 24 kg; I change it or keep it, and Save stores it on the set as a tapped weight would (Igor, 2026-10-15: "add weight to the watch manual picker and the manual picker, and remember the weight from the last set we did on that exercise")
+
 - **Scenario:** The detector's guess (not built yet)
 - **Given:** a set analyzed with the bell detector on
 - **When:** I read it with no weight of mine
