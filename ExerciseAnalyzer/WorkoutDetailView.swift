@@ -163,67 +163,26 @@ private struct WorkoutPageView: View {
     return f
   }()
 
+  /// The iPad keeps the totals, the chart, its legend and the switch above the rows, so a scroll through a long
+  /// workout keeps the heart rate in view (#269; Igor: "when I'm scrolling Workouts don't move the heart rate");
+  /// the phone scrolls them with the rows, its screen too short to give the chart a fixed third.
+  private static let pinsHeader = UIDevice.current.userInterfaceIdiom == .pad
+
   var body: some View {
     let timeline = timeline
-    ScrollView {
-      VStack(alignment: .leading, spacing: 14) {
-        totals(timeline)
-        chart(timeline)
-        if timeline.rows.contains(where: { $0.peak != nil }) {
-          Text(
-            "♥ peak · drop in the 60 s after the set, or in the rest when it was shorter (−20/30s) · rest before the next"
-          )
-          .font(.caption).foregroundStyle(.secondary)
-        }
-        if timeline.groups.count > 1 {
-          // Time or Grouped (#164; Igor: "let me switch from grouped to time"): the sets in the order they came,
-          // or by exercise with each exercise's reps; the choice stays for the next workout.
-          Picker("Order", selection: $grouped) {
-            Text("Time").tag(false)
-            Text("Grouped").tag(true)
-          }
-          .pickerStyle(.segmented)
-        }
-        VStack(spacing: 8) {
-          if grouped && timeline.groups.count > 1 {
-            ForEach(timeline.groups) { group in
-              HStack(spacing: 8) {
-                ExerciseGlyph(kind: group.exercise, size: 20)
-                Text(
-                  "\(group.sets.count) set\(group.sets.count == 1 ? "" : "s") · \(group.reps) \(group.exercise.repWord(group.reps))"
-                )
-                .font(.subheadline.bold()).monospacedDigit()
-                Spacer()
-              }
-              .padding(.top, 6)
-              ForEach(group.sets, id: \.row.id) { set in setRow(number: set.number, row: set.row) }
-            }
-          } else {
-            ForEach(Array(timeline.rows.enumerated()), id: \.element.id) { index, row in
-              setRow(number: index + 1, row: row)
-            }
-          }
-        }
-        .setDeletionDialog($deleting) { onDelete?($0) }
-        .setByHandSheet(
-          $editing, onSave: { onKeepByHand?($0, $1, $2) },
-          onDelete: onDelete
-        )
-        .sheet(item: $weighing) { entry in
-          let row = timeline.rows.first { $0.id == entry.id }
-          BellWeightSheet(kg: row?.kg, inherited: row?.kgInherited ?? false) { onSetBellKg?(entry, $0) }
-        }
-        .sheet(item: $adding) { draft in
-          SetByHandSheet(entry: draft, title: "Add a set at \(Self.clock.string(from: draft.analyzedAt))") {
-            add(draft, exercise: $0, reps: $1)
-          }
-        }
-        if timeline.rows.isEmpty {
-          Text("No sets were recorded inside this workout.").font(.subheadline).foregroundStyle(.secondary)
-        }
+    VStack(alignment: .leading, spacing: 0) {
+      if Self.pinsHeader {
+        header(timeline).padding(.horizontal, 14).padding(.bottom, 10)
+        Divider()
       }
-      .padding(.horizontal, 14)
-      .padding(.bottom, 24)
+      ScrollView {
+        VStack(alignment: .leading, spacing: 14) {
+          if !Self.pinsHeader { header(timeline) }
+          rows(timeline)
+        }
+        .padding(.horizontal, 14)
+        .padding(.bottom, 24)
+      }
     }
     .navigationTitle("Workout · \(Self.day.string(from: workout.start))")
     .navigationBarTitleDisplayMode(.inline)
@@ -312,6 +271,70 @@ private struct WorkoutPageView: View {
       reps = timeline.rows.reduce(0) { $0 + $1.reps }
       self.samples = samples
       self.grouped = grouped
+    }
+  }
+
+  /// The page's head: the totals, the chart, its legend and the Time / Grouped switch.
+  private func header(_ timeline: WorkoutTimeline) -> some View {
+    VStack(alignment: .leading, spacing: 14) {
+      totals(timeline)
+      chart(timeline)
+      if timeline.rows.contains(where: { $0.peak != nil }) {
+        Text(
+          "♥ peak · drop in the 60 s after the set, or in the rest when it was shorter (−20/30s) · rest before the next"
+        )
+        .font(.caption).foregroundStyle(.secondary)
+      }
+      if timeline.groups.count > 1 {
+        // Time or Grouped (#164; Igor: "let me switch from grouped to time"): the sets in the order they came,
+        // or by exercise with each exercise's reps; the choice stays for the next workout.
+        Picker("Order", selection: $grouped) {
+          Text("Time").tag(false)
+          Text("Grouped").tag(true)
+        }
+        .pickerStyle(.segmented)
+      }
+    }
+  }
+
+  /// The sets, by time or grouped, with their sheets; or the line that says there are none.
+  @ViewBuilder private func rows(_ timeline: WorkoutTimeline) -> some View {
+    VStack(spacing: 8) {
+      if grouped && timeline.groups.count > 1 {
+        ForEach(timeline.groups) { group in
+          HStack(spacing: 8) {
+            ExerciseGlyph(kind: group.exercise, size: 20)
+            Text(
+              "\(group.sets.count) set\(group.sets.count == 1 ? "" : "s") · \(group.reps) \(group.exercise.repWord(group.reps))"
+            )
+            .font(.subheadline.bold()).monospacedDigit()
+            Spacer()
+          }
+          .padding(.top, 6)
+          ForEach(group.sets, id: \.row.id) { set in setRow(number: set.number, row: set.row) }
+        }
+      } else {
+        ForEach(Array(timeline.rows.enumerated()), id: \.element.id) { index, row in
+          setRow(number: index + 1, row: row)
+        }
+      }
+    }
+    .setDeletionDialog($deleting) { onDelete?($0) }
+    .setByHandSheet(
+      $editing, onSave: { onKeepByHand?($0, $1, $2) },
+      onDelete: onDelete
+    )
+    .sheet(item: $weighing) { entry in
+      let row = timeline.rows.first { $0.id == entry.id }
+      BellWeightSheet(kg: row?.kg, inherited: row?.kgInherited ?? false) { onSetBellKg?(entry, $0) }
+    }
+    .sheet(item: $adding) { draft in
+      SetByHandSheet(entry: draft, title: "Add a set at \(Self.clock.string(from: draft.analyzedAt))") {
+        add(draft, exercise: $0, reps: $1)
+      }
+    }
+    if timeline.rows.isEmpty {
+      Text("No sets were recorded inside this workout.").font(.subheadline).foregroundStyle(.secondary)
     }
   }
 
