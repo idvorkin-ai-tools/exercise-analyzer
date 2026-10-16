@@ -49,6 +49,8 @@ struct ContentView: View {
   @State private var showWhatsNew = false
   /// About / version (BugKit 0.3.3, bug-kit #45): the build's version, commit and repository from Info.plist.
   @State private var showAbout = false
+  /// A tapped set whose clip is an in-app file this device does not have (#270): said where the tap was.
+  @State private var showClipNotHere = false
   @State private var showGallery = false
   /// The clip copied for the share sheet, while the sheet is up (#162).
   @State private var sharing: SharedClip?
@@ -152,6 +154,12 @@ struct ContentView: View {
         Text("Nothing was saved to Photos. Delete the recording, or keep it to look at?")
       }
       .setDeletionDialog($deleting) { session.delete(set: $0, from: "review") }
+      // A set whose video stayed on the device that recorded it (#270): nothing opens, the page says why.
+      .alert("That set's video is not on this device", isPresented: $showClipNotHere) {
+        Button("OK", role: .cancel) {}
+      } message: {
+        Text("Its count and picture synced; the video stayed on the device that recorded it.")
+      }
       // Story 070, step 3: the sets recorded before recordings went to Photos by themselves, asked about once.
       // An alert, not a confirmation dialog: iOS 26+ draws the dialog as a popover that hides its cancel button,
       // so "Not now" never showed and a tap outside closed it without deferring.
@@ -321,6 +329,14 @@ struct ContentView: View {
   /// page the iPad's sidebar left open beside it (068).
   private func openSet(_ entry: RecentEntry, fromLog: Bool = false) {
     guard !entry.isByHand else { return }  // typed on the wrist: no video to open (059)
+    // A set whose clip is an in-app file this device does not have (recorded on the phone before iCloud sync,
+    // #270): say so where the tap was and open nothing. Pushed first and looked up after, the player kept the
+    // previous set's video under the tapped set's header. A Photos clip keeps its download on the player (031).
+    if case .file = entry.source, session.recents.clipFileURL(for: entry) == nil {
+      session.log.event("recents_missing", ["id": entry.id, "where": "page"])
+      showClipNotHere = true
+      return
+    }
     session.open(recent: entry)
     showPlayer(fromLog: fromLog)
   }

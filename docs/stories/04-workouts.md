@@ -170,7 +170,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 031:
 
 - **Summary:** Open an old set whose clip now lives only in iCloud
-- **Status:** implemented in [f8633a8](https://github.com/idvorkin/exercise-analyzer/commit/f8633a8); on the phone, Igor's check pending (needs an iCloud-only clip)
+- **Status:** implemented in [f8633a8](https://github.com/idvorkin/exercise-analyzer/commit/f8633a8); on the phone, Igor's check pending (needs an iCloud-only clip); a set whose video is not on this device opens nothing (#270) on `fix/2026-10-15-missing-clip-270`, by build, to verify on the iPad
 
 #### Use Case:
 - **As a** lifter looking back at a set from months ago
@@ -183,7 +183,12 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **When:** I tap it
 - **Then:** the screen shows "Downloading from iCloud" with its progress until the clip plays, or says the clip is no longer in Photos, and the session log records the fetch (`recents_tap`, `photos_fetch` with seconds, in_cloud and any error)
 
-- **Issues:** [#35](https://github.com/idvorkin/exercise-analyzer/issues/35)
+- **Scenario:** A set whose video is not on this device (#270)
+- **Given:** on the iPad, a set recorded on the phone before iCloud sync, its clip an in-app file the phone never uploaded (`in_photos: false` in the log)
+- **When:** I tap it on a workout's page or in the day list
+- **Then:** the page I tapped on says "That set's video is not on this device" and nothing opens; what was playing stays as it was, paused. It used to push the player first and look up the file after, so the previous set's video stayed on screen under the tapped set's header with a one-line "That clip's file is missing" (Igor, 2026-10-15: "Wrong video got loaded. I clicked on something else from the workout."). The log says `recents_missing` with `where: page`
+
+- **Issues:** [#35](https://github.com/idvorkin/exercise-analyzer/issues/35), [#270](https://github.com/idvorkin/exercise-analyzer/issues/270)
 
 ---
 
