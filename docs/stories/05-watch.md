@@ -18,8 +18,8 @@ state and is not in the table.
 | idle | "Phone ready", exercise picker, rest length picker, the rest count while resting, the last-set line (or "Analyzing…" while the pass runs) | Start workout (green), Record (red), Preview (below it) | 017, 041, 045, 046, 047, 048 |
 | workoutStart | a workout before its first set: WORKOUT in green over the session clock (counting up by itself), "♥ 96 BPM", no sets line yet; no figure art, no Start workout | Record (red), Preview, "+ Set by hand" under Preview, the pickers; End workout and Discard below the pickers | 048, 059 |
 | workout | between sets the head is the rest: "REST · 1:30" in orange over the rest count, large, white until the rest length and orange after; then "♥ 128 BPM · 42:13" with the session clock small and green, the sets by exercise with their drawings ("[swing] 6"), the last-set line and the pickers as idle; no second rest line | Record (red), Preview, "+ Set by hand" under Preview (a Crown turn below the first screen), the pickers; End workout and Discard below the pickers (the workoutEnd shot) | 048, 050, 059 |
-| setByHand | the count page over the workout page: the exercise ("Kettlebell Swing ⌄"), one large number starting at the last set's count (9), − and + either side (44 pt), the sheet's close button | the exercise (opens the list), Save (green), Cancel; the Crown steps the count by one, 1…200 | 059 |
-| setByHandExercise | the count page's exercise list over it: every exercise, a green check on the current one, the sheet's close button | an exercise (sets it and closes the list) | 059 (#154) |
+| setByHand | the count page over the workout page, three full-width rows of at least 44 pt on a 40 mm face unscrolled: the exercise (its drawing and name), the reps outlined green starting at the last set's count (9) with − and + either side (44 pt), the weight ("kg 24"); the sheet's close button and the green checkmark at top right | the exercise row (opens the drawings), the weight row (a first tap gives it the Crown, a second opens the bell tiles), Save (the checkmark); no Cancel: the close button cancels; the Crown steps the green row, the count by one, 1…200 | 059, 066 |
+| setByHandExercise | the count page's drawings over it: every exercise as a 52 pt tile, three across, the current one outlined in white, the sheet's close button | an exercise (sets it and closes the grid) | 059 (#154) |
 | workoutEnd | the bottom of the workout page: the exercise picker's tail, then "End writes one workout to Health" under the buttons | End workout (green), Discard (red, asks first) | 048 |
 | workoutRecording | as recording, with a "♥ 141" chip between the count and the time | as recording | 048 |
 | viewfinder (Preview) | the picture filling the face, a PREVIEW chip, beside it a "REST 1:45" chip while a rest is counting (orange past the rest length), both whole inside the face, the in-frame capsule | Record (red) · Camera · Cancel; no Pause, no Done | 047, 050 |
@@ -745,14 +745,14 @@ the first frame (story 001).
 #### Acceptance Criteria:
 - **Scenario:** Typing a set of sit-ups
 - **Given:** a workout is running and I open "+ Set by hand" (059)
-- **When:** I tap the exercise, pick "Sit-Up" (or "Half-Kneeling Rotation") from the list, set 20 and tap Save
+- **When:** I tap the exercise, pick the sit-up (or half-kneeling rotation) drawing, set 20 and tap Save
 - **Then:** the set counts on the wrist as "20 reps · Sit-Up · by hand", and the phone's workout page and day list
   show it with its own drawing and colour (mint for sit-ups, indigo for rotations) and "20 sit-ups"
 
 - **Scenario:** The camera never tries to count them
 - **Given:** the exercise menus that choose what the camera analyzes, on the phone and the wrist's picker
 - **When:** I open either
-- **Then:** Sit-Up and Half-Kneeling Rotation are not offered there; they appear only in the count page's list
+- **Then:** Sit-Up and Half-Kneeling Rotation are not offered there; they appear only in the count page's drawings
 
 - **Notes:** `ExerciseKind.sitUp` / `.halfKneelingRotation` with `countOnly`; the analysis pickers list
   `ExerciseKind.analyzable`, `ExerciseMode` refuses a count-only value (a stored mode falls back to Auto), and
