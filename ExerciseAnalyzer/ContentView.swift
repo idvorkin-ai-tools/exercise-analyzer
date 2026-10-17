@@ -301,7 +301,8 @@ struct ContentView: View {
     // The iPad views, it does not record (068; #269, Igor: "on the iPad get rid of the live button"): no Live under
     // its sidebar. With the log swiped back in over the camera a second Live would drop the recording, and an
     // import would replace it (Codex's recheck of PR #187).
-    .safeAreaInset(edge: .bottom) {
+    // A round button in the bottom-right corner, no bar (#280): the list scrolls under it and ends above it.
+    .safeAreaInset(edge: .bottom, alignment: .trailing) {
       if UIDevice.current.userInterfaceIdiom != .pad { liveButton.disabled(session.source == .camera) }
     }
   }
@@ -408,28 +409,31 @@ struct ContentView: View {
     .accessibilityLabel("More")
   }
 
-  /// The camera, one large red target pinned under the log (gym-first).
+  /// The camera: one round red 60 pt target floating in the bottom-right corner (gym-first; #280, Igor picked "a but
+  /// right": the full-width bar took about 100 pt from the list).
   private var liveButton: some View {
-    VStack(spacing: 4) {
-      // The wrist said no videos for a while (071, #236): the phone says so over Live, which still works.
-      if session.noVideos {
-        Label("No videos for a while, from the watch: workout only", systemImage: "video.slash")
-          .font(.caption.weight(.semibold)).foregroundStyle(.orange)
-      }
-      Button {
-        session.log.event("ui", ["action": "live", "from": "log"])
-        session.startCamera(position: session.cameraPosition)
-      } label: {
-        Label("Live", systemImage: "record.circle")
-          .font(.title3.bold())
-          .frame(maxWidth: .infinity, minHeight: 52)
-      }
-      .buttonStyle(.borderedProminent)
-      .tint(.red)
+    Button {
+      session.log.event("ui", ["action": "live", "from": "log"])
+      session.startCamera(position: session.cameraPosition)
+    } label: {
+      Image(systemName: "record.circle")
+        .font(.system(size: 28, weight: .bold))
+        .foregroundStyle(.white)
+        .frame(width: 60, height: 60)
+        .background(Color.red, in: Circle())
+        .shadow(color: .black.opacity(0.35), radius: 6, y: 2)
+        // The wrist said no videos for a while (071, #236): an orange dot on Live, which still works.
+        .overlay(alignment: .topTrailing) {
+          if session.noVideos {
+            Circle().fill(.orange).frame(width: 16, height: 16)
+              .overlay(Circle().stroke(.black, lineWidth: 2))
+          }
+        }
     }
-    .padding(.horizontal, 16)
-    .padding(.vertical, 8)
-    .background(.bar)
+    .buttonStyle(.plain)
+    .accessibilityLabel(session.noVideos ? "Live. No videos for a while, from the watch: workout only" : "Live")
+    .padding(.trailing, 20)
+    .padding(.bottom, 8)
   }
 
   /// The picture, the HUD, the rep gallery and the transport bar: a set or the camera. On a wide screen held

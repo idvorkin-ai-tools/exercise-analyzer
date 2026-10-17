@@ -822,7 +822,7 @@ the first frame (story 001).
 - **Scenario:** It stays until I say otherwise
 - **Given:** the mode is on and the watch app relaunched, or the phone came within reach
 - **When:** I look at the watch
-- **Then:** it is still in the no-videos page; sets typed by hand reach the phone as they always do (the queued user info and the context), and the phone's Workouts shows "No videos for a while, from the watch: workout only" over Live, which still records if I tap it there
+- **Then:** it is still in the no-videos page; sets typed by hand reach the phone as they always do (the queued user info and the context), and the phone's Workouts shows an orange dot on the round Live button (VoiceOver: "No videos for a while, from the watch: workout only"; the line over the old bar until #280), and Live still records if I tap it there
 
 - **Scenario:** Videos again
 - **Given:** the mode is on
