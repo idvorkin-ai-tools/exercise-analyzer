@@ -35,6 +35,9 @@ struct WorkoutGalleryView: View {
   @State private var deletingWorkout: StoredWorkout?
   /// What Health or the list refused while deleting, said once.
   @State private var workoutDeletionFailure: String?
+  /// The drawing or the diamond picked above the days (#265, story 073): kept while a found day's page or set is
+  /// open over the log, so "‹" comes back to the same few days; never stored, so a relaunch shows every day.
+  @State private var filter = DayFilter()
 
   private static let dayKey: DateFormatter = {
     let f = DateFormatter()
@@ -84,6 +87,12 @@ struct WorkoutGalleryView: View {
   /// The days, from the sets and the workouts alike: a workout without a set on camera is still a day.
   private var days: [WorkoutDay] { WorkoutDay.group(store.entries, workouts: workouts.sessions, live: workouts.live) }
 
+  /// The days the row's filter keeps (#265): all of them until a drawing or the diamond is picked.
+  private func shown(_ days: [WorkoutDay]) -> [WorkoutDay] {
+    guard filter.isActive else { return days }
+    return days.filter { filter.keeps(exercises: $0.exercises.map(\.kind), allOnVideo: $0.allOnVideo) }
+  }
+
   /// The log, the app's home (story 058): the root of ContentView's navigation, which pushes a workout's page,
   /// a set and the camera over it.
   var body: some View {
@@ -124,7 +133,19 @@ struct WorkoutGalleryView: View {
               .buttonStyle(.bordered)
               .padding(.top, 8)
             }
-            ForEach(days) { day in
+            let all = days
+            let row = DayFilter.row(all.map { $0.exercises.map(\.kind) })
+            let anyOnVideo = all.contains(where: \.allOnVideo)
+            // Only worth a row when there is something to tell apart: two exercises, or a day on video.
+            if row.count > 1 || anyOnVideo {
+              DayFilterRow(row: row, showsDiamond: anyOnVideo, filter: $filter) { onEvent?("workouts_filter", $0) }
+            }
+            let kept = shown(all)
+            if kept.isEmpty && filter.isActive {
+              Text("No day matches. Tap the picked drawing again to see every day.")
+                .font(.subheadline).foregroundStyle(.secondary).padding(.vertical, 8)
+            }
+            ForEach(kept) { day in
               let folded = isFolded(day)
               Section {
                 if !folded {
@@ -233,6 +254,51 @@ struct WorkoutGalleryView: View {
 }
 
 /// Recent set-sized videos in Photos: one tap opens a new one in place, or the set an analyzed one became.
+/// The exercise drawings in the history and the video diamond, above the days (#265, story 073): one tap keeps only
+/// the matching days, the picked one drawn in its colour and the rest dimmed; a second tap shows every day again.
+struct DayFilterRow: View {
+  let row: [ExerciseKind]
+  let showsDiamond: Bool
+  @Binding var filter: DayFilter
+  let log: ([String: Any]) -> Void
+
+  var body: some View {
+    WrappingHStack(spacing: 6) {
+      ForEach(row) { kind in
+        let picked = filter.exercise == kind
+        Button {
+          filter.tap(kind)
+          log(["exercise": filter.exercise?.rawValue ?? "", "on_video": filter.onVideo])
+        } label: {
+          ExerciseGlyph(kind: kind, size: 26)
+            .opacity(filter.exercise == nil || picked ? 1 : 0.35)
+            .frame(width: 36, height: 36)
+            .background(picked ? kind.tint.opacity(0.2) : .clear, in: RoundedRectangle(cornerRadius: 8))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Show only: \(kind.definition.name)")
+        .accessibilityAddTraits(picked ? .isSelected : [])
+      }
+      if showsDiamond {
+        Button {
+          filter.onVideo.toggle()
+          log(["exercise": filter.exercise?.rawValue ?? "", "on_video": filter.onVideo])
+        } label: {
+          Image(systemName: filter.onVideo ? "diamond.fill" : "diamond")
+            .font(.title3).foregroundStyle(.cyan)
+            .frame(width: 36, height: 36)
+            .background(filter.onVideo ? Color.cyan.opacity(0.2) : .clear, in: RoundedRectangle(cornerRadius: 8))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Show only: every set on video")
+        .accessibilityAddTraits(filter.onVideo ? .isSelected : [])
+      }
+    }
+  }
+}
+
 struct PhotosSuggestionsRow: View {
   @ObservedObject var suggestions: PhotosSuggestions
   let onImport: (PhotosSuggestions.Clip) -> Void

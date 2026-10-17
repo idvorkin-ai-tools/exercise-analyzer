@@ -804,7 +804,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 073:
 
 - **Summary:** Find the days I did an exercise, and the days on video, by tapping the drawings
-- **Status:** not built ([#265](https://github.com/idvorkin/exercise-analyzer/issues/265)); A, the row, is chosen over B on the issue, waiting for Igor's "do it"
+- **Status:** Igor picked A on the 2026-10-17 decisions page; built on `feat/2026-10-17-day-filter-265`: the rule is `DayFilter` (ExerciseCore, `DayFilterTests`, 6 host tests), the row in `WorkoutGalleryView`; lint only, the simulator screenshot pending ([#265](https://github.com/idvorkin/exercise-analyzer/issues/265))
 - **Why:** Igor, 2026-10-13, from the phone on Workouts: "some kind of search thing where I can search for a workout by what I did and if I had a video; the pretty icons, I like them"
 
 #### Use Case:
@@ -824,15 +824,15 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Then:** only the days wearing the diamond remain; with an exercise picked as well, only the days that match both; VoiceOver reads the row as "Show only: pistol squat, selected" and so on
 
 - **Scenario:** A filter is for looking, not a setting
-- **Given:** a filter picked
-- **When:** I leave Workouts and come back, or relaunch the app
-- **Then:** the list is whole again: a filter lasts one visit, and the days keep their folds through it
+- **Given:** the pistol drawing picked and one of its days opened
+- **When:** I come back with "‹", and later relaunch the app
+- **Then:** "‹" comes back to the same pistol days, so I can try the next one; after a relaunch the list is whole again, since nothing is stored; the days keep their folds through it. A day with no match shows "No day matches" with the way back (a second tap)
 
 - **Notes:** A, this story: a row of the exercise drawings plus the diamond above the days, one tap each, the gym-first
   target. B, not chosen: a search field with words ("pistol", "video"), which means typing at the rack. The day list
   already computes each day's exercises and its diamond, so the filter is a predicate over the days the gallery draws,
   nothing new is stored, and the strip, What's new and the Live button stay where they are.
 
-- **Issues:** [#265](https://github.com/idvorkin/exercise-analyzer/issues/265) the row of drawings and the diamond, not built
+- **Issues:** [#265](https://github.com/idvorkin/exercise-analyzer/issues/265) the row of drawings and the diamond
 
 ---
