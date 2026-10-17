@@ -196,6 +196,13 @@ struct WorkoutGalleryView: View {
                           store.keepByHand(id: entry.id, exercise: kind, reps: reps)
                         }
                         if entry.isInPhotos { suggestions.refresh(known: knownPhotosIDs) }
+                      },
+                      onSetBellKg: { entry, kg in
+                        if let session {
+                          session.setBellKg(kg, for: entry, from: "workouts")
+                        } else {
+                          store.setBellKg(id: entry.id, kg: kg)
+                        }
                       }
                     )
                     .padding(.top, 10)
@@ -791,6 +798,8 @@ struct ExerciseSetsRow: View {
   let onDelete: (RecentEntry) -> Void
   /// The lifter's own exercise and count, from the long-press sheet (#156, #157).
   let onKeepByHand: (RecentEntry, ExerciseKind, Int) -> Void
+  /// The weight row on that sheet (#286).
+  let onSetBellKg: (RecentEntry, Int?) -> Void
   @State private var deleting: RecentEntry?
   @State private var editing: RecentEntry?
 
@@ -828,7 +837,7 @@ struct ExerciseSetsRow: View {
       }
     }
     .setDeletionDialog($deleting, onConfirm: onDelete)
-    .setByHandSheet($editing, onSave: onKeepByHand)
+    .setByHandSheet($editing, onSave: onKeepByHand, onSetBellKg: onSetBellKg)
   }
 
   private var totals: String {
@@ -845,8 +854,12 @@ struct SetByHandSheet: View {
   /// "Add a set at 10:42 AM" when the set is new, from a tap on the workout's chart (#178).
   var title = "Set exercise and reps"
   /// The weight row, when adding a set (#271): each exercise's last weight, which the row opens on and follows
-  /// the exercise to until a weight is tapped. Nil hides the row (a stored set's weight is its long-press, 066).
+  /// the exercise to until a weight is tapped.
   var lastKg: [ExerciseKind: Int]? = nil
+  /// The weight row when editing a stored set (#286; Igor: "I should be able to set weight here as well, like I do
+  /// on the watch"): it opens on the set's own weight, which a change of exercise leaves alone.
+  var editsKg = false
+  private var showsKg: Bool { lastKg != nil || editsKg }
   /// Exercise, reps and the picked weight (nil without the row or with "None").
   let onSave: (ExerciseKind, Int, Int?) -> Void
   /// Removes a typed set from the sheet itself (#204; Igor: "the set exercise and rep scheme probably needs a
@@ -862,11 +875,12 @@ struct SetByHandSheet: View {
 
   init(
     entry: RecentEntry, title: String = "Set exercise and reps", lastKg: [ExerciseKind: Int]? = nil,
-    onSave: @escaping (ExerciseKind, Int, Int?) -> Void, onDelete: (() -> Void)? = nil
+    editsKg: Bool = false, onSave: @escaping (ExerciseKind, Int, Int?) -> Void, onDelete: (() -> Void)? = nil
   ) {
     self.entry = entry
     self.title = title
     self.lastKg = lastKg
+    self.editsKg = editsKg
     self.onSave = onSave
     self.onDelete = onDelete
     _exercise = State(initialValue: entry.exerciseKind)
@@ -914,13 +928,13 @@ struct SetByHandSheet: View {
               .frame(minWidth: 110).accessibilityLabel("\(reps) reps")
             stepButton("plus", by: 1)
           }
-          if lastKg != nil { weightRow }
+          if showsKg { weightRow }
           if let videoLine { Text(videoLine).font(.footnote).foregroundStyle(.secondary) }
           Button {
-            onSave(exercise, reps, lastKg == nil ? nil : kg)
+            onSave(exercise, reps, showsKg ? kg : nil)
             dismiss()
           } label: {
-            Text("Save \(reps) \(exercise.repWord(reps))\(lastKg != nil ? kg.map { " · \($0) kg" } ?? "" : "")")
+            Text("Save \(reps) \(exercise.repWord(reps))\(showsKg ? kg.map { " · \($0) kg" } ?? "" : "")")
               .font(.headline).frame(maxWidth: .infinity, minHeight: 44)
           }
           .buttonStyle(.borderedProminent)
@@ -987,11 +1001,16 @@ extension View {
   /// The by-hand sheet for a set, from a card's or a row's long-press (#156, #157).
   func setByHandSheet(
     _ entry: Binding<RecentEntry?>, onSave: @escaping (RecentEntry, ExerciseKind, Int) -> Void,
-    onDelete: ((RecentEntry) -> Void)? = nil
+    onSetBellKg: ((RecentEntry, Int?) -> Void)? = nil, onDelete: ((RecentEntry) -> Void)? = nil
   ) -> some View {
     sheet(item: entry) { set in
       SetByHandSheet(
-        entry: set, onSave: { kind, reps, _ in onSave(set, kind, reps) },
+        entry: set, editsKg: onSetBellKg != nil,
+        onSave: { kind, reps, kg in
+          onSave(set, kind, reps)
+          // The weight row (#286): stored only when it changed, as the long-press would store it.
+          if let onSetBellKg, kg != set.bellKg { onSetBellKg(set, kg) }
+        },
         onDelete: onDelete.map { delete in { delete(set) } })
     }
   }
