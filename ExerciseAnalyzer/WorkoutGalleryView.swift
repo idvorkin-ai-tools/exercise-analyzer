@@ -127,7 +127,7 @@ struct WorkoutGalleryView: View {
             let noMatch = kept.isEmpty && filter.isActive
             // Open after a tap on the button (#282), and while no day matches, so the picked drawing stays in reach.
             let rowOpen = filterable && (filterOpen || noMatch)
-            let filterButton = DayFilterButton(filter: filter, open: rowOpen) {
+            let filterButton = DayFilterButton(filter: filter, open: rowOpen, held: noMatch) {
               withAnimation(.easeInOut(duration: 0.2)) { filterOpen = !rowOpen }
               onEvent?("workouts_filter_open", ["open": filterOpen])
             }
@@ -332,6 +332,8 @@ struct DayFilterRow: View {
 struct DayFilterButton: View {
   let filter: DayFilter
   let open: Bool
+  /// No day matches, so the row is held open and the button cannot fold it: no chevron, no action (Codex on PR #284).
+  var held = false
   let toggle: () -> Void
 
   var body: some View {
@@ -340,7 +342,7 @@ struct DayFilterButton: View {
         if let kind = filter.exercise { ExerciseGlyph(kind: kind, size: 20) }
         if filter.onVideo { Image(systemName: "diamond.fill").font(.caption).foregroundStyle(.cyan) }
         if !filter.isActive { Image(systemName: "line.3.horizontal.decrease").font(.subheadline) }
-        Image(systemName: open ? "chevron.up" : "chevron.down").font(.caption2.bold())
+        if !held { Image(systemName: open ? "chevron.up" : "chevron.down").font(.caption2.bold()) }
       }
       .foregroundStyle(filter.isActive ? .primary : .secondary)
       .padding(.horizontal, 10)
@@ -349,9 +351,11 @@ struct DayFilterButton: View {
       .contentShape(Capsule())
     }
     .buttonStyle(.plain)
+    .disabled(held)
     .accessibilityLabel(
       filter.isActive
-        ? "Filter: \(filter.exercise?.definition.name ?? "")\(filter.onVideo ? " on video" : ""). \(open ? "Close" : "Change")"
+        ? "Filter: \(filter.exercise?.definition.name ?? "")\(filter.onVideo ? " on video" : ""). "
+          + (held ? "No day matches" : open ? "Close" : "Change")
         : (open ? "Close the filter" : "Filter the days"))
   }
 }
