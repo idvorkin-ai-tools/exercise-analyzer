@@ -3,8 +3,8 @@
 //  Rep gallery, ported from swing-analyzer's RepGalleryWidget / RepGalleryModal: rows of reps × phase thumbnails.
 //  Tap a thumbnail to seek, tap a phase header to zoom that column, select reps in the sheet to compare.
 
-import SwiftUI
 import ExerciseCore
+import SwiftUI
 
 /// Inline gallery shown under the video.
 struct RepGalleryWidget: View {
@@ -20,7 +20,9 @@ struct RepGalleryWidget: View {
 
   /// The rep and column under the playhead, nil between reps.
   private var reached: PlayheadPosition? {
-    guard let rep = reps.first(where: { $0.number == currentRep }), let phase = rep.phase(at: playhead) else { return nil }
+    guard let rep = reps.first(where: { $0.number == currentRep }), let phase = rep.phase(at: playhead) else {
+      return nil
+    }
     return PlayheadPosition(rep: rep.number, phase: phase)
   }
 
