@@ -104,7 +104,8 @@ final class HandSetTests: XCTestCase {
   /// #197: a transfer WatchConnectivity received on 2026-10-05 and never delivered, copied from the phone's
   /// Documents/Inbox; the set's JSON sits verbatim inside it. A log line's transfer holds no set.
   func testATypedSetIsReadOutOfAStuckTransfer() throws {
-    let url = try XCTUnwrap(Bundle.module.url(forResource: "watch-inbox-typed-set", withExtension: "bin", subdirectory: "Fixtures"))
+    let url = try XCTUnwrap(
+      Bundle.module.url(forResource: "watch-inbox-typed-set", withExtension: "bin", subdirectory: "Fixtures"))
     let sets = HandSet.typedSets(inStuckTransfer: try Data(contentsOf: url))
     XCTAssertEqual(sets.map(\.id), ["A065AD9D-E337-482E-867C-D7BD06BC18BF"])
     XCTAssertEqual(sets.first?.reps, 10)
@@ -155,7 +156,8 @@ final class HandSetTests: XCTestCase {
   }
 
   func testAnIndexFromBeforeTheWristStillDecodes() throws {
-    let old = #"[{"id":"a","analyzedAt":0,"duration":30,"repCount":10,"bestScore":80,"source":{"file":{"name":"clip.mov"}}}]"#
+    let old =
+      #"[{"id":"a","analyzedAt":0,"duration":30,"repCount":10,"bestScore":80,"source":{"file":{"name":"clip.mov"}}}]"#
     let entries = try JSONDecoder().decode([RecentEntry].self, from: Data(old.utf8))
     XCTAssertEqual(entries.map(\.id), ["a"])
     XCTAssertFalse(entries[0].isByHand)
@@ -199,7 +201,8 @@ final class HandSetTests: XCTestCase {
     XCTAssertEqual(timeline.handSet(at: Date(timeIntervalSince1970: 1600)).exercise, .pullUp)
     // Before every set: the first set's; with no set: a swing set of 10.
     XCTAssertEqual(timeline.handSet(at: Date(timeIntervalSince1970: 1050)).exercise, getUp)
-    let empty = WorkoutTimeline(workout: workout, sets: [], heartRate: nil).handSet(at: Date(timeIntervalSince1970: 1050))
+    let empty = WorkoutTimeline(workout: workout, sets: [], heartRate: nil).handSet(
+      at: Date(timeIntervalSince1970: 1050))
     XCTAssertEqual(empty.exercise, swing)
     XCTAssertEqual(empty.reps, HandSet.defaultReps)
   }
@@ -230,7 +233,8 @@ final class HandSetTests: XCTestCase {
     XCTAssertNil(WorkoutTimeline(workout: workout, sets: [set("s1", swing, reps: 10, at: 1100)], heartRate: nil).loadKg)
     XCTAssertEqual(set("k", swing, reps: 10, at: 1100, kg: 16).keptByHand(exercise: swing, reps: 9).bellKg, 16)
     // An index from before 066 has no weight and still decodes.
-    let old = #"[{"id":"a","analyzedAt":0,"duration":30,"repCount":10,"bestScore":80,"source":{"file":{"name":"clip.mov"}}}]"#
+    let old =
+      #"[{"id":"a","analyzedAt":0,"duration":30,"repCount":10,"bestScore":80,"source":{"file":{"name":"clip.mov"}}}]"#
     XCTAssertNil(try JSONDecoder().decode([RecentEntry].self, from: Data(old.utf8))[0].bellKg)
   }
 

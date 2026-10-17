@@ -98,11 +98,13 @@ public struct HandSet: Codable, Equatable, Sendable {
   /// The transfers WatchConnectivity holds undelivered under the app's Documents (#197), oldest first.
   public static func stuckTransfers(under documents: URL) -> [URL] {
     let inbox = documents.appendingPathComponent("Inbox/com.apple.watchconnectivity", isDirectory: true)
-    guard let files = FileManager.default.enumerator(at: inbox, includingPropertiesForKeys: [.contentModificationDateKey])
+    guard
+      let files = FileManager.default.enumerator(at: inbox, includingPropertiesForKeys: [.contentModificationDateKey])
     else { return [] }
     var found: [(URL, Date)] = []
     for case let url as URL in files where url.lastPathComponent == "userinfo-transfer-object-data" {
-      let date = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate ?? .distantPast
+      let date =
+        (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate ?? .distantPast
       found.append((url, date))
     }
     return found.sorted { $0.1 < $1.1 }.map(\.0)
