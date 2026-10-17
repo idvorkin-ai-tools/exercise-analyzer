@@ -38,7 +38,7 @@ struct ContentView: View {
   @State private var middleLeftLit: StepKey? = nil
   @State private var middleRightLit: StepKey? = nil
   @State private var middlePulse = 0
-  /// The set the trash button was tapped on, while its "delete?" dialog is up (#111).
+  /// The set "Delete set…" was picked on, while its "delete?" dialog is up (#111).
   @State private var deleting: RecentEntry?
   @Environment(\.openURL) private var openURL
   @Environment(\.horizontalSizeClass) private var sizeClass
@@ -1308,7 +1308,7 @@ struct ContentView: View {
             }
           }
         }
-        // Test hook (#111): 4 s after the set opens, what a tap on the trash does ("prompt": the dialog is up
+        // Test hook (#111): 4 s after the set opens, what "Delete set…" does ("prompt": the dialog is up
         // for a screenshot) or what its red button does ("confirm": the set is deleted, `set_deleted` logs).
         // Both hooks fall back to the set asked for when its clip is not here to open (another device's set on
         // the sync rung, story 070): the delete and the weight work from the workout's page without a clip too.

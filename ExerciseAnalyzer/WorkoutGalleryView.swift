@@ -1016,7 +1016,7 @@ extension View {
   }
 
   /// "Delete?" for a set, in the words `SetDeletionPrompt` picks by where its video lives (#111): the review
-  /// screen's trash button and a card's long-press both ask through here, and nothing is deleted without it.
+  /// screen's "⋯" › "Delete set…" and a card's long-press both ask through here, and nothing is deleted without it.
   func setDeletionDialog(_ entry: Binding<RecentEntry?>, onConfirm: @escaping (RecentEntry) -> Void) -> some View {
     let prompt = entry.wrappedValue.map(SetDeletionPrompt.init(for:))
     return confirmationDialog(
