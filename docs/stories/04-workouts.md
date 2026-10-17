@@ -643,7 +643,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 066:
 
 - **Summary:** The bell's weight on each set of the workout page
-- **Status:** Igor picked C on the 2026-10-01 decisions page, built as B first: the tap, the carried weight and the load are implemented in [0a6ab95](https://github.com/idvorkin/exercise-analyzer/commit/0a6ab95), verified on the host (`HandSetTests`) and the simulator (`SWING_SET_BELL_KG=24` on the first of the seeded workout's two swing sets: the page read "24 kg" on set 1, a dimmer "24 kg" on set 2 and "480 kg moved"; `=sheet` showed the picker with 24 selected and the chip "24 kg" on the playback line); not yet on the phone; VoiceOver says a carried weight is carried in [b61014d](https://github.com/idvorkin/exercise-analyzer/commit/b61014d), by build. The detector's "28 kg?" guess (C's second half) is not built: `set_bell_kg` logs the detector's reading beside each tap so its accuracy can be judged first ([#179](https://github.com/idvorkin/exercise-analyzer/issues/179))
+- **Status:** Igor picked C on the 2026-10-01 decisions page, built as B first: the tap, the carried weight and the load are implemented in [0a6ab95](https://github.com/idvorkin/exercise-analyzer/commit/0a6ab95), verified on the host (`HandSetTests`) and the simulator (`SWING_SET_BELL_KG=24` on the first of the seeded workout's two swing sets: the page read "24 kg" on set 1, a dimmer "24 kg" on set 2 and "480 kg moved"; `=sheet` showed the picker with 24 selected and the chip "24 kg" on the playback line); not yet on the phone; VoiceOver says a carried weight is carried in [b61014d](https://github.com/idvorkin/exercise-analyzer/commit/b61014d), by build. The detector's "28 kg?" guess (C's second half) is not built: `set_bell_kg` logs the detector's reading beside each tap so its accuracy can be judged first ([#179](https://github.com/idvorkin/exercise-analyzer/issues/179)); the weight in both by-hand pickers (#271, Igor picked A on the 2026-10-17 decisions page) built on `feat/2026-10-17-heart-now-194-195`: `HandSet.kg`, `HandSet.startKg`, `RecentEntry.lastBellKg` and `WatchStatus.bellKg` in ExerciseCore (`HandSetTests`, host); lint only, the simulator, the watch screenshots (setByHand) and the wrist pending
 - **Why:** Igor, by voice, 2026-09-18: "If I can figure out the weight, that would be great."
 
 #### Use Case:
@@ -662,10 +662,10 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **When:** I tap the weight on the playback screen's top line ("kg?" when nothing says, "24 kg" dimmer when carried), or long-press its row on the workout page (the only way for a set typed by hand)
 - **Then:** "The bell's weight" opens with eight big buttons, 8 … 32 kg in the competition bell's own colour and "Other" (±2 kg steps), the current weight marked; one tap saves it and closes; "No weight" clears the set's own weight (a carried one has none to clear, so it is not offered); a re-analysis or keeping the set by hand keeps it
 
-- **Scenario:** The weight in the by-hand pickers, remembered per exercise (#271, not built, awaiting Igor's pick)
+- **Scenario:** The weight in the by-hand pickers, remembered per exercise (#271)
 - **Given:** my last swing set, in any workout, was 24 kg
-- **When:** I add a swing set by hand, on the watch's count page or the phone's "Set exercise and reps" sheet
-- **Then:** the picker shows a weight next to the reps, already on 24 kg; I change it or keep it, and Save stores it on the set as a tapped weight would (Igor, 2026-10-15: "add weight to the watch manual picker and the manual picker, and remember the weight from the last set we did on that exercise")
+- **When:** I add a swing set by hand, on the watch's count page or the phone's "Add a set at …" sheet
+- **Then:** the picker shows a weight under the reps, already on 24 kg; on the phone eight buttons, None and 8 … 32 kg in the bells' colours, and Save reads "Save 10 swings · 24 kg"; on the watch "24 kg" under the count, which a tap gives the Crown to step None, 8 … 32 kg; picking another exercise moves the weight to that exercise's last one until I touch the weight; Save stores it on the set as a tapped weight would. The wrist learns the phone's last weights from the status the phone sends it, and a set typed on the wrist since the phone's last set wins. Editing a stored set's exercise and reps shows no weight row: its weight stays the long-press of the scenario above (Igor, 2026-10-15: "add weight to the watch manual picker and the manual picker, and remember the weight from the last set we did on that exercise")
 
 - **Scenario:** The detector's guess (not built yet)
 - **Given:** a set analyzed with the bell detector on
@@ -674,7 +674,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 
 - **Notes:** `BellColor.palette` maps the bell's hue to the competition code (pink 8 … red 32) and the playback screen's status line already says "· 28 kg bell" for the open set, but the weight is not stored on the set and the detector is off by default (034), so a colour reading alone cannot fill the page. Gym light moves a dark red/orange bell between the 28 and 16 readings.
 
-- **Issues:** [#102](https://github.com/idvorkin/exercise-analyzer/issues/102)
+- **Issues:** [#102](https://github.com/idvorkin/exercise-analyzer/issues/102); [#271](https://github.com/idvorkin/exercise-analyzer/issues/271) the weight in the by-hand pickers (host `HandSetTests`)
 
 ---
 

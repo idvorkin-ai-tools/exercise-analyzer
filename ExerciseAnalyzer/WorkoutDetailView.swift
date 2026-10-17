@@ -330,8 +330,12 @@ private struct WorkoutPageView: View {
       BellWeightSheet(kg: row?.kg, inherited: row?.kgInherited ?? false) { onSetBellKg?(entry, $0) }
     }
     .sheet(item: $adding) { draft in
-      SetByHandSheet(entry: draft, title: "Add a set at \(Self.clock.string(from: draft.analyzedAt))") {
-        add(draft, exercise: $0, reps: $1)
+      // The weight opens on the exercise's last one, from any workout (#271).
+      SetByHandSheet(
+        entry: draft, title: "Add a set at \(Self.clock.string(from: draft.analyzedAt))",
+        lastKg: RecentEntry.lastBellKg(sets)
+      ) {
+        add(draft, exercise: $0, reps: $1, kg: $2)
       }
     }
     if timeline.rows.isEmpty {
@@ -571,8 +575,9 @@ private struct WorkoutPageView: View {
   }
 
   /// A set added from the chart (#178): the draft's id and moment, the sheet's exercise and count.
-  private func add(_ draft: RecentEntry, exercise: ExerciseKind, reps: Int) {
-    onAddByHand?(HandSet(id: draft.id, exercise: exercise, reps: reps, at: draft.analyzedAt.timeIntervalSince1970))
+  private func add(_ draft: RecentEntry, exercise: ExerciseKind, reps: Int, kg: Int?) {
+    onAddByHand?(
+      HandSet(id: draft.id, exercise: exercise, reps: reps, at: draft.analyzedAt.timeIntervalSince1970, kg: kg))
   }
 
   /// Narrows or widens the window to `seconds` (a minute to the whole workout) with `moment` kept where it is

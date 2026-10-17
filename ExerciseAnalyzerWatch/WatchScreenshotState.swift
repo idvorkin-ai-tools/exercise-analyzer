@@ -96,6 +96,8 @@ enum WatchScreenshotState: String, CaseIterable {
       var status = WatchStatus.idle
       status.lastSet = LastSet(
         reps: 9, exercise: "Kettlebell Swing", seconds: 24, at: Date().timeIntervalSince1970 - 95)
+      // The count page's weight row opens on 24 kg (#271).
+      status.bellKg = [ExerciseKind.kettlebellSwing.rawValue: 24]
       return (status, true, nil)
     case .workoutStart:
       return (.idle, true, nil)

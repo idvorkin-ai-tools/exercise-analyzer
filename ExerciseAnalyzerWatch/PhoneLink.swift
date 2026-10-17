@@ -380,9 +380,9 @@ final class PhoneLink: NSObject, ObservableObject {
   /// Save on the count page (059): the wrist counts the set at once and starts the rest as Done does; the phone
   /// gets it as queued user info, like `logEvent`, so an unreachable phone gets it when it hears from us again.
   /// No Health activity: an activity needs a start, and this set has only its save.
-  func saveSetByHand(exercise: ExerciseKind, reps: Int) {
+  func saveSetByHand(exercise: ExerciseKind, reps: Int, kg: Int? = nil) {
     guard screenshot == nil else { return }
-    let set = HandSet(exercise: exercise, reps: HandSet.clamp(reps), at: Date().timeIntervalSince1970)
+    let set = HandSet(exercise: exercise, reps: HandSet.clamp(reps), at: Date().timeIntervalSince1970, kg: kg)
     handSet = set
     lastTyped = set
     workout.setAnalyzed(reps: set.reps, exercise: exercise)
@@ -393,7 +393,7 @@ final class PhoneLink: NSObject, ObservableObject {
     logEvent(
       "set_by_hand",
       [
-        "id": set.id, "exercise": exercise.rawValue, "reps": set.reps, "reachable": reachable,
+        "id": set.id, "exercise": exercise.rawValue, "reps": set.reps, "kg": kg ?? 0, "reachable": reachable,
         "outstanding": session.outstandingUserInfoTransfers.count, "activation": session.activationState.rawValue,
       ])
     WKInterfaceDevice.current().play(.success)

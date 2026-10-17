@@ -775,25 +775,34 @@ struct SetByHandSheet: View {
   let entry: RecentEntry
   /// "Add a set at 10:42 AM" when the set is new, from a tap on the workout's chart (#178).
   var title = "Set exercise and reps"
-  let onSave: (ExerciseKind, Int) -> Void
+  /// The weight row, when adding a set (#271): each exercise's last weight, which the row opens on and follows
+  /// the exercise to until a weight is tapped. Nil hides the row (a stored set's weight is its long-press, 066).
+  var lastKg: [ExerciseKind: Int]? = nil
+  /// Exercise, reps and the picked weight (nil without the row or with "None").
+  let onSave: (ExerciseKind, Int, Int?) -> Void
   /// Removes a typed set from the sheet itself (#204; Igor: "the set exercise and rep scheme probably needs a
   /// delete button"), after the usual "Delete?" (056). Nil hides the button; a filmed set keeps its long press.
   var onDelete: (() -> Void)? = nil
   @State private var exercise: ExerciseKind
   @State private var reps: Int
+  @State private var kg: Int?
+  /// A weight was tapped: a change of exercise no longer moves it.
+  @State private var kgPicked = false
   @State private var deleting: RecentEntry?
   @Environment(\.dismiss) private var dismiss
 
   init(
-    entry: RecentEntry, title: String = "Set exercise and reps", onSave: @escaping (ExerciseKind, Int) -> Void,
-    onDelete: (() -> Void)? = nil
+    entry: RecentEntry, title: String = "Set exercise and reps", lastKg: [ExerciseKind: Int]? = nil,
+    onSave: @escaping (ExerciseKind, Int, Int?) -> Void, onDelete: (() -> Void)? = nil
   ) {
     self.entry = entry
     self.title = title
+    self.lastKg = lastKg
     self.onSave = onSave
     self.onDelete = onDelete
     _exercise = State(initialValue: entry.exerciseKind)
     _reps = State(initialValue: HandSet.clamp(entry.repCount == 0 ? HandSet.defaultReps : entry.repCount))
+    _kg = State(initialValue: entry.bellKg ?? lastKg?[entry.exerciseKind])
   }
 
   /// What Save does to the video, said before it happens.
@@ -812,6 +821,7 @@ struct SetByHandSheet: View {
             ForEach(ExerciseKind.allCases) { kind in
               Button {
                 exercise = kind
+                if let lastKg, !kgPicked { kg = lastKg[kind] }
               } label: {
                 HStack(spacing: 8) {
                   ExerciseGlyph(kind: kind, size: 28)
@@ -835,12 +845,14 @@ struct SetByHandSheet: View {
               .frame(minWidth: 110).accessibilityLabel("\(reps) reps")
             stepButton("plus", by: 1)
           }
+          if lastKg != nil { weightRow }
           if let videoLine { Text(videoLine).font(.footnote).foregroundStyle(.secondary) }
           Button {
-            onSave(exercise, reps)
+            onSave(exercise, reps, lastKg == nil ? nil : kg)
             dismiss()
           } label: {
-            Text("Save \(reps) \(exercise.repWord(reps))").font(.headline).frame(maxWidth: .infinity, minHeight: 44)
+            Text("Save \(reps) \(exercise.repWord(reps))\(lastKg != nil ? kg.map { " · \($0) kg" } ?? "" : "")")
+              .font(.headline).frame(maxWidth: .infinity, minHeight: 44)
           }
           .buttonStyle(.borderedProminent)
           .tint(.green)
@@ -865,6 +877,30 @@ struct SetByHandSheet: View {
     }
   }
 
+  /// The bell's weight beside the count (#271): the competition bells in their colours and None, one tap each.
+  private var weightRow: some View {
+    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 8) {
+      weightChip("None", value: nil, color: .secondary)
+      ForEach(BellWeightSheet.code, id: \.kg) { bell in weightChip("\(bell.kg)", value: bell.kg, color: bell.color) }
+    }
+  }
+
+  private func weightChip(_ label: String, value: Int?, color: Color) -> some View {
+    let picked = kg == value
+    return Button {
+      kg = value
+      kgPicked = true
+    } label: {
+      Text(label).font(.headline).monospacedDigit()
+        .frame(maxWidth: .infinity, minHeight: 48)
+        .background(color.opacity(picked ? 0.55 : 0.18), in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(picked ? color : .clear, lineWidth: 3))
+    }
+    .buttonStyle(.plain)
+    .accessibilityLabel(value.map { "\($0) kilograms" } ?? "No weight")
+    .accessibilityAddTraits(picked ? .isSelected : [])
+  }
+
   private func stepButton(_ symbol: String, by step: Int) -> some View {
     Button {
       reps = HandSet.clamp(reps + step)
@@ -885,7 +921,9 @@ extension View {
     onDelete: ((RecentEntry) -> Void)? = nil
   ) -> some View {
     sheet(item: entry) { set in
-      SetByHandSheet(entry: set, onSave: { onSave(set, $0, $1) }, onDelete: onDelete.map { delete in { delete(set) } })
+      SetByHandSheet(
+        entry: set, onSave: { kind, reps, _ in onSave(set, kind, reps) },
+        onDelete: onDelete.map { delete in { delete(set) } })
     }
   }
 

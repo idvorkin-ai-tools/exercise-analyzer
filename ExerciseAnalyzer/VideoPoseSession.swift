@@ -1394,7 +1394,7 @@ final class VideoPoseSession: NSObject, ObservableObject {
       "set_by_hand",
       [
         "id": set.id, "exercise": set.exercise.rawValue, "reps": set.reps, "at": set.at, "duplicate": !added,
-        "where": place,
+        "where": place, "kg": set.kg ?? 0,
       ])
     return true
   }
@@ -1409,6 +1409,8 @@ final class VideoPoseSession: NSObject, ObservableObject {
         "detector_kg": entry.id == currentEntryID ? (bellWeightKg ?? 0) : 0, "where": place,
       ])
     recents.setBellKg(id: entry.id, kg: kg)
+    // The wrist's by-hand picker opens on the new weight (#271).
+    pushWatchStatus()
   }
 
   /// The lifter's own exercise and count for a stored set (#156, #157): it stays in Workouts as a by-hand set and
@@ -2074,6 +2076,9 @@ final class VideoPoseSession: NSObject, ObservableObject {
     status.paused = paused
     status.lastSet = lastSet
     status.viewfinder = viewfinder
+    // What the wrist's by-hand picker opens on (#271).
+    status.bellKg = Dictionary(
+      uniqueKeysWithValues: RecentEntry.lastBellKg(recents.entries).map { ($0.key.rawValue, $0.value) })
     // No new field: phase is free when not recording, and the old watch app never reads it (045).
     if analyzingLastSet { status.phase = "analyzing" }
     watch.send(status, force: force || heartbeat)

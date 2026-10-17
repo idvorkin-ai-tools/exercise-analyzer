@@ -22,7 +22,8 @@ struct BellWeightSheet: View {
   }
 
   /// The competition colour code (the detector's map, `BellColor`): 8 pink … 32 red.
-  private static let code: [(kg: Int, color: Color)] = [
+  /// Also the by-hand sheet's weight row (#271).
+  static let code: [(kg: Int, color: Color)] = [
     (8, .pink), (12, .blue), (16, .yellow), (20, .purple), (24, .green), (28, .orange), (32, .red),
   ]
 

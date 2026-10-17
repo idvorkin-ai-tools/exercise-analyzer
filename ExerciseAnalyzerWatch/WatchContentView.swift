@@ -174,9 +174,12 @@ struct WatchContentView: View {
       .sheet(isPresented: $countingSet) {
         let start = HandSet.start(mode: status.mode, analyzed: status.lastSet, byHand: phone.lastTyped)
         SetByHandPage(
-          exercise: start.exercise, start: start.reps, choosing: phone.screenshotOpensExerciseList
-        ) { exercise, reps in
-          phone.saveSetByHand(exercise: exercise, reps: reps)
+          exercise: start.exercise, start: start.reps, choosing: phone.screenshotOpensExerciseList,
+          startKg: {
+            HandSet.startKg(for: $0, phone: status.bellKg, typed: phone.lastTyped, analyzed: status.lastSet)
+          }
+        ) { exercise, reps, kg in
+          phone.saveSetByHand(exercise: exercise, reps: reps, kg: kg)
         }
       }
     }
@@ -610,22 +613,46 @@ struct WatchContentView: View {
 /// step it by one with a tick each, 1…200. The exercise is a button: it opens the list of exercises, and the one
 /// tapped there is the set's (#154). Save adds the set; Cancel, or the sheet's close button, adds nothing.
 private struct SetByHandPage: View {
-  let onSave: (ExerciseKind, Int) -> Void
+  /// Exercise, reps and the bell's weight (nil for none).
+  let onSave: (ExerciseKind, Int, Int?) -> Void
+  /// Each exercise's last weight (#271): the weight row opens on it and follows the exercise until turned.
+  let startKg: (ExerciseKind) -> Int?
   @State private var exercise: ExerciseKind
   /// The Crown's value; the count is it rounded and clamped.
   @State private var count: Double
   @State private var choosing = false
+  /// The weight row's Crown value: 0 for none, then `HandSet.weights` in order.
+  @State private var kgStep: Double
+  @State private var kgPicked = false
   @FocusState private var crownFocused: Bool
+  @FocusState private var kgFocused: Bool
   @Environment(\.dismiss) private var dismiss
 
-  init(exercise: ExerciseKind, start: Int, choosing: Bool = false, onSave: @escaping (ExerciseKind, Int) -> Void) {
+  init(
+    exercise: ExerciseKind, start: Int, choosing: Bool = false, startKg: @escaping (ExerciseKind) -> Int?,
+    onSave: @escaping (ExerciseKind, Int, Int?) -> Void
+  ) {
     self.onSave = onSave
+    self.startKg = startKg
     _exercise = State(initialValue: exercise)
     _count = State(initialValue: Double(start))
     _choosing = State(initialValue: choosing)
+    _kgStep = State(initialValue: Self.step(for: startKg(exercise)))
   }
 
   private var reps: Int { HandSet.clamp(Int(count.rounded())) }
+
+  private var kg: Int? {
+    let step = Int(kgStep.rounded())
+    return HandSet.weights.indices.contains(step - 1) ? HandSet.weights[step - 1] : nil
+  }
+
+  /// A weight off the code (a 36 kg tapped on the phone) opens on the nearest bell.
+  private static func step(for kg: Int?) -> Double {
+    guard let kg else { return 0 }
+    let nearest = HandSet.weights.indices.min { abs(HandSet.weights[$0] - kg) < abs(HandSet.weights[$1] - kg) }
+    return Double((nearest ?? -1) + 1)
+  }
 
   var body: some View {
     VStack(spacing: 4) {
@@ -654,8 +681,22 @@ private struct SetByHandPage: View {
           .accessibilityLabel("\(reps) reps")
         stepButton("plus", by: 1)
       }
+      // The bell's weight (#271): a tap gives it the Crown, which steps None, 8 … 32 kg.
+      Text(kg.map { "\($0) kg" } ?? "No kg")
+        .font(.headline).monospacedDigit()
+        .foregroundStyle(kg == nil ? .secondary : .primary)
+        .frame(maxWidth: .infinity, minHeight: 28)
+        .focusable()
+        .focused($kgFocused)
+        .digitalCrownRotation(
+          $kgStep, from: 0, through: Double(HandSet.weights.count), by: 1, sensitivity: .low, isContinuous: false,
+          isHapticFeedbackEnabled: true
+        )
+        // Given the Crown, the weight is the lifter's: a change of exercise no longer moves it.
+        .onChange(of: kgFocused) { _, focused in if focused { kgPicked = true } }
+        .accessibilityLabel(kg.map { "\($0) kilograms. Turn the Crown to change" } ?? "No weight")
       Button {
-        onSave(exercise, reps)
+        onSave(exercise, reps, kg)
         dismiss()
       } label: {
         Text("Save").frame(maxWidth: .infinity)
@@ -673,6 +714,8 @@ private struct SetByHandPage: View {
         exercise = kind
         // An exercise with a usual count opens on it (#196); the others keep the count on the page.
         if let usual = HandSet.usualReps(for: kind) { count = Double(usual) }
+        // And its last weight, unless one was turned to (#271).
+        if !kgPicked { kgStep = Self.step(for: startKg(kind)) }
         choosing = false
       } label: {
         HStack {

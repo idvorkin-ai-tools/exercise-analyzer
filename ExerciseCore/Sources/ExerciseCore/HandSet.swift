@@ -13,12 +13,34 @@ public struct HandSet: Codable, Equatable, Sendable {
   public let reps: Int
   /// When Save was tapped, seconds since 1970: the set's time on the phone.
   public let at: Double
+  /// The bell's weight picked beside the count (#271, story 066), the set's own on the phone; nil for none and
+  /// from a watch before #271.
+  public let kg: Int?
 
-  public init(id: String = UUID().uuidString, exercise: ExerciseKind, reps: Int, at: Double) {
+  public init(id: String = UUID().uuidString, exercise: ExerciseKind, reps: Int, at: Double, kg: Int? = nil) {
     self.id = id
     self.exercise = exercise
     self.reps = reps
     self.at = at
+    self.kg = kg
+  }
+
+  /// The wrist's weight column: the competition bells, 8 … 32 kg (066's code).
+  public static let weights = [8, 12, 16, 20, 24, 28, 32]
+
+  /// What the wrist's weight column opens on (#271; Igor: "remember the weight from the last set we did on that
+  /// exercise"): the set typed here when it is of this exercise and newer than the phone's last set, or the phone
+  /// has no weight for it; else the phone's last weight of the exercise (`WatchStatus.bellKg`); nil for none.
+  public static func startKg(
+    for exercise: ExerciseKind, phone: [String: Int], typed: HandSet?, analyzed: LastSet?
+  )
+    -> Int?
+  {
+    let phoneKg = phone[exercise.rawValue]
+    if let typed, typed.exercise == exercise, let kg = typed.kg, phoneKg == nil || typed.isNewer(than: analyzed) {
+      return kg
+    }
+    return phoneKg
   }
 
   /// The count page's range and its start with no set before it.
@@ -120,13 +142,28 @@ public struct HandSet: Codable, Equatable, Sendable {
   /// The phone's Workouts entry: at the time of the save, no length, no picture, no score, no analysis.
   public var entry: RecentEntry {
     let date = Date(timeIntervalSince1970: at)
-    return RecentEntry(
+    var entry = RecentEntry(
       id: id, analyzedAt: date, recordedAt: date, duration: 0, repCount: reps, bestScore: nil, source: .byHand,
       thumbnail: nil, exercise: exercise, originalName: nil, models: [], clipStartedAt: date)
+    entry.bellKg = kg
+    return entry
   }
 }
 
 extension RecentEntry {
+  /// Each exercise's last weight, the newest set's own of it in any workout (#271): what the by-hand pickers open
+  /// on, and what the phone tells the wrist (`WatchStatus.bellKg`).
+  public static func lastBellKg(_ entries: [RecentEntry]) -> [ExerciseKind: Int] {
+    var newest: [ExerciseKind: (at: Date, kg: Int)] = [:]
+    for entry in entries {
+      guard let kg = entry.bellKg else { continue }
+      let at = entry.span.lowerBound
+      if let seen = newest[entry.exerciseKind], seen.at >= at { continue }
+      newest[entry.exerciseKind] = (at, kg)
+    }
+    return newest.mapValues(\.kg)
+  }
+
   /// The set as the lifter says it was (#156, #157): their exercise and count, kept by hand from now on. Same id
   /// and time, so it stays where it was in its workout; no clip, picture, score or analysis, so nothing re-reads
   /// it and a new AnalysisVersion leaves it alone.
