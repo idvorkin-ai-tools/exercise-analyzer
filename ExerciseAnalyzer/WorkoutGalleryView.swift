@@ -85,7 +85,9 @@ struct WorkoutGalleryView: View {
   }
 
   /// The days, from the sets and the workouts alike: a workout without a set on camera is still a day.
-  private var days: [WorkoutDay] { WorkoutDay.group(store.entries, workouts: workouts.sessions, live: workouts.live) }
+  private var days: [WorkoutDay] {
+    WorkoutDay.group(store.entries, workouts: workouts.sessions, live: workouts.shownLive)
+  }
 
   /// The days the row's filter keeps (#265): all of them until a drawing or the diamond is picked.
   private func shown(_ days: [WorkoutDay]) -> [WorkoutDay] {

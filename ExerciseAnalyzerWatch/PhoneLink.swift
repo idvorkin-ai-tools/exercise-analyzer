@@ -354,15 +354,18 @@ final class PhoneLink: NSObject, ObservableObject {
     )
   }
 
-  /// Start on the workout page (048): the wrist's own session, no phone needed.
-  func startWorkout() {
-    logEvent("command", ["command": "workout_start", "reachable": reachable, "live": isLive])
+  /// Start on the workout page (048): the wrist's own session, no phone needed. `continuing`: Continue on the ask
+  /// that follows an End by under ten minutes (#238).
+  func startWorkout(continuing: Bool = false) {
+    logEvent(
+      "command",
+      ["command": "workout_start", "reachable": reachable, "live": isLive, "continuing": continuing])
     guard screenshot == nil else { return }
     // A new workout starts with no rest: the count from the last workout's final set carried over and read as
     // a rest of hours (#273; Igor: "the rest needs to reset when I started a workout").
     rest.clear()
     WKInterfaceDevice.current().play(.click)
-    workout.start()
+    workout.start(continuing: continuing)
   }
 
   /// End writes the workout to Health; Discard writes nothing. Either way the wrist goes back to idle.

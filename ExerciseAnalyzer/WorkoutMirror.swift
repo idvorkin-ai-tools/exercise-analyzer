@@ -49,7 +49,7 @@ final class WorkoutMirror: NSObject, ObservableObject {
 
   /// Sets recorded inside the running workout, from the app's own store.
   func setsInLiveWorkout(_ entries: [RecentEntry]) -> [RecentEntry] {
-    guard let live else { return [] }
+    guard let live = shownLive else { return [] }
     return entries.filter { $0.start >= live.startDate }
   }
 
@@ -144,14 +144,20 @@ final class WorkoutMirror: NSObject, ObservableObject {
   /// The id the page of 053 gives the running workout, shown as a span up to now.
   nonisolated static let liveID = WorkoutIdentity.liveID
 
-  // ponytail: the running workout is not merged with one that ended under 30 minutes before it; it joins that
-  // session once it ends. Upgrade: give `liveWorkout` the earlier session's start and hide that session.
-  /// The ended workouts as the phone shows them: those under 30 minutes apart are one session (#169). Health
-  /// keeps its records; the list, the page and "‹ Workout" read these.
-  var sessions: [StoredWorkout] { index.sessions() }
+  /// The ended workouts as the phone shows them: those under 30 minutes apart are one session (#169), and while
+  /// a workout runs, the session it joins is not among them (#238). Health keeps its records; the list, the page
+  /// and "‹ Workout" read these.
+  var sessions: [StoredWorkout] { index.joining(live, now: Date()).sessions }
+
+  // ponytail: the Live Activity still follows `live`, so its clock counts from the wrist's Start. Upgrade: feed
+  // it `shownLive`.
+  /// The running workout as the phone shows it (#238): a workout started under 30 minutes after the last one
+  /// ended is that session going on, from its start with both counts, as it will be once it ends. `live` stays
+  /// the wrist's own, which `ended(at:)` saves.
+  var shownLive: WorkoutWire? { index.joining(live, now: Date()).live }
 
   /// The running workout as a span up to now (053, #123): what its page and "‹" open, never kept.
-  var liveWorkout: StoredWorkout? { live.map(Self.soFar) }
+  var liveWorkout: StoredWorkout? { shownLive.map(Self.soFar) }
 
   nonisolated static func soFar(_ live: WorkoutWire) -> StoredWorkout {
     StoredWorkout(

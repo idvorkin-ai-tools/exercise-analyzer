@@ -28,6 +28,23 @@ final class WorkoutController: NSObject, ObservableObject {
   @Published private(set) var heartRateMax: Int?
   /// The last recorded set's heart peak: the rest head says how far the heart has come down from it (#195).
   @Published private(set) var setPeak = SetHeartPeak()
+  /// The workout this one continues (#238): the wrist shows its clock and sets on top of this session's own,
+  /// which alone go to Health and the phone.
+  @Published private(set) var carried: WorkoutCarry?
+  /// The last workout ended on this wrist, for Start's "Continue …?" (#238); nil after a Discard.
+  private var lastEnded: WorkoutCarry? = WorkoutController.loadLastEnded()
+  /// Continue's carry between Start and the session opening.
+  private var pendingCarry: WorkoutCarry?
+
+  /// What Start asks to continue: the last End, if under ten minutes ago (#238).
+  var continuable: WorkoutCarry? { lastEnded.flatMap { $0.offered(at: Date()) ? $0 : nil } }
+  /// The head's clock start: the continued workout's (#238), else this session's.
+  var shownStart: Date? { carried?.start ?? startedAt }
+  /// The head's sets: the continued workout's under this session's (#238).
+  var shownTally: (sets: Int, reps: Int, exerciseSets: [ExerciseKind: Int], exerciseOrder: [ExerciseKind]) {
+    carried?.adding(sets: sets, reps: reps, exerciseSets: exerciseSets, exerciseOrder: exerciseOrder)
+      ?? (sets, reps, exerciseSets, exerciseOrder)
+  }
   /// Analyzed sets since Start and their reps: the phone's post-pass counts (045), never the live count, and the
   /// sets typed by hand (059).
   @Published private(set) var sets = 0
@@ -88,8 +105,10 @@ final class WorkoutController: NSObject, ObservableObject {
   // MARK: - Start, End, Discard
 
   /// Asks for Health permission the first time, then opens the session and starts mirroring it to the phone.
-  func start() {
+  /// `continuing`: Continue on Start's ask (#238), the last ended workout carried on the wrist.
+  func start(continuing: Bool = false) {
     guard phase == .none, !fixed else { return }
+    pendingCarry = continuing ? continuable : nil
     guard HKHealthStore.isHealthDataAvailable() else {
       fail("Health data is not available on this watch", event: "workout_failed")
       return
@@ -145,6 +164,8 @@ final class WorkoutController: NSObject, ObservableObject {
       heartRateAverage = nil
       heartRateMax = nil
       setPeak.reset()
+      carried = pendingCarry
+      pendingCarry = nil
       sets = 0
       reps = 0
       exerciseSets = [:]
@@ -154,7 +175,10 @@ final class WorkoutController: NSObject, ObservableObject {
       activityOpen = false
       phase = .running
       saveTally()
-      log("workout_start", [:])
+      log(
+        "workout_start",
+        carried.map { ["continues": true, "ended_s_ago": Int(start.timeIntervalSince($0.end)), "sets": $0.sets] }
+          ?? [:])
       sendWire()
     } catch {
       phase = .none
@@ -198,6 +222,7 @@ final class WorkoutController: NSObject, ObservableObject {
         self.exerciseSets = tally.exerciseSets
         self.exerciseOrder = tally.exerciseOrder
         self.countedSetAt = tally.countedSetAt
+        self.carried = Self.savedCarry(startedAt: start)
         self.discarding = false
         self.activityOpen = false
         self.phase = .running
@@ -225,12 +250,45 @@ final class WorkoutController: NSObject, ObservableObject {
   private func saveTally() {
     guard let startedAt, !fixed else { return }
     let byExercise = Dictionary(uniqueKeysWithValues: exerciseSets.map { ($0.key.rawValue, $0.value) })
-    UserDefaults.standard.set(
-      [
-        "startedAt": startedAt.timeIntervalSince1970, "sets": sets, "reps": reps, "countedSetAt": countedSetAt,
-        "exerciseSets": byExercise, "exerciseOrder": exerciseOrder.map(\.rawValue),
-      ],
-      forKey: Self.tallyKey)
+    var tally: [String: Any] = [
+      "startedAt": startedAt.timeIntervalSince1970, "sets": sets, "reps": reps, "countedSetAt": countedSetAt,
+      "exerciseSets": byExercise, "exerciseOrder": exerciseOrder.map(\.rawValue),
+    ]
+    // The continued workout too (#238), or a restarted app's head drops back to this session's clock.
+    if let carried, let data = try? JSONEncoder().encode(carried) { tally["carried"] = data }
+    UserDefaults.standard.set(tally, forKey: Self.tallyKey)
+  }
+
+  private static func savedCarry(startedAt: Date) -> WorkoutCarry? {
+    guard let saved = UserDefaults.standard.dictionary(forKey: tallyKey),
+      let at = saved["startedAt"] as? Double, abs(at - startedAt.timeIntervalSince1970) < 2,
+      let data = saved["carried"] as? Data
+    else { return nil }
+    return try? JSONDecoder().decode(WorkoutCarry.self, from: data)
+  }
+
+  nonisolated private static let lastEndedKey = "lastEndedWorkout"
+
+  /// Nonisolated: the stored property's initial value calls it.
+  nonisolated private static func loadLastEnded() -> WorkoutCarry? {
+    UserDefaults.standard.data(forKey: lastEndedKey).flatMap { try? JSONDecoder().decode(WorkoutCarry.self, from: $0) }
+  }
+
+  /// End (#238): what the next Start may continue, as the head showed it, the carried part included.
+  private func rememberEnded(at date: Date) {
+    guard let shownStart, !fixed else { return }
+    let tally = shownTally
+    let ended = WorkoutCarry(
+      start: shownStart, end: date, sets: tally.sets, reps: tally.reps, exerciseSets: tally.exerciseSets,
+      exerciseOrder: tally.exerciseOrder)
+    lastEnded = ended
+    if let data = try? JSONEncoder().encode(ended) { UserDefaults.standard.set(data, forKey: Self.lastEndedKey) }
+  }
+
+  /// Discard (#238): nothing to continue.
+  private func forgetEnded() {
+    lastEnded = nil
+    UserDefaults.standard.removeObject(forKey: Self.lastEndedKey)
   }
 
   private static func savedTally(
@@ -369,10 +427,13 @@ final class WorkoutController: NSObject, ObservableObject {
         if let error { self.log("workout_failed", ["message": "endCollection: \(error)"]) }
         if self.discarding {
           builder.discardWorkout()
+          self.forgetEnded()
           self.log("workout_ended", ["saved": false])
           self.reset()
           return
         }
+        // Before the Health write's reply, which can take a while: a Start meanwhile already asks (#238).
+        self.rememberEnded(at: date)
         builder.finishWorkout { workout, error in
           Task { @MainActor in
             var fields = self.summaryFields
@@ -394,6 +455,7 @@ final class WorkoutController: NSObject, ObservableObject {
     phase = .none
     startedAt = nil
     heartRate = nil
+    carried = nil
     activityOpen = false
   }
 }

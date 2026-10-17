@@ -34,7 +34,7 @@ struct WorkoutDetailView: View {
   var body: some View {
     let series = heartRateFor == identity ? heartRate : nil
     let snapshot = WorkoutPageSnapshot(
-      identity: identity, live: workouts.live, saved: workouts.sessions,
+      identity: identity, live: workouts.shownLive, saved: workouts.sessions,
       // The 20 s tick, not Date(): a live workout's end read per render changed on every pan and pinch frame,
       // re-logging `workout_page` and rebuilding the timeline each time.
       now: tick, sets: store.entries, heartRate: series)
@@ -67,7 +67,8 @@ struct WorkoutDetailView: View {
       guard scenePhase == .active else { return }
       tick = Date()
       while !Task.isCancelled {
-        guard identity.resolve(live: workouts.live, saved: workouts.sessions, now: Date())?.id == WorkoutMirror.liveID
+        guard
+          identity.resolve(live: workouts.shownLive, saved: workouts.sessions, now: Date())?.id == WorkoutMirror.liveID
         else { return }
         do { try await Task.sleep(for: .seconds(20)) } catch { return }
         tick = Date()

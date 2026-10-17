@@ -11,6 +11,9 @@ struct WatchContentView: View {
   /// Ticks so a status that stops arriving turns stale on screen.
   @State private var now = Date()
   @State private var confirmDiscard = false
+  /// Start under ten minutes after an End asks to continue that workout (#238); the question, set at the tap.
+  @State private var askingContinue = false
+  @State private var continueQuestion = ""
   /// The count page of a set typed by hand is up (059).
   @State private var countingSet = false
   private let clock = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
@@ -211,6 +214,8 @@ struct WatchContentView: View {
   private var workoutHeader: some View {
     let resting = workout.phase == .ending ? nil : phone.rest.restEnded
     let drop = resting == nil ? nil : workout.setPeak.drop(now: workout.heartRate)
+    // A continued workout (#238) shows from its first part: that clock, those sets with this session's.
+    let tally = workout.shownTally
     return VStack(spacing: 2) {
       if let resting {
         Text("REST · \(Self.duration(Double(phone.rest.length)))")
@@ -221,7 +226,7 @@ struct WatchContentView: View {
       } else {
         Text(workout.phase == .ending ? "ENDING…" : "WORKOUT")
           .font(.caption2.weight(.semibold)).kerning(1).foregroundStyle(.green)
-        if let startedAt = workout.startedAt {
+        if let startedAt = workout.shownStart {
           Text(startedAt, style: .timer)
             .font(.system(size: 40, weight: .bold, design: .rounded)).monospacedDigit()
         }
@@ -235,7 +240,7 @@ struct WatchContentView: View {
           Text("· −\(drop)").font(.title3.bold()).monospacedDigit()
         }
         Text("BPM").font(.caption2).foregroundStyle(.secondary)
-        if resting != nil, let startedAt = workout.startedAt {
+        if resting != nil, let startedAt = workout.shownStart {
           Text("·").foregroundStyle(.secondary)
           Text(startedAt, style: .timer).font(.title3.bold()).monospacedDigit().foregroundStyle(.green)
         }
@@ -246,21 +251,21 @@ struct WatchContentView: View {
       // The sets by exercise with the drawings, as the phone's Today line reads mid-workout (#206, #192; Igor:
       // "show sets and exercises completed like I see it on the workouts view … just those coarse details"),
       // and nothing else: "6 sets · 47 reps" went ("drop n sets reps, the icons are enough").
-      if !workout.exerciseOrder.isEmpty {
+      if !tally.exerciseOrder.isEmpty {
         HStack(spacing: 8) {
-          ForEach(workout.exerciseOrder) { kind in
+          ForEach(tally.exerciseOrder) { kind in
             HStack(spacing: 2) {
               ExerciseGlyph(kind: kind, size: 16)
-              Text("\(workout.exerciseSets[kind, default: 0])").font(.caption.bold()).monospacedDigit()
+              Text("\(tally.exerciseSets[kind, default: 0])").font(.caption.bold()).monospacedDigit()
             }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("\(workout.exerciseSets[kind, default: 0]) sets of \(kind.repWord(2))")
+            .accessibilityLabel("\(tally.exerciseSets[kind, default: 0]) sets of \(kind.repWord(2))")
           }
         }
         .padding(.top, 2)
-      } else if workout.sets > 0 {
+      } else if tally.sets > 0 {
         // Sets with no exercise to draw (a name the watch does not know, a tally saved before #206) still show.
-        Text("\(workout.sets) set\(workout.sets == 1 ? "" : "s") · \(workout.reps) reps")
+        Text("\(tally.sets) set\(tally.sets == 1 ? "" : "s") · \(tally.reps) reps")
           .font(.caption).monospacedDigit().foregroundStyle(.secondary)
       }
     }
@@ -271,13 +276,23 @@ struct WatchContentView: View {
   @ViewBuilder private var startWorkoutButton: some View {
     if !workout.running {
       Button {
-        phone.startWorkout()
+        // Igor (#238): "On quick restart workout ask if want to continue."
+        if let ended = workout.continuable {
+          continueQuestion = ended.question(at: Date())
+          askingContinue = true
+        } else {
+          phone.startWorkout()
+        }
       } label: {
         Label(workout.phase == .starting ? "Starting…" : "Start workout", systemImage: "clock")
           .frame(maxWidth: .infinity)
       }
       .tint(.green)
       .disabled(workout.phase == .starting)
+      .confirmationDialog(continueQuestion, isPresented: $askingContinue, titleVisibility: .visible) {
+        Button("Continue") { phone.startWorkout(continuing: true) }
+        Button("New workout") { phone.startWorkout() }
+      }
     }
   }
 
