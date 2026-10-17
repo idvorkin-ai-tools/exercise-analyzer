@@ -260,8 +260,11 @@ public struct WorkoutIndex: Codable, Equatable, Sendable {
     else { return (live, sessions) }
     sessions.removeLast()
     let running = max(0, now.timeIntervalSince(shown.startDate))
+    // The session's average is already by its parts' time (`sessions()`), so it weighs that time, not its span:
+    // the gaps between merged parts carry no heart rate (ea-4md).
+    let lastSeconds = parts(of: last).filter { $0.heartRateAverage != nil }.reduce(0) { $0 + $1.duration }
     let rated = [
-      last.heartRateAverage.map { (bpm: Double($0), seconds: last.duration) },
+      last.heartRateAverage.map { (bpm: Double($0), seconds: lastSeconds) },
       shown.heartRateAverage.map { (bpm: Double($0), seconds: running) },
     ].compactMap { $0 }
     let seconds = rated.reduce(0) { $0 + $1.seconds }
