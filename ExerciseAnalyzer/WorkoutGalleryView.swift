@@ -94,7 +94,9 @@ struct WorkoutGalleryView: View {
           description: Text("Record a set or open a video and it shows up here, grouped by day."))
       } else {
         ScrollView {
-          LazyVStack(alignment: .leading, spacing: 14, pinnedViews: [.sectionHeaders]) {
+          // 4 pt between the lines (#266; Igor: "a lot of dead space between the workouts"); a day's set rows keep
+          // their 14 pt by their own top padding.
+          LazyVStack(alignment: .leading, spacing: 4, pinnedViews: [.sectionHeaders]) {
             // One line about the newest change, with its ✕ (story 072); BugKit's row shows nothing once dismissed.
             if let onWhatsNew {
               WhatsNewRow(feed: whatsNew, logger: { type, fields in onEvent?(type, fields.mapValues(\.foundation)) }) {
@@ -144,7 +146,9 @@ struct WorkoutGalleryView: View {
                           store.keepByHand(id: entry.id, exercise: kind, reps: reps)
                         }
                         if entry.isInPhotos { suggestions.refresh(known: knownPhotosIDs) }
-                      })
+                      }
+                    )
+                    .padding(.top, 10)
                   }
                 }
               } header: {
@@ -243,29 +247,23 @@ struct PhotosSuggestionsRow: View {
       Button {
         withAnimation(.easeInOut(duration: 0.2)) { expanded.toggle() }
       } label: {
-        HStack(spacing: 8) {
-          Image(systemName: "photo.on.rectangle")
-            .font(.subheadline.bold())
-            .frame(width: 28, height: 28)
-            .background(Color.blue.opacity(0.15), in: Circle())
-            .foregroundStyle(.blue)
-          Text("From Photos").font(.headline)
+        // One caption line, no icon circle (#266; Igor: "From Photos takes up too much space"): about 30 pt where
+        // the 44 pt row with its padding took 66; the whole line is still the tap.
+        HStack(spacing: 4) {
           let new = suggestions.clips(in: .new).count
-          if !expanded, new > 0 {
-            Text("\(new) new").font(.subheadline).monospacedDigit().foregroundStyle(.secondary)
-          }
+          Text(!expanded && new > 0 ? "From Photos · \(new) new" : "From Photos")
+            .font(.caption).monospacedDigit()
+          Image(systemName: expanded ? "chevron.down" : "chevron.right").font(.caption2.bold())
           Spacer()
-          Image(systemName: expanded ? "chevron.down" : "chevron.right")
-            .font(.subheadline.bold()).foregroundStyle(.secondary)
         }
-        .frame(minHeight: 44)
+        .foregroundStyle(.secondary)
+        .frame(minHeight: 30)
         .contentShape(Rectangle())
       }
       .buttonStyle(.plain)
       .accessibilityLabel(expanded ? "Hide the clips from Photos" : "Show the clips from Photos")
       if expanded { strip }
     }
-    .padding(.top, 8)
   }
 
   @ViewBuilder private var strip: some View {
@@ -492,7 +490,7 @@ struct DayHeader: View {
       }
     }
     .foregroundStyle(.primary)
-    .padding(.vertical, 8)
+    .padding(.vertical, 4)  // was 8 (#266): about 77 pt per workout day instead of 95
     .background(Color(.systemBackground))
   }
 
