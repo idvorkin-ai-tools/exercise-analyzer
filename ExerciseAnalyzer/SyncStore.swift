@@ -99,6 +99,9 @@ final class SyncStore: ObservableObject {
   /// Bumped when the ledger is reset for another account: a pass begun before keeps its prints out of the new
   /// ledger, since it wrote to the old account's container (#226).
   private var ledgerGeneration = 0
+  /// Bumped by each container lookup: only the newest attaches, so a launch lookup still blocked when the account
+  /// changed cannot put the old container back over the new one (Codex on PR #287).
+  private var lookup = 0
   private var mirroring = false
   private var again = false
   private var reading = false
@@ -161,11 +164,19 @@ final class SyncStore: ObservableObject {
   /// `url(forUbiquityContainerIdentifier:)` can block for a while the first time: never on the main thread.
   private func lookUpContainer() {
     let started = Date()
+    lookup += 1
+    let mine = lookup
     note("sync_container_lookup", ["account": FileManager.default.ubiquityIdentityToken != nil])
     Task.detached(priority: .utility) {
       let url = FileManager.default.url(forUbiquityContainerIdentifier: Self.containerID)
       let ms = Int(Date().timeIntervalSince(started) * 1000)
-      await MainActor.run { self.attach(url, ms: ms) }
+      await MainActor.run {
+        guard mine == self.lookup else {
+          self.note("sync_container_stale", ["available": url != nil, "ms": ms])
+          return
+        }
+        self.attach(url, ms: ms)
+      }
     }
   }
 

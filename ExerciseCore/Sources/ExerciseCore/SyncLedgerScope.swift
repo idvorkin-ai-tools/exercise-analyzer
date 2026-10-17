@@ -14,7 +14,7 @@ public struct SyncLedgerScope: Equatable {
   public var reset: Bool
 
   /// Signed out keeps everything (nothing can be written, and the same account back must not rewrite it all); a
-  /// ledger from before the account was stored is adopted by the account signed in now.
+  /// ledger from before the account was stored is dropped, since it could be another account's (Codex on PR #287).
   /// `same` compares two stored accounts: the app unarchives both tokens and asks `isEqual`, as Apple says to,
   /// since two archives of one token need not be the same bytes.
   public static func resolve(
@@ -22,9 +22,8 @@ public struct SyncLedgerScope: Equatable {
     same: (Data, Data) -> Bool = { $0 == $1 }
   ) -> SyncLedgerScope {
     guard let current else { return SyncLedgerScope(ledger: ledger, identity: stored, reset: false) }
-    guard let stored, !same(stored, current) else {
-      return SyncLedgerScope(ledger: ledger, identity: current, reset: false)
-    }
+    if let stored, same(stored, current) { return SyncLedgerScope(ledger: ledger, identity: current, reset: false) }
+    if stored == nil, ledger.isEmpty { return SyncLedgerScope(ledger: ledger, identity: current, reset: false) }
     return SyncLedgerScope(ledger: [:], identity: current, reset: true)
   }
 }

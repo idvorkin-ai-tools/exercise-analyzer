@@ -43,10 +43,19 @@ final class SyncLedgerScopeTests: XCTestCase {
     XCTAssertEqual(scope.identity, me)
   }
 
-  /// A ledger from before the account was kept belongs to the account signed in now (the devices never switched).
-  func testALedgerFromBeforeTheAccountWasKeptIsAdopted() {
+  /// A ledger from before the account was kept could be another account's (Codex on PR #287: one switched before
+  /// the update would never get the unchanged sets), so it is dropped; the pass after only rewrites the small rows,
+  /// since files already there and as new are skipped.
+  func testALedgerFromBeforeTheAccountWasKeptIsDropped() {
     let scope = SyncLedgerScope.resolve(ledger: written, writtenUnder: nil, signedIn: me)
-    XCTAssertEqual(scope.ledger, written)
+    XCTAssertEqual(scope.ledger, [:])
+    XCTAssertTrue(scope.reset)
+    XCTAssertEqual(scope.identity, me)
+  }
+
+  /// A first launch has nothing to drop: the account signed in is simply stored.
+  func testAnEmptyLedgerIsClaimedWithoutAReset() {
+    let scope = SyncLedgerScope.resolve(ledger: [:], writtenUnder: nil, signedIn: me)
     XCTAssertFalse(scope.reset)
     XCTAssertEqual(scope.identity, me)
   }
