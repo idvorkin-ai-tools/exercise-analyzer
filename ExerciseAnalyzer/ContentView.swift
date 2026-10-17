@@ -436,6 +436,15 @@ struct ContentView: View {
     .accessibilityLabel(session.noVideos ? "Live. No videos for a while, from the watch: workout only" : "Live")
     .padding(.trailing, 20)
     .padding(.bottom, 8)
+    // 20 pt lower than its inset, toward the thumb and still clear of the home indicator (#283; Igor: "Move record
+    // a little bit lower"); the list's end margin stays the inset's. Capped by the home-indicator inset, so on a
+    // home-button iPhone (no inset) it keeps its 8 pt off the screen's edge instead of clipping (Codex on PR #284).
+    .offset(y: min(20, bottomInset))
+  }
+
+  /// The window's bottom safe-area inset: the home indicator's 34 pt on a Face ID iPhone, 0 on a home-button one.
+  private var bottomInset: CGFloat {
+    (UIApplication.shared.connectedScenes.first as? UIWindowScene)?.keyWindow?.safeAreaInsets.bottom ?? 0
   }
 
   /// The picture, the HUD, the rep gallery and the transport bar: a set or the camera. On a wide screen held

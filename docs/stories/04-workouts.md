@@ -516,7 +516,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 058:
 
 - **Summary:** The log is home: a set, a workout's page and the camera are each a screen with a way back
-- **Status:** implemented in [8f3cffe](https://github.com/idvorkin/exercise-analyzer/commit/8f3cffe); verified on the simulator (launch on the log, a set and back, a workout's page and back, the live page); the live page (#52) in [bdcfda4](https://github.com/idvorkin/exercise-analyzer/commit/bdcfda4), [b639300](https://github.com/idvorkin/exercise-analyzer/commit/b639300), verified on the host and the simulator; camera Cancel back where it was opened (#146) in [53c4ea4](https://github.com/idvorkin/exercise-analyzer/commit/53c4ea4), verified on the host (`CameraNavigationTests`); on the phone since 2026-09-26, Igor's check pending; the Photos picker opening the player with a set already loaded in [9113539](https://github.com/idvorkin/exercise-analyzer/commit/9113539), found by Codex's review of PR #187, verified by build only (the simulator cannot drive the picker); Live as a round button bottom right, no bar (#280, Igor picked A on the right side, 2026-10-17) in [fe2cb88](https://github.com/idvorkin/exercise-analyzer/commit/fe2cb88), verified on the simulator (`just build-sim`, the sim-smoke checks and a screenshot of Workouts with the round button bottom right and the list scrolling under it), the phone pending
+- **Status:** implemented in [8f3cffe](https://github.com/idvorkin/exercise-analyzer/commit/8f3cffe); verified on the simulator (launch on the log, a set and back, a workout's page and back, the live page); the live page (#52) in [bdcfda4](https://github.com/idvorkin/exercise-analyzer/commit/bdcfda4), [b639300](https://github.com/idvorkin/exercise-analyzer/commit/b639300), verified on the host and the simulator; camera Cancel back where it was opened (#146) in [53c4ea4](https://github.com/idvorkin/exercise-analyzer/commit/53c4ea4), verified on the host (`CameraNavigationTests`); on the phone since 2026-09-26, Igor's check pending; the Photos picker opening the player with a set already loaded in [9113539](https://github.com/idvorkin/exercise-analyzer/commit/9113539), found by Codex's review of PR #187, verified by build only (the simulator cannot drive the picker); Live as a round button bottom right, no bar (#280, Igor picked A on the right side, 2026-10-17) in [fe2cb88](https://github.com/idvorkin/exercise-analyzer/commit/fe2cb88), verified on the simulator (`just build-sim`, the sim-smoke checks and a screenshot of Workouts with the round button bottom right and the list scrolling under it), on the phone since 2026-10-17 (270088d); 20 pt lower (#283) in [539b004](https://github.com/idvorkin/exercise-analyzer/commit/539b004), verified on the host (`just test`, lint) and the simulator (build, Workouts screenshots closed and open, iPhone 17), phone pending; the drop capped by the bottom safe-area inset (a home-button iPhone keeps its 8 pt padding on screen) in [4aec66b](https://github.com/idvorkin/exercise-analyzer/commit/4aec66b), verified on the host (`just test`, lint) and the simulator (build of 4aec66b, iPhone 17 Workouts screenshot), phone pending
 - **Why:** Igor, 2026-09-22, on the three architectures ([proposal](https://claude.ai/artifact/46aiQ5J8WxTuZbJBfJZpwZ)): "build the flow for B, I like that". The app opened on an empty player with a menu card, Workouts was a sheet over it with a Close, and a set's way back to the list was the folder button, the card, then Workouts again.
 
 #### Use Case:
@@ -528,7 +528,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Scenario:** Opening the app
 - **Given:** no workout running on the wrist
 - **When:** the app opens
-- **Then:** the Workouts list is the screen, full height, with "…" at the top (Photos, Files, Report a problem, Instrumented run, GitHub) and Live as a round red 60 pt button floating in the bottom-right corner, no bar under the list: the list scrolls under it and its last row ends above it (#280; Igor: "I think we can make lives smaller. Maybe just a small record button", then "a but right"); no menu card, no sheet, no Close
+- **Then:** the Workouts list is the screen, full height, with "…" at the top (Photos, Files, Report a problem, Instrumented run, GitHub) and Live as a round red 60 pt button floating in the bottom-right corner, low, just above the home indicator (#283), no bar under the list: the list scrolls under it and its last row ends above it (#280; Igor: "I think we can make lives smaller. Maybe just a small record button", then "a but right"); no menu card, no sheet, no Close
 
 - **Scenario:** Opening mid-workout
 - **Given:** a workout running on the wrist
@@ -555,7 +555,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
   instrumented run, a hook) puts the player on screen; the camera cancelled or the set deleted takes it away. The rule is
   `CameraNavigation` in ExerciseCore (host tests); the app keeps the path the camera was opened from.
 
-- **Issues:** the architecture pick on 2026-09-22; [#280](https://github.com/idvorkin/exercise-analyzer/issues/280) Live as a round button in the corner; [#146](https://github.com/idvorkin/exercise-analyzer/issues/146) Cancel landed on the list instead of where the camera was opened
+- **Issues:** the architecture pick on 2026-09-22; [#280](https://github.com/idvorkin/exercise-analyzer/issues/280) Live as a round button in the corner; [#283](https://github.com/idvorkin/exercise-analyzer/issues/283) a little lower; [#146](https://github.com/idvorkin/exercise-analyzer/issues/146) Cancel landed on the list instead of where the camera was opened
 
 ---
 
@@ -804,7 +804,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 073:
 
 - **Summary:** Find the days I did an exercise, and the days on video, by tapping the drawings
-- **Status:** Igor picked A on the 2026-10-17 decisions page; built on `feat/2026-10-17-day-filter-265`: the rule is `DayFilter` (ExerciseCore, `DayFilterTests`, 6 host tests), the row in `WorkoutGalleryView`; lint only, the simulator screenshot pending ([#265](https://github.com/idvorkin/exercise-analyzer/issues/265))
+- **Status:** Igor picked A on the 2026-10-17 decisions page; built on `feat/2026-10-17-day-filter-265`: the rule is `DayFilter` (ExerciseCore, `DayFilterTests`, 6 host tests), the row in `WorkoutGalleryView`; lint only, the simulator screenshot pending ([#265](https://github.com/idvorkin/exercise-analyzer/issues/265)). The row folded behind a filter button on the From Photos line: Igor picked A on the 2026-10-17 Lavish page; in [0ebdbb5](https://github.com/idvorkin/exercise-analyzer/commit/0ebdbb5) and its test hook in [200baea](https://github.com/idvorkin/exercise-analyzer/commit/200baea), verified on the host (`just test`, lint) and the simulator (build, Workouts screenshots closed and open, iPhone 17), phone pending; the button disabled, with no chevron, reading "No day matches" while no day matches (Codex on PR #284) in [3acc2f8](https://github.com/idvorkin/exercise-analyzer/commit/3acc2f8), verified on the host (`just test`, lint) and the simulator (build of 4aec66b, iPhone 17 Workouts screenshot), phone pending ([#282](https://github.com/idvorkin/exercise-analyzer/issues/282))
 - **Why:** Igor, 2026-10-13, from the phone on Workouts: "some kind of search thing where I can search for a workout by what I did and if I had a video; the pretty icons, I like them"
 
 #### Use Case:
@@ -828,11 +828,22 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **When:** I come back with "‹", and later relaunch the app
 - **Then:** "‹" comes back to the same pistol days, so I can try the next one; after a relaunch the list is whole again, since nothing is stored; the days keep their folds through it. A day with no match shows "No day matches" with the way back (a second tap)
 
+- **Scenario:** The drawings stay folded until I want them
+- **Given:** Workouts open with more than one exercise in my history, or a day on video
+- **When:** I tap the filter button at the end of the From Photos line
+- **Then:** the row of drawings opens under the line, and a pick closes it again, unless no day matches: then it stays
+  open with "No day matches", the picked drawing in reach for the second tap, and the button goes quiet (no chevron,
+  no tap, VoiceOver reads "No day matches") so it cannot fold the row into an empty list; closed, the days start right under
+  the line, and the button reads the filter that is on (the picked drawing, the diamond, or a plain filter icon when
+  none), so a filter left on is never out of sight
+
 - **Notes:** A, this story: a row of the exercise drawings plus the diamond above the days, one tap each, the gym-first
-  target. B, not chosen: a search field with words ("pistol", "video"), which means typing at the rack. The day list
+  target. #282: the open row cost about 50 pt above the days; A there (picked) folds it behind a button on the From
+  Photos line, B (drawings squeezed onto that line, under the 36 pt targets) and C (in the ⋯ menu, two taps and out of
+  sight) not chosen. B, not chosen: a search field with words ("pistol", "video"), which means typing at the rack. The day list
   already computes each day's exercises and its diamond, so the filter is a predicate over the days the gallery draws,
   nothing new is stored, and the strip, What's new and the Live button stay where they are.
 
-- **Issues:** [#265](https://github.com/idvorkin/exercise-analyzer/issues/265) the row of drawings and the diamond
+- **Issues:** [#265](https://github.com/idvorkin/exercise-analyzer/issues/265) the row of drawings and the diamond; [#282](https://github.com/idvorkin/exercise-analyzer/issues/282) the row behind a filter button
 
 ---
