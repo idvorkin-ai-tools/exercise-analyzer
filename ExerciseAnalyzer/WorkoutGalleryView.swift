@@ -255,6 +255,9 @@ struct WorkoutGalleryView: View {
       Text(workoutDeletionFailure ?? "")
     }
     .onAppear {
+      // ea-trz: the launch hooks below ran twice on 2026-10-17 (two `workout_deleted`); a second appear with
+      // landed false is a new view life, whose @State started over.
+      onEvent?("workouts_appear", ["landed": landedOnLive])
       suggestions.onEvent = onEvent
       suggestions.refresh(known: knownPhotosIDs)
       guard !landedOnLive else { return }
