@@ -199,8 +199,10 @@ final class WorkoutController: NSObject, ObservableObject {
         }
         self.log(
           "workout_recovered",
-          ["state": session.state.rawValue, "seconds": Int(Date().timeIntervalSince(start)), "sets": tally.sets,
-           "reps": tally.reps])
+          [
+            "state": session.state.rawValue, "seconds": Int(Date().timeIntervalSince(start)), "sets": tally.sets,
+            "reps": tally.reps,
+          ])
         self.onRecovered?()
         self.sendWire()
       }
@@ -215,12 +217,16 @@ final class WorkoutController: NSObject, ObservableObject {
     guard let startedAt, !fixed else { return }
     let byExercise = Dictionary(uniqueKeysWithValues: exerciseSets.map { ($0.key.rawValue, $0.value) })
     UserDefaults.standard.set(
-      ["startedAt": startedAt.timeIntervalSince1970, "sets": sets, "reps": reps, "countedSetAt": countedSetAt,
-       "exerciseSets": byExercise, "exerciseOrder": exerciseOrder.map(\.rawValue)],
+      [
+        "startedAt": startedAt.timeIntervalSince1970, "sets": sets, "reps": reps, "countedSetAt": countedSetAt,
+        "exerciseSets": byExercise, "exerciseOrder": exerciseOrder.map(\.rawValue),
+      ],
       forKey: Self.tallyKey)
   }
 
-  private static func savedTally(startedAt: Date)
+  private static func savedTally(
+    startedAt: Date
+  )
     -> (sets: Int, reps: Int, exerciseSets: [ExerciseKind: Int], exerciseOrder: [ExerciseKind], countedSetAt: Double)
   {
     guard let saved = UserDefaults.standard.dictionary(forKey: tallyKey),
@@ -382,7 +388,8 @@ final class WorkoutController: NSObject, ObservableObject {
 
 extension WorkoutController: HKWorkoutSessionDelegate {
   nonisolated func workoutSession(
-    _ workoutSession: HKWorkoutSession, didChangeTo toState: HKWorkoutSessionState, from fromState: HKWorkoutSessionState,
+    _ workoutSession: HKWorkoutSession, didChangeTo toState: HKWorkoutSessionState,
+    from fromState: HKWorkoutSessionState,
     date: Date
   ) {
     Task { @MainActor in
@@ -400,14 +407,21 @@ extension WorkoutController: HKWorkoutSessionDelegate {
     }
   }
 
-  nonisolated func workoutSession(_ workoutSession: HKWorkoutSession, didReceiveDataFromRemoteWorkoutSession data: [Data]) {
-    Task { @MainActor in data.forEach { onPhoneData?($0) } }
+  nonisolated func workoutSession(
+    _ workoutSession: HKWorkoutSession, didReceiveDataFromRemoteWorkoutSession data: [Data]
+  ) {
+    Task { @MainActor in
+      for item in data { onPhoneData?(item) }
+    }
   }
 }
 
 extension WorkoutController: HKLiveWorkoutBuilderDelegate {
-  nonisolated func workoutBuilder(_ workoutBuilder: HKLiveWorkoutBuilder, didCollectDataOf collectedTypes: Set<HKSampleType>) {
-    guard collectedTypes.contains(Self.heartRateType), let statistics = workoutBuilder.statistics(for: Self.heartRateType)
+  nonisolated func workoutBuilder(
+    _ workoutBuilder: HKLiveWorkoutBuilder, didCollectDataOf collectedTypes: Set<HKSampleType>
+  ) {
+    guard collectedTypes.contains(Self.heartRateType),
+      let statistics = workoutBuilder.statistics(for: Self.heartRateType)
     else { return }
     let latest = statistics.mostRecentQuantity()?.doubleValue(for: Self.bpm)
     let average = statistics.averageQuantity()?.doubleValue(for: Self.bpm)
