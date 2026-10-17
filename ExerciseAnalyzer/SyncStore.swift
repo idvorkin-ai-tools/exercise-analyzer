@@ -96,6 +96,9 @@ final class SyncStore: ObservableObject {
   /// What the container holds, by id: the fingerprint of the row or workout it was written from, "deleted" for
   /// a tombstone. Kept across launches so only changes are written.
   private var ledger: [String: String]
+  /// Bumped when the ledger is reset for another account: a pass begun before keeps its prints out of the new
+  /// ledger, since it wrote to the old account's container (#226).
+  private var ledgerGeneration = 0
   private var mirroring = false
   private var again = false
   private var reading = false
@@ -196,6 +199,7 @@ final class SyncStore: ObservableObject {
     guard scope.reset else { return }
     note("sync_ledger_reset", ["why": why, "dropped": ledger.count])
     ledger = scope.ledger
+    ledgerGeneration += 1
     UserDefaults.standard.set(ledger, forKey: Self.ledgerKey)
     status.mirrored = 0
   }
@@ -308,6 +312,7 @@ final class SyncStore: ObservableObject {
     for (id, at) in workouts.deleted { jobs.append(.tombstone(id: "workout:" + id, at: at)) }
     guard !jobs.isEmpty else { return }
     mirroring = true
+    let generation = ledgerGeneration
     let started = Date()
     var kinds = (sets: 0, workouts: 0, tombstones: 0)
     for job in jobs {
@@ -355,7 +360,11 @@ final class SyncStore: ObservableObject {
         }
       }
       await MainActor.run {
-        for (id, print) in done { self.ledger[id] = print }
+        if self.ledgerGeneration == generation {
+          for (id, print) in done { self.ledger[id] = print }
+        } else {
+          self.again = true
+        }
         let sets = stones.filter { self.recents.deleted[$0.id] == $0.at }.map(\.id)
         self.recents.clearDeleted(sets)
         self.recents.undelete(sets.filter(skipped.contains))

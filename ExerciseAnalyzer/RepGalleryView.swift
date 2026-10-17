@@ -57,8 +57,9 @@ struct RepGalleryWidget: View {
         .onChange(of: currentRep) { _, rep in
           if let rep { withAnimation { proxy.scrollTo(rep, anchor: .center) } }
         }
-        // Each new position the playhead reaches gets the double tap's zoom (#152); a double tap still picks
-        // another until the playhead moves on, and between reps the last zoom stays.
+        // Each new position the playhead reaches grows its row and widens its column (#152); a tap on a rep's
+        // number or a phase header still picks another until the playhead moves on, and between reps the last
+        // zoom stays.
         .onChange(of: reached) { _, reached in
           guard let reached else { return }
           withAnimation(.easeInOut(duration: 0.2)) {
@@ -142,16 +143,15 @@ struct RepRow: View {
   var body: some View {
     HStack(spacing: GalleryLayout.spacing) {
       // The rep's number grows its row, and a second tap puts it back (#174: it was a double-tap on a still).
-      VStack(spacing: 2) {
-        Text("\(rep.number)\(rep.sideLabel)").font(.headline.monospacedDigit())
-        Text("\(rep.quality.score)").font(.caption2).foregroundStyle(.secondary)
+      if let onFocus {
+        number
+          .contentShape(Rectangle())
+          .onTapGesture { onFocus() }
+          .accessibilityAddTraits(.isButton)
+          .accessibilityHint("Grows this rep's row")
+      } else {
+        number
       }
-      .frame(width: GalleryLayout.gutter)
-      .frame(maxHeight: .infinity)
-      .contentShape(Rectangle())
-      .onTapGesture { onFocus?() }
-      .accessibilityAddTraits(.isButton)
-      .accessibilityHint("Grows this rep's row")
       ForEach(columns, id: \.id) { phase in
         PoseThumbnail(position: rep.positions[phase.id])
           .frame(
@@ -174,6 +174,15 @@ struct RepRow: View {
     .padding(.vertical, 2)
     .background(isCurrent ? Color.accentColor.opacity(0.15) : Color.clear)
     .clipShape(RoundedRectangle(cornerRadius: 6))
+  }
+
+  private var number: some View {
+    VStack(spacing: 2) {
+      Text("\(rep.number)\(rep.sideLabel)").font(.headline.monospacedDigit())
+      Text("\(rep.quality.score)").font(.caption2).foregroundStyle(.secondary)
+    }
+    .frame(width: GalleryLayout.gutter)
+    .frame(maxHeight: .infinity)
   }
 }
 
