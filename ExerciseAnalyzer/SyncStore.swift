@@ -368,11 +368,11 @@ final class SyncStore: ObservableObject {
 
   // MARK: Reading (step 2)
 
+  // ponytail: polling is for the simulator rung only; a plain folder's changes would need a DispatchSource per
+  // set folder to notice, and nothing on a device uses it.
   /// Learns of the other devices' rows: iCloud's metadata query says what the container holds, downloaded or
   /// not, and fires again as files arrive; everything not yet local is asked for. A plain folder (`SWING_SYNC_DIR`)
   /// is polled instead.
-  // ponytail: polling is for the simulator rung only; a plain folder's changes would need a DispatchSource per
-  // set folder to notice, and nothing on a device uses it.
   private func startReading() {
     guard container != nil else { return }
     if ProcessInfo.processInfo.environment["SWING_SYNC_DIR"] != nil {

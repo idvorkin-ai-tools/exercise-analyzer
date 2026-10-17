@@ -1683,7 +1683,9 @@ final class VideoPoseSession: NSObject, ObservableObject {
     log.event("pause", ["player_time": player.currentTime().seconds])
   }
 
-  func togglePlayback() { isPlaying ? pause() : play() }
+  func togglePlayback() {
+    if isPlaying { pause() } else { play() }
+  }
 
   /// Seeks and shows the matching frame. `from` names the control that asked (logged with the seek), and the
   /// player's time is re-published when the asynchronous seek lands so a late clock tick cannot leave the

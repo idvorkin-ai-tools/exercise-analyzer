@@ -240,8 +240,8 @@ extension WatchBridge: WCSessionDelegate {
     var recovered = 0
     for url in files {
       guard let data = try? Data(contentsOf: url) else { continue }
-      for set in HandSet.typedSets(inStuckTransfer: data) {
-        if take(set, via: "watch_inbox") { recovered += 1 }
+      for set in HandSet.typedSets(inStuckTransfer: data) where take(set, via: "watch_inbox") {
+        recovered += 1
       }
     }
     let oldest = (try? files[0].resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
