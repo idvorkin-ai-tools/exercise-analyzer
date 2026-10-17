@@ -353,8 +353,9 @@ private struct WorkoutPageView: View {
       if let load = timeline.loadKg {
         Text("\(load.formatted()) kg moved").font(.subheadline).monospacedDigit().foregroundStyle(.secondary)
       }
-      if let average = workout.heartRateAverage, let max = workout.heartRateMax {
-        Label("\(average) avg · \(max) max", systemImage: "heart.fill")
+      // "148 now · 142 avg · 157 max" while it runs (#194).
+      if let line = snapshot.heartLine {
+        Label(line, systemImage: "heart.fill")
           .font(.subheadline).monospacedDigit().foregroundStyle(.red)
       }
     }
@@ -367,7 +368,11 @@ private struct WorkoutPageView: View {
     // The series runs a minute before and three after the workout (for the last set's drop); the chart draws
     // the workout only, or the line runs off the plot. Zoomed, only the window and a minute either side are
     // drawn (the y scale stays the workout's, so the line does not jump as the window moves).
-    let whole = heartRate?.slice(from: workout.start, to: workout.end).samples ?? []
+    // While it runs, Health trails the wrist; the line ends on the reading the header says now (#194).
+    var whole: [HeartRateSeries.Sample] = heartRate?.slice(from: workout.start, to: workout.end).samples ?? []
+    if let now = snapshot.heartRateNow {
+      whole.append(HeartRateSeries.Sample(at: workout.end.timeIntervalSince1970, bpm: Double(now)))
+    }
     let low = (whole.map(\.bpm).min() ?? 80) - 5
     let high = (whole.map(\.bpm).max() ?? 160) + 5
     let samples =

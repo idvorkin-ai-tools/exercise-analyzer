@@ -29,6 +29,8 @@ public struct WorkoutPageSnapshot {
   public let workout: StoredWorkout
   public let timeline: WorkoutTimeline
   public var wholeSeconds: TimeInterval { max(workout.duration, 60) }
+  /// The wrist's reading right now, while the workout runs (#194); nil once it is saved.
+  public let heartRateNow: Int?
 
   public init?(
     identity: WorkoutIdentity, live: WorkoutWire?, saved: [StoredWorkout], now: Date,
@@ -36,7 +38,17 @@ public struct WorkoutPageSnapshot {
   ) {
     guard let workout = identity.resolve(live: live, saved: saved, now: now) else { return nil }
     self.workout = workout
+    heartRateNow = workout.id == WorkoutIdentity.liveID ? live?.heartRate : nil
     timeline = WorkoutTimeline(workout: workout, sets: sets, heartRate: heartRate)
+  }
+
+  /// "148 now · 142 avg · 157 max" while it runs, "142 avg · 157 max" once saved (story 053); nil with no heart.
+  public var heartLine: String? {
+    var parts = heartRateNow.map { ["\($0) now"] } ?? []
+    if let average = workout.heartRateAverage, let max = workout.heartRateMax {
+      parts += ["\(average) avg", "\(max) max"]
+    }
+    return parts.isEmpty ? nil : parts.joined(separator: " · ")
   }
 }
 
