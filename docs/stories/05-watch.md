@@ -632,7 +632,7 @@ the first frame (story 001).
 ### User Story 059:
 
 - **Summary:** Add a set I forgot to record to the workout, with its count typed on the wrist
-- **Status:** implemented in [0c07704](https://github.com/idvorkin/exercise-analyzer/commit/0c07704), [7a86049](https://github.com/idvorkin/exercise-analyzer/commit/7a86049) (#154, the exercise on the count page); verified on the host (`HandSetTests`), by build (the signed phone and watch apps) and on the watch simulator (`just watch-screens`: setByHand, setByHandExercise); on the phone and the watch since 2026-09-28, Igor's check pending; the page reopens on the last set typed by hand (#183) in [fdc4d11](https://github.com/idvorkin/exercise-analyzer/commit/fdc4d11), verified on the host (`HandSetTests`) and by the watch build, not yet on the watch; a tap on a typed set opens the sheet (#203) in [29b4899](https://github.com/idvorkin/exercise-analyzer/commit/29b4899) and Remove from Workouts on its sheet (#204) in [b1422e2](https://github.com/idvorkin/exercise-analyzer/commit/b1422e2), by build; the count page opens on the exercise's usual count (#196) in [b65936b](https://github.com/idvorkin/exercise-analyzer/commit/b65936b), verified on the host (`HandSetTests`) and by build, get-ups on 2 since 2026-10-10 (#235), verified on the host; the lost-set log events (#197) in [0b07c08](https://github.com/idvorkin/exercise-analyzer/commit/0b07c08), by build; the saved set shown in the drawings line, not "N sets · M reps" (#206), in [abe909f](https://github.com/idvorkin/exercise-analyzer/commit/abe909f) and [323c0cb](https://github.com/idvorkin/exercise-analyzer/commit/323c0cb), by build only; none seen on a screen; a typed set the phone never got, by the wrist's application context and out of the stuck transfer (#197), in [6a2eb46](https://github.com/idvorkin/exercise-analyzer/commit/6a2eb46) and the review fix after it (the taken ids kept across launches), verified on the host (`HandSetTests`) and by the simulator build, the recovery itself pending the phone
+- **Status:** implemented in [0c07704](https://github.com/idvorkin/exercise-analyzer/commit/0c07704), [7a86049](https://github.com/idvorkin/exercise-analyzer/commit/7a86049) (#154, the exercise on the count page); verified on the host (`HandSetTests`), by build (the signed phone and watch apps) and on the watch simulator (`just watch-screens`: setByHand, setByHandExercise); on the phone and the watch since 2026-09-28, Igor's check pending; the page reopens on the last set typed by hand (#183) in [fdc4d11](https://github.com/idvorkin/exercise-analyzer/commit/fdc4d11), verified on the host (`HandSetTests`) and by the watch build, not yet on the watch; a tap on a typed set opens the sheet (#203) in [29b4899](https://github.com/idvorkin/exercise-analyzer/commit/29b4899) and Remove from Workouts on its sheet (#204) in [b1422e2](https://github.com/idvorkin/exercise-analyzer/commit/b1422e2), by build; the count page opens on the exercise's usual count (#196) in [b65936b](https://github.com/idvorkin/exercise-analyzer/commit/b65936b), verified on the host (`HandSetTests`) and by build, get-ups on 2 since 2026-10-10 (#235), verified on the host; the lost-set log events (#197) in [0b07c08](https://github.com/idvorkin/exercise-analyzer/commit/0b07c08), by build; the saved set shown in the drawings line, not "N sets · M reps" (#206), in [abe909f](https://github.com/idvorkin/exercise-analyzer/commit/abe909f) and [323c0cb](https://github.com/idvorkin/exercise-analyzer/commit/323c0cb), by build only; none seen on a screen; a typed set the phone never got, by the wrist's application context and out of the stuck transfer (#197), in [6a2eb46](https://github.com/idvorkin/exercise-analyzer/commit/6a2eb46) and the review fix after it (the taken ids kept across launches), verified on the host (`HandSetTests`) and by the simulator build, the recovery itself pending the phone; the page as three big rows with drawing and bell tiles (ea-xrf, Igor picked A on the 2026-10-17 Lavish page) on `feat/2026-10-17-watch-set-rows`, lint only, the watch build and screenshots pending
 - **Why:** Igor, 2026-09-25, from the phone: "Let's add a watch button. Rep happened if I forgot to record." Decided 2026-09-26: a watch button adds one unrecorded set to the running workout, its count typed on the wrist, no video, no score, marked "by hand" in Workouts.
 
 #### Use Case:
@@ -645,7 +645,18 @@ the first frame (story 001).
 - **Given:** a workout is running on the wrist (048), the camera is not live, and I just did 8 swings without recording them
 - **When:** I turn the Crown past Preview and tap "+ Set by hand", a full-width button under Preview and above
   the pickers (Record and Preview stay where they are; Igor's pick, 2026-09-26)
-- **Then:** a count page opens with the exercise on top (the last set I typed on the wrist; with none typed, the exercise picker's choice, or the last set's exercise when the picker is on Auto, Kettlebell Swing with no set yet), one large number in the middle starting at the exercise's usual count when it has one (get-ups 2; swings, Bulgarian and split squats 10; #196, Igor: "tgu 5 swing 10, Bulgarian and split squats 10, everything else whatever last", then #235 on 2026-10-08: "Tgu manual default to 2"), else that set's count (10 when there is none), a − and a + either side of it, and Save (green) and Cancel under it; picking an exercise with a usual count in the list sets the number to it
+- **Then:** a count page opens with the exercise on top (the last set I typed on the wrist; with none typed, the exercise picker's choice, or the last set's exercise when the picker is on Auto, Kettlebell Swing with no set yet), one large number in the middle starting at the exercise's usual count when it has one (get-ups 2; swings, Bulgarian and split squats 10; #196, Igor: "tgu 5 swing 10, Bulgarian and split squats 10, everything else whatever last", then #235 on 2026-10-08: "Tgu manual default to 2"), else that set's count (10 when there is none), a − and a + either side of it, the weight, and Save (green) under them, as rows (next scenario); picking an exercise with a usual count in the list sets the number to it
+
+- **Scenario:** Every value a big target, and the Crown's one shown (ea-xrf)
+- **Given:** the count page is open (Igor, 2026-10-17: "the tap targets really are hard to use for setting weights.
+  They need more room and obvious clicking to switch between exercises, reps, and sets"; he picked A of the Lavish
+  page)
+- **When:** I look at it and tap a row
+- **Then:** it is three full-width rows of at least 44 pt, the exercise (its drawing and name), the reps with − and +,
+  and the weight, then Save; the reps row opens green, the row the Crown turns; a tap on another row moves the green
+  and the Crown to it; the exercise row opens the drawings, three across and 52 pt each, and a second tap on the
+  green weight row opens every bell, None and 8 … 32 kg, as 44 pt tiles; one tap on a drawing or a tile picks it and
+  closes; the page's close button cancels, so there is no Cancel button
 
 - **Scenario:** Typed sets between filmed ones (#183)
 - **Given:** I typed 9 pull-ups by hand, then filmed a set of split squats, or the watch app relaunched since
@@ -654,9 +665,10 @@ the first frame (story 001).
 
 - **Scenario:** Choosing the exercise on the count page (#154)
 - **Given:** the count page reads "Kettlebell Swing ⌄" over 8, and the set I did was split squats
-- **When:** I tap the exercise and tap "Split Squat" in the list that opens (the current one carries a green check)
-- **Then:** the list closes, the page reads "Split Squat ⌄" over the same 8, the Crown steps the count again, and
-  Save adds 8 split squats; the exercise picker on the workout page keeps its own choice
+- **When:** I tap the exercise row and tap the split-squat drawing in the grid that opens (the current one is
+  outlined in white; ea-xrf replaced the word list)
+- **Then:** the grid closes, the row reads the split-squat drawing and "Split Squat" over the same 8, the Crown steps
+  the count again, and Save adds 8 split squats; the exercise picker on the workout page keeps its own choice
 
 - **Scenario:** Setting the count
 - **Given:** the count page reads 10
@@ -675,7 +687,7 @@ the first frame (story 001).
 
 - **Scenario:** Cancelling
 - **Given:** the count page is open
-- **When:** I tap Cancel, or the page's close button (×)
+- **When:** I tap the page's close button (×)
 - **Then:** nothing is added: the workout's sets and reps, the last-set line and the rest count are as they were before the button
 
 - **Scenario:** The set on the phone's workout page
