@@ -272,15 +272,15 @@ struct WatchContentView: View {
   /// "128 BPM", resting "128 · −29 BPM · 42:13": the rate now, its drop from the last recorded set's peak
   /// (#195) and the session clock small and green (050).
   private func heartLine(drop: Int?, clock: Date?) -> Text {
-    var line = Text(workout.heartRate.map(String.init) ?? "--").font(.title3.bold()).monospacedDigit()
-    if let drop { line = line + Text(" · −\(drop)").font(.title3.bold()).monospacedDigit() }
-    line = line + Text(" BPM").font(.caption2).foregroundStyle(.secondary)
-    if let clock {
-      line =
-        line + Text(" · ").foregroundStyle(.secondary)
-        + Text(clock, style: .timer).font(.title3.bold()).monospacedDigit().foregroundStyle(.green)
-    }
-    return line
+    let rate = Text(workout.heartRate.map(String.init) ?? "--").font(.title3.bold()).monospacedDigit()
+    let fall = drop.map { Text(" · −\($0)").font(.title3.bold()).monospacedDigit() } ?? Text("")
+    let unit = Text(" BPM").font(.caption2).foregroundStyle(.secondary)
+    let session =
+      clock.map {
+        Text(" · ").foregroundStyle(.secondary)
+          + Text($0, style: .timer).font(.title3.bold()).monospacedDigit().foregroundStyle(.green)
+      } ?? Text("")
+    return rate + fall + unit + session
   }
 
   /// Start by hand, above Record (048): the warm-up is workout time. Gone once the workout runs.
