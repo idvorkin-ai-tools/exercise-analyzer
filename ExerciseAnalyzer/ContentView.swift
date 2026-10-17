@@ -436,6 +436,9 @@ struct ContentView: View {
     .accessibilityLabel(session.noVideos ? "Live. No videos for a while, from the watch: workout only" : "Live")
     .padding(.trailing, 20)
     .padding(.bottom, 8)
+    // 20 pt lower than its inset, toward the thumb and still clear of the home indicator (#283; Igor: "Move record
+    // a little bit lower"); the list's end margin stays the inset's.
+    .offset(y: 20)
   }
 
   /// The picture, the HUD, the rep gallery and the transport bar: a set or the camera. On a wide screen held

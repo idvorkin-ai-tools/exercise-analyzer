@@ -516,7 +516,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 058:
 
 - **Summary:** The log is home: a set, a workout's page and the camera are each a screen with a way back
-- **Status:** implemented in [8f3cffe](https://github.com/idvorkin/exercise-analyzer/commit/8f3cffe); verified on the simulator (launch on the log, a set and back, a workout's page and back, the live page); the live page (#52) in [bdcfda4](https://github.com/idvorkin/exercise-analyzer/commit/bdcfda4), [b639300](https://github.com/idvorkin/exercise-analyzer/commit/b639300), verified on the host and the simulator; camera Cancel back where it was opened (#146) in [53c4ea4](https://github.com/idvorkin/exercise-analyzer/commit/53c4ea4), verified on the host (`CameraNavigationTests`); on the phone since 2026-09-26, Igor's check pending; the Photos picker opening the player with a set already loaded in [9113539](https://github.com/idvorkin/exercise-analyzer/commit/9113539), found by Codex's review of PR #187, verified by build only (the simulator cannot drive the picker); Live as a round button bottom right, no bar (#280, Igor picked A on the right side, 2026-10-17) in [fe2cb88](https://github.com/idvorkin/exercise-analyzer/commit/fe2cb88), verified on the simulator (`just build-sim`, the sim-smoke checks and a screenshot of Workouts with the round button bottom right and the list scrolling under it), the phone pending
+- **Status:** implemented in [8f3cffe](https://github.com/idvorkin/exercise-analyzer/commit/8f3cffe); verified on the simulator (launch on the log, a set and back, a workout's page and back, the live page); the live page (#52) in [bdcfda4](https://github.com/idvorkin/exercise-analyzer/commit/bdcfda4), [b639300](https://github.com/idvorkin/exercise-analyzer/commit/b639300), verified on the host and the simulator; camera Cancel back where it was opened (#146) in [53c4ea4](https://github.com/idvorkin/exercise-analyzer/commit/53c4ea4), verified on the host (`CameraNavigationTests`); on the phone since 2026-09-26, Igor's check pending; the Photos picker opening the player with a set already loaded in [9113539](https://github.com/idvorkin/exercise-analyzer/commit/9113539), found by Codex's review of PR #187, verified by build only (the simulator cannot drive the picker); Live as a round button bottom right, no bar (#280, Igor picked A on the right side, 2026-10-17) in [fe2cb88](https://github.com/idvorkin/exercise-analyzer/commit/fe2cb88), verified on the simulator (`just build-sim`, the sim-smoke checks and a screenshot of Workouts with the round button bottom right and the list scrolling under it), on the phone since 2026-10-17 (270088d); 20 pt lower (#283) on `fix/2026-10-17-live-lower-283`, lint only, the simulator screenshot pending
 - **Why:** Igor, 2026-09-22, on the three architectures ([proposal](https://claude.ai/artifact/46aiQ5J8WxTuZbJBfJZpwZ)): "build the flow for B, I like that". The app opened on an empty player with a menu card, Workouts was a sheet over it with a Close, and a set's way back to the list was the folder button, the card, then Workouts again.
 
 #### Use Case:
@@ -528,7 +528,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Scenario:** Opening the app
 - **Given:** no workout running on the wrist
 - **When:** the app opens
-- **Then:** the Workouts list is the screen, full height, with "…" at the top (Photos, Files, Report a problem, Instrumented run, GitHub) and Live as a round red 60 pt button floating in the bottom-right corner, no bar under the list: the list scrolls under it and its last row ends above it (#280; Igor: "I think we can make lives smaller. Maybe just a small record button", then "a but right"); no menu card, no sheet, no Close
+- **Then:** the Workouts list is the screen, full height, with "…" at the top (Photos, Files, Report a problem, Instrumented run, GitHub) and Live as a round red 60 pt button floating in the bottom-right corner, low, just above the home indicator (#283), no bar under the list: the list scrolls under it and its last row ends above it (#280; Igor: "I think we can make lives smaller. Maybe just a small record button", then "a but right"); no menu card, no sheet, no Close
 
 - **Scenario:** Opening mid-workout
 - **Given:** a workout running on the wrist
@@ -555,7 +555,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
   instrumented run, a hook) puts the player on screen; the camera cancelled or the set deleted takes it away. The rule is
   `CameraNavigation` in ExerciseCore (host tests); the app keeps the path the camera was opened from.
 
-- **Issues:** the architecture pick on 2026-09-22; [#280](https://github.com/idvorkin/exercise-analyzer/issues/280) Live as a round button in the corner; [#146](https://github.com/idvorkin/exercise-analyzer/issues/146) Cancel landed on the list instead of where the camera was opened
+- **Issues:** the architecture pick on 2026-09-22; [#280](https://github.com/idvorkin/exercise-analyzer/issues/280) Live as a round button in the corner; [#283](https://github.com/idvorkin/exercise-analyzer/issues/283) a little lower; [#146](https://github.com/idvorkin/exercise-analyzer/issues/146) Cancel landed on the list instead of where the camera was opened
 
 ---
 
