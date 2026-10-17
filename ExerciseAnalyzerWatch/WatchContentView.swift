@@ -210,6 +210,7 @@ struct WatchContentView: View {
   /// rest length and orange after, and the session clock goes small and green beside the heart rate.
   private var workoutHeader: some View {
     let resting = workout.phase == .ending ? nil : phone.rest.restEnded
+    let drop = resting == nil ? nil : workout.setPeak.drop(now: workout.heartRate)
     return VStack(spacing: 2) {
       if let resting {
         Text("REST · \(Self.duration(Double(phone.rest.length)))")
@@ -229,13 +230,19 @@ struct WatchContentView: View {
         Image(systemName: "heart.fill").font(.caption).foregroundStyle(.red)
         Text(workout.heartRate.map(String.init) ?? "--")
           .font(.title3.bold()).monospacedDigit()
+        // Resting, how far the heart has come down from the last recorded set's peak: "♥ 128 · −29 BPM" (#195).
+        if let drop {
+          Text("· −\(drop)").font(.title3.bold()).monospacedDigit()
+        }
         Text("BPM").font(.caption2).foregroundStyle(.secondary)
         if resting != nil, let startedAt = workout.startedAt {
           Text("·").foregroundStyle(.secondary)
           Text(startedAt, style: .timer).font(.title3.bold()).monospacedDigit().foregroundStyle(.green)
         }
       }
-      .accessibilityLabel("Heart rate \(workout.heartRate.map(String.init) ?? "unknown")")
+      .accessibilityLabel(
+        "Heart rate \(workout.heartRate.map(String.init) ?? "unknown")"
+          + (drop.map { ", \($0) below the last set's peak" } ?? ""))
       // The sets by exercise with the drawings, as the phone's Today line reads mid-workout (#206, #192; Igor:
       // "show sets and exercises completed like I see it on the workouts view … just those coarse details"),
       // and nothing else: "6 sets · 47 reps" went ("drop n sets reps, the icons are enough").

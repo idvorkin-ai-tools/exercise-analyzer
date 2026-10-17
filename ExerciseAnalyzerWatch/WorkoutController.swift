@@ -26,6 +26,8 @@ final class WorkoutController: NSObject, ObservableObject {
   @Published private(set) var heartRate: Int?
   @Published private(set) var heartRateAverage: Int?
   @Published private(set) var heartRateMax: Int?
+  /// The last recorded set's heart peak: the rest head says how far the heart has come down from it (#195).
+  @Published private(set) var setPeak = SetHeartPeak()
   /// Analyzed sets since Start and their reps: the phone's post-pass counts (045), never the live count, and the
   /// sets typed by hand (059).
   @Published private(set) var sets = 0
@@ -70,6 +72,12 @@ final class WorkoutController: NSObject, ObservableObject {
     heartRate = workout.heartRate
     heartRateAverage = 128
     heartRateMax = 156
+    // The resting states' last set peaked at 157, so the head reads "♥ 128 · −29 BPM" (#195).
+    if let ended = screenshot.restEndedAt {
+      setPeak.recordStarted(at: ended.addingTimeInterval(-25))
+      setPeak.reading(157, at: ended)
+      setPeak.setEnded(at: ended)
+    }
     guard screenshot != .workoutStart else { return }  // before the first set: no sets line yet
     sets = 6
     reps = 47
@@ -136,6 +144,7 @@ final class WorkoutController: NSObject, ObservableObject {
       heartRate = nil
       heartRateAverage = nil
       heartRateMax = nil
+      setPeak.reset()
       sets = 0
       reps = 0
       exerciseSets = [:]
@@ -258,6 +267,7 @@ final class WorkoutController: NSObject, ObservableObject {
   /// The recorder started rolling on the phone: the set is an activity of the workout.
   func setBegan(exercise: String) {
     guard phase == .running, let session, !fixed else { return }
+    setPeak.recordStarted(at: Date())
     let configuration = HKWorkoutConfiguration()
     configuration.activityType = .functionalStrengthTraining
     configuration.locationType = .indoor
@@ -269,6 +279,8 @@ final class WorkoutController: NSObject, ObservableObject {
 
   /// The recorder stopped (Done or Cancel alike): the activity closes; reps arrive later from the pass.
   func setEnded() {
+    // The peak keeps taking readings for 30 s after Done, the activity or not (#195).
+    if phase == .running, !fixed { setPeak.setEnded(at: Date()) }
     guard phase == .running, let session, activityOpen, !fixed else { return }
     session.endCurrentActivity(on: Date())
     activityOpen = false
@@ -428,6 +440,7 @@ extension WorkoutController: HKLiveWorkoutBuilderDelegate {
     let maximum = statistics.maximumQuantity()?.doubleValue(for: Self.bpm)
     Task { @MainActor in
       heartRate = latest.map { Int($0.rounded()) }
+      if let heartRate { setPeak.reading(heartRate, at: Date()) }
       heartRateAverage = average.map { Int($0.rounded()) }
       heartRateMax = maximum.map { Int($0.rounded()) }
       sendWire(throttled: true)
