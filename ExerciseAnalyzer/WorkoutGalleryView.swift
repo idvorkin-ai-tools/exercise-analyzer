@@ -38,6 +38,9 @@ struct WorkoutGalleryView: View {
   /// The drawing or the diamond picked above the days (#265, story 073): kept while a found day's page or set is
   /// open over the log, so "‹" comes back to the same few days; never stored, so a relaunch shows every day.
   @State private var filter = DayFilter()
+  /// The drawings row under the From Photos line, open after a tap on the filter button (#282). Test hook:
+  /// SWING_WORKOUTS_FILTER_OPEN=1 starts it open, for a screenshot (the simulator cannot tap).
+  @State private var filterOpen = ProcessInfo.processInfo.environment["SWING_WORKOUTS_FILTER_OPEN"] == "1"
 
   private static let dayKey: DateFormatter = {
     let f = DateFormatter()
@@ -115,8 +118,20 @@ struct WorkoutGalleryView: View {
               }
               .padding(.top, 8)
             }
+            let all = days
+            let row = DayFilter.row(all.map { $0.exercises.map(\.kind) })
+            let anyOnVideo = all.contains(where: \.allOnVideo)
+            // Only worth a filter when there is something to tell apart: two exercises, or a day on video.
+            let filterable = row.count > 1 || anyOnVideo
+            let filterButton = DayFilterButton(filter: filter, open: filterOpen) {
+              withAnimation(.easeInOut(duration: 0.2)) { filterOpen.toggle() }
+              onEvent?("workouts_filter_open", ["open": filterOpen])
+            }
             if !suggestions.clips.isEmpty, let onImport {
-              PhotosSuggestionsRow(suggestions: suggestions) { clip in
+              PhotosSuggestionsRow(
+                suggestions: suggestions,
+                trailing: { if filterable { filterButton } }
+              ) { clip in
                 // An analyzed clip is already a set: open that instead of importing it a second time.
                 if clip.analyzed, let entry = store.entries.first(where: { $0.photosIdentifier == clip.id }) {
                   onEvent?("photos_suggestion_open", ["id": entry.id])
@@ -134,13 +149,25 @@ struct WorkoutGalleryView: View {
               }
               .buttonStyle(.bordered)
               .padding(.top, 8)
+              if filterable {
+                HStack {
+                  Spacer()
+                  filterButton
+                }
+              }
+            } else if filterable {
+              // No Photos line to share: the button keeps a line of its own, right-aligned.
+              HStack {
+                Spacer()
+                filterButton
+              }
             }
-            let all = days
-            let row = DayFilter.row(all.map { $0.exercises.map(\.kind) })
-            let anyOnVideo = all.contains(where: \.allOnVideo)
-            // Only worth a row when there is something to tell apart: two exercises, or a day on video.
-            if row.count > 1 || anyOnVideo {
-              DayFilterRow(row: row, showsDiamond: anyOnVideo, filter: $filter) { onEvent?("workouts_filter", $0) }
+            // Open only after a tap on the button (#282); a pick closes it, the button then reads the filter.
+            if filterable && filterOpen {
+              DayFilterRow(row: row, showsDiamond: anyOnVideo, filter: $filter) {
+                onEvent?("workouts_filter", $0)
+                withAnimation(.easeInOut(duration: 0.2)) { filterOpen = false }
+              }
             }
             let kept = shown(all)
             if kept.isEmpty && filter.isActive {
@@ -255,7 +282,6 @@ struct WorkoutGalleryView: View {
   }
 }
 
-/// Recent set-sized videos in Photos: one tap opens a new one in place, or the set an analyzed one became.
 /// The exercise drawings in the history and the video diamond, above the days (#265, story 073): one tap keeps only
 /// the matching days, the picked one drawn in its colour and the rest dimmed; a second tap shows every day again.
 struct DayFilterRow: View {
@@ -301,8 +327,40 @@ struct DayFilterRow: View {
   }
 }
 
-struct PhotosSuggestionsRow: View {
+/// The filter, closed, on the From Photos line (#282, story 073; Igor picked A): it reads what is on, the picked
+/// drawing and the diamond, or a plain filter icon when nothing is; a tap opens the drawings row under the line.
+struct DayFilterButton: View {
+  let filter: DayFilter
+  let open: Bool
+  let toggle: () -> Void
+
+  var body: some View {
+    Button(action: toggle) {
+      HStack(spacing: 4) {
+        if let kind = filter.exercise { ExerciseGlyph(kind: kind, size: 20) }
+        if filter.onVideo { Image(systemName: "diamond.fill").font(.caption).foregroundStyle(.cyan) }
+        if !filter.isActive { Image(systemName: "line.3.horizontal.decrease").font(.subheadline) }
+        Image(systemName: open ? "chevron.up" : "chevron.down").font(.caption2.bold())
+      }
+      .foregroundStyle(filter.isActive ? .primary : .secondary)
+      .padding(.horizontal, 10)
+      .frame(minWidth: 44, minHeight: 36)
+      .overlay(Capsule().stroke(filter.isActive ? Color.cyan : Color.secondary.opacity(0.4), lineWidth: 1))
+      .contentShape(Capsule())
+    }
+    .buttonStyle(.plain)
+    .accessibilityLabel(
+      filter.isActive
+        ? "Filter: \(filter.exercise?.definition.name ?? "")\(filter.onVideo ? " on video" : ""). \(open ? "Close" : "Change")"
+        : (open ? "Close the filter" : "Filter the days"))
+  }
+}
+
+/// Recent set-sized videos in Photos: one tap opens a new one in place, or the set an analyzed one became.
+struct PhotosSuggestionsRow<Trailing: View>: View {
   @ObservedObject var suggestions: PhotosSuggestions
+  /// Sits at the line's right end: the filter button (#282, Igor picked A: "maybe on the same line as photos").
+  @ViewBuilder var trailing: Trailing
   let onImport: (PhotosSuggestions.Clip) -> Void
   /// Three tabs in place of the Hide analyzed toggle of #41 (story 052, #93): the strip opens on New, so it shows
   /// work to do, and the other two answer "where did it go".
@@ -312,26 +370,33 @@ struct PhotosSuggestionsRow: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 6) {
-      Button {
-        withAnimation(.easeInOut(duration: 0.2)) { expanded.toggle() }
-      } label: {
-        // One caption line, no icon circle (#266; Igor: "From Photos takes up too much space"): about 30 pt where
-        // the 44 pt row with its padding took 66; the whole line is still the tap.
-        HStack(spacing: 4) {
-          let new = suggestions.clips(in: .new).count
-          Text(!expanded && new > 0 ? "From Photos · \(new) new" : "From Photos")
-            .font(.caption).monospacedDigit()
-          Image(systemName: expanded ? "chevron.down" : "chevron.right").font(.caption2.bold())
-          Spacer()
-        }
-        .foregroundStyle(.secondary)
-        .frame(minHeight: 30)
-        .contentShape(Rectangle())
+      HStack(spacing: 8) {
+        photosLine
+        trailing
       }
-      .buttonStyle(.plain)
-      .accessibilityLabel(expanded ? "Hide the clips from Photos" : "Show the clips from Photos")
       if expanded { strip }
     }
+  }
+
+  private var photosLine: some View {
+    Button {
+      withAnimation(.easeInOut(duration: 0.2)) { expanded.toggle() }
+    } label: {
+      // One caption line, no icon circle (#266; Igor: "From Photos takes up too much space"): about 30 pt where
+      // the 44 pt row with its padding took 66; the whole line is still the tap.
+      HStack(spacing: 4) {
+        let new = suggestions.clips(in: .new).count
+        Text(!expanded && new > 0 ? "From Photos · \(new) new" : "From Photos")
+          .font(.caption).monospacedDigit()
+        Image(systemName: expanded ? "chevron.down" : "chevron.right").font(.caption2.bold())
+        Spacer()
+      }
+      .foregroundStyle(.secondary)
+      .frame(minHeight: 30)
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+    .accessibilityLabel(expanded ? "Hide the clips from Photos" : "Show the clips from Photos")
   }
 
   @ViewBuilder private var strip: some View {
