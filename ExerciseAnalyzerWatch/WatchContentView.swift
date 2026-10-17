@@ -173,13 +173,15 @@ struct WatchContentView: View {
       }
       .sheet(isPresented: $countingSet) {
         let start = HandSet.start(mode: status.mode, analyzed: status.lastSet, byHand: phone.lastTyped)
-        SetByHandPage(
-          exercise: start.exercise, start: start.reps, choosing: phone.screenshotOpensExerciseList,
-          startKg: {
-            HandSet.startKg(for: $0, phone: status.bellKg, typed: phone.lastTyped, analyzed: status.lastSet)
+        NavigationStack {
+          SetByHandPage(
+            exercise: start.exercise, start: start.reps, choosing: phone.screenshotOpensExerciseList,
+            startKg: {
+              HandSet.startKg(for: $0, phone: status.bellKg, typed: phone.lastTyped, analyzed: status.lastSet)
+            }
+          ) { exercise, reps, kg in
+            phone.saveSetByHand(exercise: exercise, reps: reps, kg: kg)
           }
-        ) { exercise, reps, kg in
-          phone.saveSetByHand(exercise: exercise, reps: reps, kg: kg)
         }
       }
     }
@@ -617,9 +619,9 @@ struct WatchContentView: View {
   }
 }
 
-/// The count of a set typed by hand (059): the exercise on top, one large number, − and + (44 pt) and the Crown
-/// step it by one with a tick each, 1…200. The exercise is a button: it opens the list of exercises, and the one
-/// tapped there is the set's (#154). Save adds the set; Cancel, or the sheet's close button, adds nothing.
+/// The count of a set typed by hand (059): the exercise on top, the reps, − and + (44 pt) and the Crown step them by
+/// one with a tick each, 1…200, then the weight. The exercise row opens the drawings, and the one tapped there is the
+/// set's (#154). The green checkmark at top right saves the set; the sheet's close button adds nothing.
 private struct SetByHandPage: View {
   /// Exercise, reps and the bell's weight (nil for none).
   let onSave: (ExerciseKind, Int, Int?) -> Void
@@ -632,6 +634,7 @@ private struct SetByHandPage: View {
   /// The weight row's Crown value: 0 for none, then `HandSet.weights` in order.
   @State private var kgStep: Double
   @State private var kgPicked = false
+  @State private var pickingKg = false
   @FocusState private var crownFocused: Bool
   @FocusState private var kgFocused: Bool
   @Environment(\.dismiss) private var dismiss
@@ -662,75 +665,144 @@ private struct SetByHandPage: View {
     return Double((nearest ?? -1) + 1)
   }
 
+  /// Three full-width rows (ea-xrf, Igor picked A on the 2026-10-17 Lavish page: "the tap targets really are hard
+  /// to use for setting weights"): the exercise, the reps, the weight. The green row is the Crown's; a tap on a row
+  /// gives it the Crown, and a second tap on the weight row, or any tap on the exercise row, opens big tiles.
+  /// The checkmark at top right saves and the sheet's close button cancels, so the rows fit a 40 mm face unscrolled.
   var body: some View {
-    VStack(spacing: 4) {
-      Button {
-        choosing = true
-      } label: {
-        HStack(spacing: 4) {
-          Text(exercise.definition.name).font(.headline).lineLimit(1).minimumScaleFactor(0.7)
-          Image(systemName: "chevron.down").font(.caption2.bold())
+    ScrollView {
+      VStack(spacing: 5) {
+        Button {
+          choosing = true
+        } label: {
+          row(green: false) {
+            ExerciseGlyph(kind: exercise, size: 28)
+            Text(exercise.definition.name).font(.headline).lineLimit(1).minimumScaleFactor(0.6)
+            Spacer(minLength: 0)
+            Image(systemName: "chevron.right").font(.caption.bold()).foregroundStyle(.secondary)
+          }
         }
-        .frame(maxWidth: .infinity)
-      }
-      .buttonStyle(.plain)
-      .accessibilityLabel("Exercise: \(exercise.definition.name). Change")
-      HStack(spacing: 2) {
-        stepButton("minus", by: -1)
-        Text("\(reps)")
-          .font(.system(size: 40, weight: .bold, design: .rounded)).monospacedDigit()
+        .buttonStyle(.plain)
+        .accessibilityLabel("Exercise: \(exercise.definition.name). Change")
+        row(green: crownFocused) {
+          stepButton("minus", by: -1)
+          VStack(spacing: 0) {
+            Text("\(reps)").font(.system(size: 30, weight: .bold, design: .rounded)).monospacedDigit()
+            Text("reps").font(.caption2).foregroundStyle(.secondary)
+          }
           .frame(maxWidth: .infinity)
-          .focusable()
-          .focused($crownFocused)
-          .digitalCrownRotation(
-            $count, from: Double(HandSet.range.lowerBound), through: Double(HandSet.range.upperBound), by: 1,
-            sensitivity: .low, isContinuous: false, isHapticFeedbackEnabled: true
-          )
-          .accessibilityLabel("\(reps) reps")
-        stepButton("plus", by: 1)
-      }
-      // The bell's weight (#271): a tap gives it the Crown, which steps None, 8 … 32 kg.
-      Text(kg.map { "\($0) kg" } ?? "No kg")
-        .font(.headline).monospacedDigit()
-        .foregroundStyle(kg == nil ? .secondary : .primary)
-        .frame(maxWidth: .infinity, minHeight: 28)
+          stepButton("plus", by: 1)
+        }
+        .focusable()
+        .focused($crownFocused)
+        .digitalCrownRotation(
+          $count, from: Double(HandSet.range.lowerBound), through: Double(HandSet.range.upperBound), by: 1,
+          sensitivity: .low, isContinuous: false, isHapticFeedbackEnabled: true
+        )
+        .onTapGesture { crownFocused = true }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("\(reps) reps")
+        // The bell's weight (#271): a tap gives it the Crown, which steps None, 8 … 32 kg; a tap on the green row
+        // opens every bell as a tile.
+        row(green: kgFocused) {
+          Text("kg").font(.caption).foregroundStyle(.secondary)
+          Text(kg.map { "\($0)" } ?? "None")
+            .font(.system(size: 24, weight: .bold, design: .rounded)).monospacedDigit()
+            .foregroundStyle(kg == nil ? .secondary : .primary)
+          Spacer(minLength: 0)
+          Image(systemName: kgFocused ? "square.grid.2x2" : "chevron.right").font(.caption.bold())
+            .foregroundStyle(.secondary)
+        }
         .focusable()
         .focused($kgFocused)
         .digitalCrownRotation(
           $kgStep, from: 0, through: Double(HandSet.weights.count), by: 1, sensitivity: .low, isContinuous: false,
           isHapticFeedbackEnabled: true
         )
+        .onTapGesture { if kgFocused { pickingKg = true } else { kgFocused = true } }
         // Given the Crown, the weight is the lifter's: a change of exercise no longer moves it.
         .onChange(of: kgFocused) { _, focused in if focused { kgPicked = true } }
         .accessibilityLabel(kg.map { "\($0) kilograms. Turn the Crown to change" } ?? "No weight")
-      Button {
-        onSave(exercise, reps, kg)
-        dismiss()
-      } label: {
-        Text("Save").frame(maxWidth: .infinity)
+        .accessibilityAddTraits(.isButton)
       }
-      .tint(.green)
-      Button("Cancel", role: .cancel) { dismiss() }
+    }
+    .toolbar {
+      ToolbarItem(placement: .confirmationAction) {
+        Button {
+          onSave(exercise, reps, kg)
+          dismiss()
+        } label: {
+          Image(systemName: "checkmark")
+        }
+        .tint(.green)
+        .accessibilityLabel("Save")
+      }
     }
     .onAppear { crownFocused = true }
     .sheet(isPresented: $choosing, onDismiss: { crownFocused = true }, content: { exercisePicker })
+    .sheet(isPresented: $pickingKg, onDismiss: { kgFocused = true }, content: { kgPicker })
   }
 
+  /// A row of the page: full width, at least 44 pt, outlined green while it has the Crown.
+  private func row<Content: View>(green: Bool, @ViewBuilder _ content: () -> Content) -> some View {
+    HStack(spacing: 6) { content() }
+      .padding(.horizontal, 8)
+      .frame(maxWidth: .infinity, minHeight: 44)
+      .background(
+        green ? Color.green.opacity(0.18) : Color.secondary.opacity(0.18), in: RoundedRectangle(cornerRadius: 14)
+      )
+      .overlay(RoundedRectangle(cornerRadius: 14).stroke(green ? Color.green : .clear, lineWidth: 2))
+      .contentShape(RoundedRectangle(cornerRadius: 14))
+  }
+
+  /// The exercises as their drawings, three across, 52 pt each (ea-xrf): one tap picks.
   private var exercisePicker: some View {
-    List(ExerciseKind.allCases) { kind in
-      Button {
-        exercise = kind
-        // An exercise with a usual count opens on it (#196); the others keep the count on the page.
-        if let usual = HandSet.usualReps(for: kind) { count = Double(usual) }
-        // And its last weight, unless one was turned to (#271).
-        if !kgPicked { kgStep = Self.step(for: startKg(kind)) }
-        choosing = false
-      } label: {
-        HStack {
-          Text(kind.definition.name)
-          Spacer()
-          if kind == exercise { Image(systemName: "checkmark").foregroundStyle(.green) }
+    ScrollView {
+      LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 3), spacing: 6) {
+        ForEach(ExerciseKind.allCases) { kind in
+          Button {
+            exercise = kind
+            // An exercise with a usual count opens on it (#196); the others keep the count on the page.
+            if let usual = HandSet.usualReps(for: kind) { count = Double(usual) }
+            // And its last weight, unless one was turned to (#271).
+            if !kgPicked { kgStep = Self.step(for: startKg(kind)) }
+            choosing = false
+          } label: {
+            ExerciseGlyph(kind: kind, size: 36)
+              .frame(maxWidth: .infinity, minHeight: 52)
+              .background(
+                kind == exercise ? kind.tint.opacity(0.3) : Color.secondary.opacity(0.18),
+                in: RoundedRectangle(cornerRadius: 12)
+              )
+              .overlay(RoundedRectangle(cornerRadius: 12).stroke(kind == exercise ? Color.white : .clear, lineWidth: 2))
+          }
+          .buttonStyle(.plain)
+          .accessibilityLabel(kind.definition.name)
+          .accessibilityAddTraits(kind == exercise ? .isSelected : [])
         }
+      }
+    }
+  }
+
+  /// Every bell as a tile, None first, four across (ea-xrf): one tap picks and closes.
+  private var kgPicker: some View {
+    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 5), count: 4), spacing: 5) {
+      ForEach(0...HandSet.weights.count, id: \.self) { step in
+        let picked = Int(kgStep.rounded()) == step
+        Button {
+          kgStep = Double(step)
+          kgPicked = true
+          pickingKg = false
+        } label: {
+          Text(step == 0 ? "—" : "\(HandSet.weights[step - 1])")
+            .font(.headline).monospacedDigit()
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .foregroundStyle(picked ? Color.black : .primary)
+            .background(picked ? Color.green : Color.secondary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(step == 0 ? "No weight" : "\(HandSet.weights[step - 1]) kilograms")
+        .accessibilityAddTraits(picked ? .isSelected : [])
       }
     }
   }
@@ -738,6 +810,7 @@ private struct SetByHandPage: View {
   private func stepButton(_ symbol: String, by step: Int) -> some View {
     Button {
       count = Double(HandSet.clamp(reps + step))
+      crownFocused = true
       WKInterfaceDevice.current().play(.click)
     } label: {
       Image(systemName: symbol)
