@@ -281,7 +281,6 @@ struct WorkoutGalleryView: View {
   }
 }
 
-/// Recent set-sized videos in Photos: one tap opens a new one in place, or the set an analyzed one became.
 /// The exercise drawings in the history and the video diamond, above the days (#265, story 073): one tap keeps only
 /// the matching days, the picked one drawn in its colour and the rest dimmed; a second tap shows every day again.
 struct DayFilterRow: View {
@@ -356,6 +355,7 @@ struct DayFilterButton: View {
   }
 }
 
+/// Recent set-sized videos in Photos: one tap opens a new one in place, or the set an analyzed one became.
 struct PhotosSuggestionsRow<Trailing: View>: View {
   @ObservedObject var suggestions: PhotosSuggestions
   /// Sits at the line's right end: the filter button (#282, Igor picked A: "maybe on the same line as photos").
