@@ -804,7 +804,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 073:
 
 - **Summary:** Find the days I did an exercise, and the days on video, by tapping the drawings
-- **Status:** Igor picked A on the 2026-10-17 decisions page; built on `feat/2026-10-17-day-filter-265`: the rule is `DayFilter` (ExerciseCore, `DayFilterTests`, 6 host tests), the row in `WorkoutGalleryView`; lint only, the simulator screenshot pending ([#265](https://github.com/idvorkin/exercise-analyzer/issues/265))
+- **Status:** Igor picked A on the 2026-10-17 decisions page; built on `feat/2026-10-17-day-filter-265`: the rule is `DayFilter` (ExerciseCore, `DayFilterTests`, 6 host tests), the row in `WorkoutGalleryView`; lint only, the simulator screenshot pending ([#265](https://github.com/idvorkin/exercise-analyzer/issues/265)). The row folded behind a filter button on the From Photos line: Igor picked A on the 2026-10-17 Lavish page; built on `feat/2026-10-17-filter-button-282`, lint only, the simulator screenshot pending ([#282](https://github.com/idvorkin/exercise-analyzer/issues/282))
 - **Why:** Igor, 2026-10-13, from the phone on Workouts: "some kind of search thing where I can search for a workout by what I did and if I had a video; the pretty icons, I like them"
 
 #### Use Case:
@@ -828,11 +828,20 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **When:** I come back with "‹", and later relaunch the app
 - **Then:** "‹" comes back to the same pistol days, so I can try the next one; after a relaunch the list is whole again, since nothing is stored; the days keep their folds through it. A day with no match shows "No day matches" with the way back (a second tap)
 
+- **Scenario:** The drawings stay folded until I want them
+- **Given:** Workouts open with more than one exercise in my history, or a day on video
+- **When:** I tap the filter button at the end of the From Photos line
+- **Then:** the row of drawings opens under the line, and a pick closes it again; closed, the days start right under
+  the line, and the button reads the filter that is on (the picked drawing, the diamond, or a plain filter icon when
+  none), so a filter left on is never out of sight
+
 - **Notes:** A, this story: a row of the exercise drawings plus the diamond above the days, one tap each, the gym-first
-  target. B, not chosen: a search field with words ("pistol", "video"), which means typing at the rack. The day list
+  target. #282: the open row cost about 50 pt above the days; A there (picked) folds it behind a button on the From
+  Photos line, B (drawings squeezed onto that line, under the 36 pt targets) and C (in the ⋯ menu, two taps and out of
+  sight) not chosen. B, not chosen: a search field with words ("pistol", "video"), which means typing at the rack. The day list
   already computes each day's exercises and its diamond, so the filter is a predicate over the days the gallery draws,
   nothing new is stored, and the strip, What's new and the Live button stay where they are.
 
-- **Issues:** [#265](https://github.com/idvorkin/exercise-analyzer/issues/265) the row of drawings and the diamond
+- **Issues:** [#265](https://github.com/idvorkin/exercise-analyzer/issues/265) the row of drawings and the diamond; [#282](https://github.com/idvorkin/exercise-analyzer/issues/282) the row behind a filter button
 
 ---
