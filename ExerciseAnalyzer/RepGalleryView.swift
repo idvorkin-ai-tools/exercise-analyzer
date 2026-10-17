@@ -38,15 +38,9 @@ struct RepGalleryWidget: View {
                   rep: rep, columns: columns, isCurrent: rep.number == currentRep, focusedPhase: focusedPhase,
                   width: width, height: rep.number == focusedRep ? 150 : 72,
                   onSeek: onSeek,
-                  onFocus: { phase in
+                  onFocus: {
                     withAnimation(.easeInOut(duration: 0.2)) {
-                      if focusedRep == rep.number && focusedPhase == phase {
-                        focusedRep = nil
-                        focusedPhase = nil
-                      } else {
-                        focusedRep = rep.number
-                        focusedPhase = phase
-                      }
+                      focusedRep = focusedRep == rep.number ? nil : rep.number
                     }
                   },
                   onOpen: onOpen
@@ -142,16 +136,22 @@ struct RepRow: View {
   let width: CGFloat
   let height: CGFloat
   let onSeek: (RepPosition) -> Void
-  var onFocus: ((String) -> Void)? = nil
+  var onFocus: (() -> Void)? = nil
   var onOpen: ((RepPosition) -> Void)? = nil
 
   var body: some View {
     HStack(spacing: GalleryLayout.spacing) {
+      // The rep's number grows its row, and a second tap puts it back (#174: it was a double-tap on a still).
       VStack(spacing: 2) {
         Text("\(rep.number)\(rep.sideLabel)").font(.headline.monospacedDigit())
         Text("\(rep.quality.score)").font(.caption2).foregroundStyle(.secondary)
       }
       .frame(width: GalleryLayout.gutter)
+      .frame(maxHeight: .infinity)
+      .contentShape(Rectangle())
+      .onTapGesture { onFocus?() }
+      .accessibilityAddTraits(.isButton)
+      .accessibilityHint("Grows this rep's row")
       ForEach(columns, id: \.id) { phase in
         PoseThumbnail(position: rep.positions[phase.id])
           .frame(
@@ -159,7 +159,7 @@ struct RepRow: View {
               for: phase.id, focused: focusedPhase, count: columns.count, totalWidth: width),
             height: height
           )
-          .onTapGesture(count: 2) { onFocus?(phase.id) }
+          // No double-tap (#174, Igor's pick): it made every tap wait it out; the phase header widens a column.
           .onTapGesture {
             if let position = rep.positions[phase.id] { onSeek(position) }
           }

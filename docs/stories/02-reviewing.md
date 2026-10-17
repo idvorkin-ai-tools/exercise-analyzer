@@ -50,14 +50,16 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 
 - **Scenario:** A closer look at one rep
 - **Given:** a set is open with its rep gallery
-- **When:** I double-tap one rep's Bottom still
-- **Then:** that rep's row grows taller and its Bottom column widens; a second double-tap on it puts the row back
+- **When:** I tap one rep's number at the left of its row, and the Bottom header
+- **Then:** that rep's row grows taller and the Bottom column widens; a second tap on the number puts the row back,
+  and on the header the columns. A still answers only a tap (seek) and a hold (full screen), so a tap seeks at once
+  instead of waiting out a double-tap (#174, Igor's pick 2026-10-17; it was a double-tap on the still)
 
 - **Scenario:** The gallery follows the playhead (#152)
 - **Given:** a set is playing, or I step through it, with the gallery open
 - **When:** the playhead reaches a new position of a rep (its Top, then Connect, Bottom, Release)
-- **Then:** that rep's row grows and that position's column widens, as a double-tap on it would, and the zoom moves on
-  with each position; a double-tap picks another until the playhead reaches the next one, and between reps (or
+- **Then:** that rep's row grows and that position's column widens, and the zoom moves on
+  with each position; a tap on a rep's number or a header picks another until the playhead reaches the next one, and between reps (or
   past the last) the last zoom stays
 
 - **Scenario:** Reps side by side
@@ -124,8 +126,9 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
   the camera's Cancel, Pause or level capsule, the speed label, or a HUD icon (watch, zoom to me, the eye)
 - **Then:** each answers a tap anywhere in a 44 pt square around it: the bottom row's icons are 44 pt buttons side by
   side, and the others keep their look with the target grown past them, as the "‹" does, so a near miss no longer hits
-  the picture and toggles play; the gallery handle grabs in 25 pt, not 17. The phase pills, the rep gallery and the
-  full-screen viewer are not changed yet, and Delete stays in the row (both open in #174)
+  the picture and toggles play; the gallery handle grabs in 25 pt, not 17; the phase pills are 32 pt tall, not 21;
+  and Delete set is behind a "⋯" at the row's end, after Camera, so a slip between Share and Camera no longer reaches
+  it (Igor's picks on the 2026-10-17 Lavish page). The full-screen viewer and the Workouts rows are not changed yet
 
 - **Issues:** [#6](https://github.com/idvorkin/exercise-analyzer/issues/6) scrubber not following a gallery tap; [#23](https://github.com/idvorkin/exercise-analyzer/issues/23) slider not following playback; [#54](https://github.com/idvorkin/exercise-analyzer/issues/54) a stale scrub value past the end of the clip after gallery taps, and the completed count one behind the gallery's rep; [#56](https://github.com/idvorkin/exercise-analyzer/issues/56) a rep step should land in the phase the playhead is in; [#115](https://github.com/idvorkin/exercise-analyzer/issues/115) use Position consistently in playback and hold controls; [#174](https://github.com/idvorkin/exercise-analyzer/issues/174) the small controls under 44 pt
 

@@ -805,7 +805,8 @@ struct ContentView: View {
             Text(phase.label.uppercased())
               .font(.caption2.weight(.semibold))
               .fixedSize()
-              .padding(.horizontal, 7).padding(.vertical, 5)
+              // 32 pt tall (#174, Igor's pick), from 21.
+              .padding(.horizontal, 7).padding(.vertical, 10)
               .background(active ? Color.accentColor : Color.white.opacity(0.18))
               .foregroundStyle(active ? .white : Color.white.opacity(0.85))
               .clipShape(Capsule())
@@ -1211,23 +1212,27 @@ struct ContentView: View {
           }
           .disabled(session.activity != .idle)
         }
-        // A stored set can be thrown away from where it is looked at (#111); the dialog says what goes with it.
-        if let entry = session.currentEntry {
-          Button(role: .destructive) {
-            session.pause()
-            deleting = entry
-          } label: {
-            Label("Delete set", systemImage: "trash")
-          }
-          .foregroundStyle(.red)
-          // Not under a pass or a trim: they end by saving the set (the session guards that too).
-          .disabled(session.activity != .idle)
-        }
         Spacer()
         Button {
           session.startCamera(position: session.cameraPosition)
         } label: {
           Label("Camera", systemImage: "camera")
+        }
+        // A stored set can be thrown away from where it is looked at (#111); the dialog says what goes with it.
+        // Behind "⋯" at the row's end, so a slip between Share and Camera no longer reaches it (#174, Igor's pick).
+        if let entry = session.currentEntry {
+          Menu {
+            Button(role: .destructive) {
+              session.pause()
+              deleting = entry
+            } label: {
+              Label("Delete set…", systemImage: "trash")
+            }
+          } label: {
+            Label("More", systemImage: "ellipsis.circle")
+          }
+          // Not under a pass or a trim: they end by saving the set (the session guards that too).
+          .disabled(session.activity != .idle)
         }
       }
       .labelStyle(TargetIconLabelStyle())

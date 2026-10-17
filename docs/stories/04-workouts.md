@@ -461,12 +461,13 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 #### Acceptance Criteria:
 - **Scenario:** A set whose video is only in the app
 - **Given:** a stored set marked "kept in app" is on the playback screen
-- **When:** I tap the red trash in the bottom bar
+- **When:** I tap "⋯" at the end of the bottom bar and "Delete set…" in its menu (since #174, 2026-10-17: Igor moved
+  it out of the row, where a slip between Share and Camera reached it)
 - **Then:** playback pauses and a dialog asks "Delete this set and its video?", says it is the only copy and that deleting is final, and offers "Delete for good" or keeping it; Delete for good removes the set, its video and its pictures, and the screen returns to the start
 
 - **Scenario:** A set whose video is in Photos
 - **Given:** a stored set whose video is in Photos
-- **When:** I tap the trash
+- **When:** I pick "Delete set…" under "⋯"
 - **Then:** the dialog asks "Remove this set from Workouts?" and says the video stays in Photos (and, when an untrimmed original is kept for Undo trim, that it goes with the set); Remove takes the set out of Workouts and Photos is not touched
 
 - **Scenario:** From the Workouts list
@@ -477,7 +478,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Scenario:** A set deleted while the app is still working on it
 - **Given:** a stored set is being re-analyzed (a new build's refresh, a re-run, a trim under way)
 - **When:** I delete it
-- **Then:** it stays deleted: the pass that finishes afterwards is not saved, and the trash on the playback screen waits until a pass I started is done
+- **Then:** it stays deleted: the pass that finishes afterwards is not saved, and "⋯" on the playback screen waits until a pass I started is done
 
 - **Notes:** The words come from `SetDeletionPrompt` (ExerciseCore) by where the video lives (`RecentEntry.isInPhotos`). The session does the delete (`delete(set:from:)`), so a set that is on screen is let go of first and cannot be saved back; `set_deleted` logs id, in_photos, reps, on_screen and where (review, workouts). The code review of 59309e7 found a deleted set could come back: a pass saves by id, or under a fresh id once the screen's entry is gone, seconds after it started. So `RecentsStore.save` refuses an id removed since launch, the session remembers nothing for a clip it deleted until the next clip is loaded, and a trim that finishes after the delete throws its file away; each logs `remember_skipped`. The "no reps found" offer after a recording (029) is unchanged.
 
