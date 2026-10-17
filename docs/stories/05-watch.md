@@ -594,7 +594,7 @@ the first frame (story 001).
 ### User Story 050:
 
 - **Summary:** Rest time stays on the wrist in Preview and beside the workout clock
-- **Status:** implemented in [bda4c00](https://github.com/idvorkin/exercise-analyzer/commit/bda4c00); verified on the watch simulator (`just watch-screens`: viewfinder, workout, workoutStart); on the watch since 2026-09-18, Igor's check pending; the drop from the last set's peak (#195) built on `feat/2026-10-17-heart-now-194-195` (Igor picked build on the 2026-10-17 decisions page): the peak is `SetHeartPeak` in ExerciseCore (`SetHeartPeakTests`, host), fed by `WorkoutController`, with the resting screenshot states seeded at a 157 peak; lint only, the watch simulator screenshot (`just watch-screens`, the workout state) pending
+- **Status:** implemented in [bda4c00](https://github.com/idvorkin/exercise-analyzer/commit/bda4c00); verified on the watch simulator (`just watch-screens`: viewfinder, workout, workoutStart); on the watch since 2026-09-18, Igor's check pending; the drop from the last set's peak (#195) built on `feat/2026-10-17-heart-now-194-195` (Igor picked build on the 2026-10-17 decisions page): the peak is `SetHeartPeak` in ExerciseCore (`SetHeartPeakTests`, host), fed by `WorkoutController`, with the resting screenshot states seeded at a 157 peak; the line made one text after the 49 mm face wrapped the drop and the 40 mm truncated it, verified on the watch simulator (`just watch-screens`, the workout state on the 49 mm and the 40 mm: "128 · −29 BPM · 42:13" on one line)
 - **Why:** Igor, 2026-09-18, from the gym: "When in watch preview keep time since last rep on small. On watch. Include time since last rep not just total work out time."
 
 #### Use Case:

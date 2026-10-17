@@ -236,17 +236,11 @@ struct WatchContentView: View {
       }
       HStack(spacing: 4) {
         Image(systemName: "heart.fill").font(.caption).foregroundStyle(.red)
-        Text(workout.heartRate.map(String.init) ?? "--")
-          .font(.title3.bold()).monospacedDigit()
-        // Resting, how far the heart has come down from the last recorded set's peak: "♥ 128 · −29 BPM" (#195).
-        if let drop {
-          Text("· −\(drop)").font(.title3.bold()).monospacedDigit()
-        }
-        Text("BPM").font(.caption2).foregroundStyle(.secondary)
-        if resting != nil, let startedAt = workout.shownStart {
-          Text("·").foregroundStyle(.secondary)
-          Text(startedAt, style: .timer).font(.title3.bold()).monospacedDigit().foregroundStyle(.green)
-        }
+        heartLine(drop: drop, clock: resting == nil ? nil : workout.shownStart)
+          // One text, so it shrinks as a whole: as separate texts the drop wrapped on the 49 mm face and
+          // truncated with the clock on the 40 mm (#195).
+          .lineLimit(1)
+          .minimumScaleFactor(0.5)
       }
       .accessibilityLabel(
         "Heart rate \(workout.heartRate.map(String.init) ?? "unknown")"
@@ -273,6 +267,20 @@ struct WatchContentView: View {
       }
     }
     .padding(.bottom, 4)
+  }
+
+  /// "128 BPM", resting "128 · −29 BPM · 42:13": the rate now, its drop from the last recorded set's peak
+  /// (#195) and the session clock small and green (050).
+  private func heartLine(drop: Int?, clock: Date?) -> Text {
+    var line = Text(workout.heartRate.map(String.init) ?? "--").font(.title3.bold()).monospacedDigit()
+    if let drop { line = line + Text(" · −\(drop)").font(.title3.bold()).monospacedDigit() }
+    line = line + Text(" BPM").font(.caption2).foregroundStyle(.secondary)
+    if let clock {
+      line =
+        line + Text(" · ").foregroundStyle(.secondary)
+        + Text(clock, style: .timer).font(.title3.bold()).monospacedDigit().foregroundStyle(.green)
+    }
+    return line
   }
 
   /// Start by hand, above Record (048): the warm-up is workout time. Gone once the workout runs.
