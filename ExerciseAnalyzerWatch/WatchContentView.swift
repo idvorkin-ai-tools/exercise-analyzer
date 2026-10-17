@@ -173,13 +173,15 @@ struct WatchContentView: View {
       }
       .sheet(isPresented: $countingSet) {
         let start = HandSet.start(mode: status.mode, analyzed: status.lastSet, byHand: phone.lastTyped)
-        SetByHandPage(
-          exercise: start.exercise, start: start.reps, choosing: phone.screenshotOpensExerciseList,
-          startKg: {
-            HandSet.startKg(for: $0, phone: status.bellKg, typed: phone.lastTyped, analyzed: status.lastSet)
+        NavigationStack {
+          SetByHandPage(
+            exercise: start.exercise, start: start.reps, choosing: phone.screenshotOpensExerciseList,
+            startKg: {
+              HandSet.startKg(for: $0, phone: status.bellKg, typed: phone.lastTyped, analyzed: status.lastSet)
+            }
+          ) { exercise, reps, kg in
+            phone.saveSetByHand(exercise: exercise, reps: reps, kg: kg)
           }
-        ) { exercise, reps, kg in
-          phone.saveSetByHand(exercise: exercise, reps: reps, kg: kg)
         }
       }
     }
@@ -619,7 +621,7 @@ struct WatchContentView: View {
 
 /// The count of a set typed by hand (059): the exercise on top, the reps, − and + (44 pt) and the Crown step them by
 /// one with a tick each, 1…200, then the weight. The exercise row opens the drawings, and the one tapped there is the
-/// set's (#154). Save adds the set; the sheet's close button adds nothing.
+/// set's (#154). The green checkmark at top right saves the set; the sheet's close button adds nothing.
 private struct SetByHandPage: View {
   /// Exercise, reps and the bell's weight (nil for none).
   let onSave: (ExerciseKind, Int, Int?) -> Void
@@ -666,7 +668,7 @@ private struct SetByHandPage: View {
   /// Three full-width rows (ea-xrf, Igor picked A on the 2026-10-17 Lavish page: "the tap targets really are hard
   /// to use for setting weights"): the exercise, the reps, the weight. The green row is the Crown's; a tap on a row
   /// gives it the Crown, and a second tap on the weight row, or any tap on the exercise row, opens big tiles.
-  /// The sheet's close button cancels.
+  /// The checkmark at top right saves and the sheet's close button cancels, so the rows fit a 40 mm face unscrolled.
   var body: some View {
     ScrollView {
       VStack(spacing: 5) {
@@ -722,13 +724,18 @@ private struct SetByHandPage: View {
         .onChange(of: kgFocused) { _, focused in if focused { kgPicked = true } }
         .accessibilityLabel(kg.map { "\($0) kilograms. Turn the Crown to change" } ?? "No weight")
         .accessibilityAddTraits(.isButton)
+      }
+    }
+    .toolbar {
+      ToolbarItem(placement: .confirmationAction) {
         Button {
           onSave(exercise, reps, kg)
           dismiss()
         } label: {
-          Text("Save").font(.headline).frame(maxWidth: .infinity, minHeight: 40)
+          Image(systemName: "checkmark")
         }
         .tint(.green)
+        .accessibilityLabel("Save")
       }
     }
     .onAppear { crownFocused = true }
@@ -803,6 +810,7 @@ private struct SetByHandPage: View {
   private func stepButton(_ symbol: String, by step: Int) -> some View {
     Button {
       count = Double(HandSet.clamp(reps + step))
+      crownFocused = true
       WKInterfaceDevice.current().play(.click)
     } label: {
       Image(systemName: symbol)
