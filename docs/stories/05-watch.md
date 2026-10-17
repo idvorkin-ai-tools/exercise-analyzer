@@ -827,7 +827,7 @@ the first frame (story 001).
 - **Scenario:** Videos again
 - **Given:** the mode is on
 - **When:** I tap "Videos again"
-- **Then:** the idle page comes back as the phone's state has it (Record, Preview and the phone's status), `watch_no_videos on false` is logged, and the phone's line over Live goes
+- **Then:** the idle page comes back as the phone's state has it (Record, Preview and the phone's status), `watch_no_videos on false` is logged, and the orange dot on the phone's Live button goes
 
 - **Notes:** The mode is the watch's (`PhoneLink.noVideos`, kept in its defaults), told to the phone in the application context beside the typed sets (a context is whole each time, so both keys go together); the phone (`VideoPoseSession.noVideos`) only shows and logs it. The watch keeps pinging the phone in the mode (cheap, and the sets ride the usual roads), it just says nothing about the answers: the error line shows only the workout's errors. No exercise picker: it is the phone's choice and talks to the phone, so with the phone in the bag a pick would fail; the exercise is picked on the count page (#154), which opens on the last set typed. Screenshot state `noVideos`.
 
