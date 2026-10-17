@@ -832,7 +832,8 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Given:** Workouts open with more than one exercise in my history, or a day on video
 - **When:** I tap the filter button at the end of the From Photos line
 - **Then:** the row of drawings opens under the line, and a pick closes it again, unless no day matches: then it stays
-  open with "No day matches", the picked drawing in reach for the second tap; closed, the days start right under
+  open with "No day matches", the picked drawing in reach for the second tap, and the button goes quiet (no chevron,
+  no tap, VoiceOver reads "No day matches") so it cannot fold the row into an empty list; closed, the days start right under
   the line, and the button reads the filter that is on (the picked drawing, the diamond, or a plain filter icon when
   none), so a filter left on is never out of sight
 
