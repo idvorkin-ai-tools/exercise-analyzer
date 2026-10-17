@@ -17,6 +17,12 @@ test:
     turn (one simulator or build on this Mac at a time). List what only the simulator or phone can
     show as "to verify live" in the report. Do not re-run `just test`: the gate already ran it.
     docs/TESTING.md says which rung sees which change.
+    If a check ever does need a simulator (Igor, 2026-10-17: test agents that left simulators booted
+    slowed the Mac four times since Oct 4): only one simulator on this Mac at a time, so before
+    booting, check `xcrun simctl list devices booted` and wait until it is empty. When done, pass or
+    fail, `xcrun simctl shutdown` and `xcrun simctl delete` every device you created, and make sure
+    no `xcodebuild` or `xctest` you started is still running. Bound every `xcodebuild test` with a
+    timeout.
 
 # No GitHub workflows in this repo; `just test` and `just lint` are the whole automated suite.
 no_ci: true
