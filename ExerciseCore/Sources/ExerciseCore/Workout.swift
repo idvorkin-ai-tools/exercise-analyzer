@@ -235,9 +235,12 @@ public struct WorkoutIndex: Codable, Equatable, Sendable {
       session.sets = entry.parts.reduce(0) { $0 + $1.sets }
       session.reps = entry.parts.reduce(0) { $0 + $1.reps }
       session.heartRateMax = entry.parts.compactMap(\.heartRateMax).max()
-      let rated = entry.parts.compactMap { part in part.heartRateAverage.map { (bpm: Double($0), seconds: part.duration) } }
+      let rated = entry.parts.compactMap { part in
+        part.heartRateAverage.map { (bpm: Double($0), seconds: part.duration) }
+      }
       let seconds = rated.reduce(0) { $0 + $1.seconds }
-      session.heartRateAverage = seconds > 0 ? Int((rated.reduce(0) { $0 + $1.bpm * $1.seconds } / seconds).rounded()) : nil
+      session.heartRateAverage =
+        seconds > 0 ? Int((rated.reduce(0) { $0 + $1.bpm * $1.seconds } / seconds).rounded()) : nil
       return session
     }
   }
