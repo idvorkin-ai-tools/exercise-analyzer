@@ -95,7 +95,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 007:
 
 - **Summary:** Step by frame and by position with targets big enough for the gym
-- **Status:** implemented in [564a753](https://github.com/idvorkin/exercise-analyzer/commit/564a753); verified by simulator screenshot; the fixes for #54 and #56 in [7763420](https://github.com/idvorkin/exercise-analyzer/commit/7763420), [7872730](https://github.com/idvorkin/exercise-analyzer/commit/7872730), on the phone since 2026-09-13, Igor's check pending (the scrubber of #6 too); the Position labels (#115) in [06c95d9](https://github.com/idvorkin/exercise-analyzer/commit/06c95d9), verified by simulator screenshot, on the phone since 2026-09-20, Igor's check pending
+- **Status:** implemented in [564a753](https://github.com/idvorkin/exercise-analyzer/commit/564a753); verified by simulator screenshot; the fixes for #54 and #56 in [7763420](https://github.com/idvorkin/exercise-analyzer/commit/7763420), [7872730](https://github.com/idvorkin/exercise-analyzer/commit/7872730), on the phone since 2026-09-13, Igor's check pending (the scrubber of #6 too); the Position labels (#115) in [06c95d9](https://github.com/idvorkin/exercise-analyzer/commit/06c95d9), verified by simulator screenshot, on the phone since 2026-09-20, Igor's check pending; 44 pt targets for the small controls (#174) on `fix/2026-10-17-tap-targets-174`, lint only, the build pending
 
 #### Use Case:
 - **As a** lifter holding a phone with chalky hands
@@ -118,7 +118,16 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **When:** I tap a gallery still, a pill, an edge key or a step button
 - **Then:** the clock follows the playhead (no stale scrub value), the HUD shows that rep in review, and the `phase` events log the rep I landed in
 
-- **Issues:** [#6](https://github.com/idvorkin/exercise-analyzer/issues/6) scrubber not following a gallery tap; [#23](https://github.com/idvorkin/exercise-analyzer/issues/23) slider not following playback; [#54](https://github.com/idvorkin/exercise-analyzer/issues/54) a stale scrub value past the end of the clip after gallery taps, and the completed count one behind the gallery's rep; [#56](https://github.com/idvorkin/exercise-analyzer/issues/56) a rep step should land in the phase the playhead is in; [#115](https://github.com/idvorkin/exercise-analyzer/issues/115) use Position consistently in playback and hold controls
+- **Scenario:** The small controls are 44 pt targets too (#174)
+- **Given:** a set is open, or the camera is up
+- **When:** I tap an icon of the row under the scrubber (full screen, trim, rep gallery, save, share, delete, camera),
+  the camera's Cancel, Pause or level capsule, the speed label, or a HUD icon (watch, zoom to me, the eye)
+- **Then:** each answers a tap anywhere in a 44 pt square around it: the bottom row's icons are 44 pt buttons side by
+  side, and the others keep their look with the target grown past them, as the "‹" does, so a near miss no longer hits
+  the picture and toggles play; the gallery handle grabs in 25 pt, not 17. The phase pills, the rep gallery and the
+  full-screen viewer are not changed yet, and Delete stays in the row (both open in #174)
+
+- **Issues:** [#6](https://github.com/idvorkin/exercise-analyzer/issues/6) scrubber not following a gallery tap; [#23](https://github.com/idvorkin/exercise-analyzer/issues/23) slider not following playback; [#54](https://github.com/idvorkin/exercise-analyzer/issues/54) a stale scrub value past the end of the clip after gallery taps, and the completed count one behind the gallery's rep; [#56](https://github.com/idvorkin/exercise-analyzer/issues/56) a rep step should land in the phase the playhead is in; [#115](https://github.com/idvorkin/exercise-analyzer/issues/115) use Position consistently in playback and hold controls; [#174](https://github.com/idvorkin/exercise-analyzer/issues/174) the small controls under 44 pt
 
 ---
 

@@ -556,7 +556,8 @@ struct ContentView: View {
       .frame(width: 44, height: 5)
       .padding(.vertical, 6)
       .frame(maxWidth: .infinity)
-      .contentShape(Rectangle())
+      // 25 pt to grab, not 17, without moving the gallery (#174).
+      .contentShape(Rectangle().inset(by: -4))
       .gesture(
         DragGesture(minimumDistance: 2)
           .onChanged { value in
@@ -627,6 +628,9 @@ struct ContentView: View {
   /// bigger on the iPad only for the Zoom and video preview").
   private static let hudIconFont: Font = UIDevice.current.userInterfaceIdiom == .pad ? .title : .title3
   private static let hudIconSide: CGFloat = UIDevice.current.userInterfaceIdiom == .pad ? 44 : 0
+  /// On the phone the icons keep their size and the target grows past them, as the "‹" does (#174: a miss hit the
+  /// picture and toggled play).
+  private static let hudIconInset: CGFloat = UIDevice.current.userInterfaceIdiom == .pad ? 0 : -12
 
   /// Where a text's letters begin in its own frame (its first baseline less the face's cap height): SwiftUI has
   /// no alignment on letter tops, so the top line's `.top` guides are set to it.
@@ -740,7 +744,8 @@ struct ContentView: View {
             session.setWatchMode(true, from: "phone")
           } label: {
             Image(systemName: "applewatch").font(Self.hudIconFont)
-              .frame(minWidth: Self.hudIconSide, minHeight: Self.hudIconSide).contentShape(Rectangle())
+              .frame(minWidth: Self.hudIconSide, minHeight: Self.hudIconSide)
+              .contentShape(Rectangle().inset(by: Self.hudIconInset))
           }
           .accessibilityLabel("Watch mode: big digits on the phone, control from the wrist")
         }
@@ -748,14 +753,16 @@ struct ContentView: View {
           meView.toggle()
         } label: {
           Image(systemName: meView ? "person.crop.square.fill" : "person.crop.square").font(Self.hudIconFont)
-            .frame(minWidth: Self.hudIconSide, minHeight: Self.hudIconSide).contentShape(Rectangle())
+            .frame(minWidth: Self.hudIconSide, minHeight: Self.hudIconSide)
+            .contentShape(Rectangle().inset(by: Self.hudIconInset))
         }
         .accessibilityLabel(meView ? "Show whole frame" : "Zoom to me")
         Button {
           overlayModeRaw = overlayMode.next.rawValue
         } label: {
           Image(systemName: overlayMode.symbol).font(Self.hudIconFont)
-            .frame(minWidth: Self.hudIconSide, minHeight: Self.hudIconSide).contentShape(Rectangle())
+            .frame(minWidth: Self.hudIconSide, minHeight: Self.hudIconSide)
+            .contentShape(Rectangle().inset(by: Self.hudIconInset))
         }
         .accessibilityLabel(overlayMode.next.label)
       }
@@ -1070,6 +1077,7 @@ struct ContentView: View {
         }
         .padding(.horizontal, 10).padding(.vertical, 4)
         .background(Color(.secondarySystemFill), in: Capsule())
+        .contentShape(Rectangle().inset(by: -8))
       }
       .accessibilityLabel("Camera \(session.cameraLevelLabel), tap for \(session.nextCameraLevelLabel)")
       Spacer()
@@ -1079,6 +1087,7 @@ struct ContentView: View {
           session.paused ? session.resumeCamera(from: "phone") : session.pauseCamera(from: "phone")
         } label: {
           Label(session.paused ? "Resume" : "Pause", systemImage: session.paused ? "play.fill" : "pause.fill")
+            .contentShape(Rectangle().inset(by: -12))
         }
         .accessibilityLabel(session.paused ? "Resume the set" : "Pause the set")
       }
@@ -1105,7 +1114,7 @@ struct ContentView: View {
       } label: {
         Label("Cancel", systemImage: "xmark.circle")
       }
-      .labelStyle(.iconOnly).font(.title3)
+      .labelStyle(TargetIconLabelStyle()).font(.title3)
     }
   }
 
@@ -1152,10 +1161,13 @@ struct ContentView: View {
             .font(.caption.weight(.semibold)).monospacedDigit()
             .padding(.horizontal, 8).padding(.vertical, 4)
             .background(Color(.secondarySystemFill), in: Capsule())
+            // A 44 pt target without growing the row (#174), as the "‹" does.
+            .contentShape(Rectangle().inset(by: -10))
         }
       }
 
-      HStack(spacing: 22) {
+      // 44 pt targets (#174, gym-first): the icons' gaps are the targets' own edges now.
+      HStack(spacing: 2) {
         if session.duration > 0 {
           Button {
             session.pause()
@@ -1218,7 +1230,7 @@ struct ContentView: View {
           Label("Camera", systemImage: "camera")
         }
       }
-      .labelStyle(.iconOnly)
+      .labelStyle(TargetIconLabelStyle())
       .font(.title3)
     }
   }
@@ -1486,4 +1498,13 @@ enum OverlayMode: String, CaseIterable {
 
   /// Names the mode; the eye button shows `next.label`, what a tap will switch to.
   var label: String { self == .both ? "Show video and skeleton" : "Show video only" }
+}
+
+/// An icon-only button at the gym-first 44 pt target (#174): the icon as before, the title kept for VoiceOver.
+struct TargetIconLabelStyle: LabelStyle {
+  func makeBody(configuration: Configuration) -> some View {
+    Label(configuration).labelStyle(.iconOnly)
+      .frame(minWidth: 44, minHeight: 44)
+      .contentShape(Rectangle())
+  }
 }
