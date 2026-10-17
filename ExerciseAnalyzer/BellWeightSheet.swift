@@ -22,7 +22,8 @@ struct BellWeightSheet: View {
   }
 
   /// The competition colour code (the detector's map, `BellColor`): 8 pink … 32 red.
-  private static let code: [(kg: Int, color: Color)] = [
+  /// Also the by-hand sheet's weight row (#271).
+  static let code: [(kg: Int, color: Color)] = [
     (8, .pink), (12, .blue), (16, .yellow), (20, .purple), (24, .green), (28, .orange), (32, .red),
   ]
 
@@ -31,7 +32,9 @@ struct BellWeightSheet: View {
       VStack(spacing: 16) {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 4), spacing: 10) {
           ForEach(Self.code, id: \.kg) { bell in
-            Button { save(bell.kg) } label: {
+            Button {
+              save(bell.kg)
+            } label: {
               Text("\(bell.kg)").font(.title2.bold()).monospacedDigit()
                 .frame(maxWidth: .infinity, minHeight: 64)
                 .background(bell.color.opacity(bell.kg == kg ? 0.55 : 0.22), in: RoundedRectangle(cornerRadius: 12))
@@ -41,7 +44,9 @@ struct BellWeightSheet: View {
             .accessibilityLabel("\(bell.kg) kilograms")
             .accessibilityAddTraits(bell.kg == kg ? .isSelected : [])
           }
-          Button { other = other ?? kg ?? 36 } label: {
+          Button {
+            other = other ?? kg ?? 36
+          } label: {
             Text("Other").font(.headline)
               .frame(maxWidth: .infinity, minHeight: 64)
               .background(Color.secondary.opacity(0.2), in: RoundedRectangle(cornerRadius: 12))
@@ -55,7 +60,9 @@ struct BellWeightSheet: View {
               .frame(minWidth: 120)
             step("plus", value: value, by: 2)
           }
-          Button { save(value) } label: {
+          Button {
+            save(value)
+          } label: {
             Text("Save \(value) kg").font(.headline).frame(maxWidth: .infinity, minHeight: 44)
           }
           .buttonStyle(.borderedProminent).tint(.green)
@@ -80,7 +87,9 @@ struct BellWeightSheet: View {
   }
 
   private func step(_ symbol: String, value: Int, by delta: Int) -> some View {
-    Button { other = min(max(value + delta, 2), 100) } label: {
+    Button {
+      other = min(max(value + delta, 2), 100)
+    } label: {
       Image(systemName: symbol).font(.title.bold()).frame(width: 60, height: 60)
         .background(Color.secondary.opacity(0.2), in: Circle())
     }

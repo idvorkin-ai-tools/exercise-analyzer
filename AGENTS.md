@@ -22,6 +22,13 @@ carry only what was decided.
 
 ## Rules
 
+- **Beads track the work** (Igor, 2026-10-17). Run `bd prime` at the start of a session and after context recovery,
+  then `bd ready`. Create a bead before new work, mark it `in_progress`, close it with a one-line reason when the
+  work has merged; a decision only Igor can make gets the `needs-igor` label. GitHub issues stay the intake for
+  reports (the bug-kit listener files them) and the place evidence goes; a bead names its issue. The issues live
+  in Dolt, not in code branches: `.beads/config.yaml` and `.beads/metadata.json` are tracked configuration, and
+  `bd dolt push` / `bd dolt pull` sync the data through this repo's `refs/dolt/data`. Every worktree shares the
+  main checkout's database. No beads git hooks: the no-mistakes gate owns the commits.
 - **Test ladder**: host `just test` (~1 s) → simulator `just test-sim` (5–8 min) → phone `just run-device`. Verify on
   the cheapest rung that can see the change and say which rung you used. The simulator runs the model on the CPU
   (~20 fps); it has no camera, no HDR, no taps: drive it with `SIMCTL_CHILD_SWING_*` hooks and wait on log events

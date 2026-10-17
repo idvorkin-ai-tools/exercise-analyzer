@@ -35,6 +35,9 @@ struct WorkoutGalleryView: View {
   @State private var deletingWorkout: StoredWorkout?
   /// What Health or the list refused while deleting, said once.
   @State private var workoutDeletionFailure: String?
+  /// The drawing or the diamond picked above the days (#265, story 073): kept while a found day's page or set is
+  /// open over the log, so "‹" comes back to the same few days; never stored, so a relaunch shows every day.
+  @State private var filter = DayFilter()
 
   private static let dayKey: DateFormatter = {
     let f = DateFormatter()
@@ -82,7 +85,15 @@ struct WorkoutGalleryView: View {
   }
 
   /// The days, from the sets and the workouts alike: a workout without a set on camera is still a day.
-  private var days: [WorkoutDay] { WorkoutDay.group(store.entries, workouts: workouts.sessions, live: workouts.live) }
+  private var days: [WorkoutDay] {
+    WorkoutDay.group(store.entries, workouts: workouts.sessions, live: workouts.shownLive)
+  }
+
+  /// The days the row's filter keeps (#265): all of them until a drawing or the diamond is picked.
+  private func shown(_ days: [WorkoutDay]) -> [WorkoutDay] {
+    guard filter.isActive else { return days }
+    return days.filter { filter.keeps(exercises: $0.exercises.map(\.kind), allOnVideo: $0.allOnVideo) }
+  }
 
   /// The log, the app's home (story 058): the root of ContentView's navigation, which pushes a workout's page,
   /// a set and the camera over it.
@@ -94,7 +105,9 @@ struct WorkoutGalleryView: View {
           description: Text("Record a set or open a video and it shows up here, grouped by day."))
       } else {
         ScrollView {
-          LazyVStack(alignment: .leading, spacing: 14, pinnedViews: [.sectionHeaders]) {
+          // 4 pt between the lines (#266; Igor: "a lot of dead space between the workouts"); a day's set rows keep
+          // their 14 pt by their own top padding.
+          LazyVStack(alignment: .leading, spacing: 4, pinnedViews: [.sectionHeaders]) {
             // One line about the newest change, with its ✕ (story 072); BugKit's row shows nothing once dismissed.
             if let onWhatsNew {
               WhatsNewRow(feed: whatsNew, logger: { type, fields in onEvent?(type, fields.mapValues(\.foundation)) }) {
@@ -122,7 +135,19 @@ struct WorkoutGalleryView: View {
               .buttonStyle(.bordered)
               .padding(.top, 8)
             }
-            ForEach(days) { day in
+            let all = days
+            let row = DayFilter.row(all.map { $0.exercises.map(\.kind) })
+            let anyOnVideo = all.contains(where: \.allOnVideo)
+            // Only worth a row when there is something to tell apart: two exercises, or a day on video.
+            if row.count > 1 || anyOnVideo {
+              DayFilterRow(row: row, showsDiamond: anyOnVideo, filter: $filter) { onEvent?("workouts_filter", $0) }
+            }
+            let kept = shown(all)
+            if kept.isEmpty && filter.isActive {
+              Text("No day matches. Tap the picked drawing again to see every day.")
+                .font(.subheadline).foregroundStyle(.secondary).padding(.vertical, 8)
+            }
+            ForEach(kept) { day in
               let folded = isFolded(day)
               Section {
                 if !folded {
@@ -144,7 +169,9 @@ struct WorkoutGalleryView: View {
                           store.keepByHand(id: entry.id, exercise: kind, reps: reps)
                         }
                         if entry.isInPhotos { suggestions.refresh(known: knownPhotosIDs) }
-                      })
+                      }
+                    )
+                    .padding(.top, 10)
                   }
                 }
               } header: {
@@ -229,6 +256,51 @@ struct WorkoutGalleryView: View {
 }
 
 /// Recent set-sized videos in Photos: one tap opens a new one in place, or the set an analyzed one became.
+/// The exercise drawings in the history and the video diamond, above the days (#265, story 073): one tap keeps only
+/// the matching days, the picked one drawn in its colour and the rest dimmed; a second tap shows every day again.
+struct DayFilterRow: View {
+  let row: [ExerciseKind]
+  let showsDiamond: Bool
+  @Binding var filter: DayFilter
+  let log: ([String: Any]) -> Void
+
+  var body: some View {
+    WrappingHStack(spacing: 6) {
+      ForEach(row) { kind in
+        let picked = filter.exercise == kind
+        Button {
+          filter.tap(kind)
+          log(["exercise": filter.exercise?.rawValue ?? "", "on_video": filter.onVideo])
+        } label: {
+          ExerciseGlyph(kind: kind, size: 26)
+            .opacity(filter.exercise == nil || picked ? 1 : 0.35)
+            .frame(width: 36, height: 36)
+            .background(picked ? kind.tint.opacity(0.2) : .clear, in: RoundedRectangle(cornerRadius: 8))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Show only: \(kind.definition.name)")
+        .accessibilityAddTraits(picked ? .isSelected : [])
+      }
+      if showsDiamond {
+        Button {
+          filter.onVideo.toggle()
+          log(["exercise": filter.exercise?.rawValue ?? "", "on_video": filter.onVideo])
+        } label: {
+          Image(systemName: filter.onVideo ? "diamond.fill" : "diamond")
+            .font(.title3).foregroundStyle(.cyan)
+            .frame(width: 36, height: 36)
+            .background(filter.onVideo ? Color.cyan.opacity(0.2) : .clear, in: RoundedRectangle(cornerRadius: 8))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Show only: every set on video")
+        .accessibilityAddTraits(filter.onVideo ? .isSelected : [])
+      }
+    }
+  }
+}
+
 struct PhotosSuggestionsRow: View {
   @ObservedObject var suggestions: PhotosSuggestions
   let onImport: (PhotosSuggestions.Clip) -> Void
@@ -243,29 +315,23 @@ struct PhotosSuggestionsRow: View {
       Button {
         withAnimation(.easeInOut(duration: 0.2)) { expanded.toggle() }
       } label: {
-        HStack(spacing: 8) {
-          Image(systemName: "photo.on.rectangle")
-            .font(.subheadline.bold())
-            .frame(width: 28, height: 28)
-            .background(Color.blue.opacity(0.15), in: Circle())
-            .foregroundStyle(.blue)
-          Text("From Photos").font(.headline)
+        // One caption line, no icon circle (#266; Igor: "From Photos takes up too much space"): about 30 pt where
+        // the 44 pt row with its padding took 66; the whole line is still the tap.
+        HStack(spacing: 4) {
           let new = suggestions.clips(in: .new).count
-          if !expanded, new > 0 {
-            Text("\(new) new").font(.subheadline).monospacedDigit().foregroundStyle(.secondary)
-          }
+          Text(!expanded && new > 0 ? "From Photos · \(new) new" : "From Photos")
+            .font(.caption).monospacedDigit()
+          Image(systemName: expanded ? "chevron.down" : "chevron.right").font(.caption2.bold())
           Spacer()
-          Image(systemName: expanded ? "chevron.down" : "chevron.right")
-            .font(.subheadline.bold()).foregroundStyle(.secondary)
         }
-        .frame(minHeight: 44)
+        .foregroundStyle(.secondary)
+        .frame(minHeight: 30)
         .contentShape(Rectangle())
       }
       .buttonStyle(.plain)
       .accessibilityLabel(expanded ? "Hide the clips from Photos" : "Show the clips from Photos")
       if expanded { strip }
     }
-    .padding(.top, 8)
   }
 
   @ViewBuilder private var strip: some View {
@@ -492,7 +558,7 @@ struct DayHeader: View {
       }
     }
     .foregroundStyle(.primary)
-    .padding(.vertical, 8)
+    .padding(.vertical, 4)  // was 8 (#266): about 77 pt per workout day instead of 95
     .background(Color(.systemBackground))
   }
 
@@ -709,25 +775,34 @@ struct SetByHandSheet: View {
   let entry: RecentEntry
   /// "Add a set at 10:42 AM" when the set is new, from a tap on the workout's chart (#178).
   var title = "Set exercise and reps"
-  let onSave: (ExerciseKind, Int) -> Void
+  /// The weight row, when adding a set (#271): each exercise's last weight, which the row opens on and follows
+  /// the exercise to until a weight is tapped. Nil hides the row (a stored set's weight is its long-press, 066).
+  var lastKg: [ExerciseKind: Int]? = nil
+  /// Exercise, reps and the picked weight (nil without the row or with "None").
+  let onSave: (ExerciseKind, Int, Int?) -> Void
   /// Removes a typed set from the sheet itself (#204; Igor: "the set exercise and rep scheme probably needs a
   /// delete button"), after the usual "Delete?" (056). Nil hides the button; a filmed set keeps its long press.
   var onDelete: (() -> Void)? = nil
   @State private var exercise: ExerciseKind
   @State private var reps: Int
+  @State private var kg: Int?
+  /// A weight was tapped: a change of exercise no longer moves it.
+  @State private var kgPicked = false
   @State private var deleting: RecentEntry?
   @Environment(\.dismiss) private var dismiss
 
   init(
-    entry: RecentEntry, title: String = "Set exercise and reps", onSave: @escaping (ExerciseKind, Int) -> Void,
-    onDelete: (() -> Void)? = nil
+    entry: RecentEntry, title: String = "Set exercise and reps", lastKg: [ExerciseKind: Int]? = nil,
+    onSave: @escaping (ExerciseKind, Int, Int?) -> Void, onDelete: (() -> Void)? = nil
   ) {
     self.entry = entry
     self.title = title
+    self.lastKg = lastKg
     self.onSave = onSave
     self.onDelete = onDelete
     _exercise = State(initialValue: entry.exerciseKind)
     _reps = State(initialValue: HandSet.clamp(entry.repCount == 0 ? HandSet.defaultReps : entry.repCount))
+    _kg = State(initialValue: entry.bellKg ?? lastKg?[entry.exerciseKind])
   }
 
   /// What Save does to the video, said before it happens.
@@ -746,6 +821,7 @@ struct SetByHandSheet: View {
             ForEach(ExerciseKind.allCases) { kind in
               Button {
                 exercise = kind
+                if let lastKg, !kgPicked { kg = lastKg[kind] }
               } label: {
                 HStack(spacing: 8) {
                   ExerciseGlyph(kind: kind, size: 28)
@@ -769,12 +845,14 @@ struct SetByHandSheet: View {
               .frame(minWidth: 110).accessibilityLabel("\(reps) reps")
             stepButton("plus", by: 1)
           }
+          if lastKg != nil { weightRow }
           if let videoLine { Text(videoLine).font(.footnote).foregroundStyle(.secondary) }
           Button {
-            onSave(exercise, reps)
+            onSave(exercise, reps, lastKg == nil ? nil : kg)
             dismiss()
           } label: {
-            Text("Save \(reps) \(exercise.repWord(reps))").font(.headline).frame(maxWidth: .infinity, minHeight: 44)
+            Text("Save \(reps) \(exercise.repWord(reps))\(lastKg != nil ? kg.map { " · \($0) kg" } ?? "" : "")")
+              .font(.headline).frame(maxWidth: .infinity, minHeight: 44)
           }
           .buttonStyle(.borderedProminent)
           .tint(.green)
@@ -799,6 +877,30 @@ struct SetByHandSheet: View {
     }
   }
 
+  /// The bell's weight beside the count (#271): the competition bells in their colours and None, one tap each.
+  private var weightRow: some View {
+    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 8) {
+      weightChip("None", value: nil, color: .secondary)
+      ForEach(BellWeightSheet.code, id: \.kg) { bell in weightChip("\(bell.kg)", value: bell.kg, color: bell.color) }
+    }
+  }
+
+  private func weightChip(_ label: String, value: Int?, color: Color) -> some View {
+    let picked = kg == value
+    return Button {
+      kg = value
+      kgPicked = true
+    } label: {
+      Text(label).font(.headline).monospacedDigit()
+        .frame(maxWidth: .infinity, minHeight: 48)
+        .background(color.opacity(picked ? 0.55 : 0.18), in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(picked ? color : .clear, lineWidth: 3))
+    }
+    .buttonStyle(.plain)
+    .accessibilityLabel(value.map { "\($0) kilograms" } ?? "No weight")
+    .accessibilityAddTraits(picked ? .isSelected : [])
+  }
+
   private func stepButton(_ symbol: String, by step: Int) -> some View {
     Button {
       reps = HandSet.clamp(reps + step)
@@ -819,7 +921,9 @@ extension View {
     onDelete: ((RecentEntry) -> Void)? = nil
   ) -> some View {
     sheet(item: entry) { set in
-      SetByHandSheet(entry: set, onSave: { onSave(set, $0, $1) }, onDelete: onDelete.map { delete in { delete(set) } })
+      SetByHandSheet(
+        entry: set, onSave: { kind, reps, _ in onSave(set, kind, reps) },
+        onDelete: onDelete.map { delete in { delete(set) } })
     }
   }
 

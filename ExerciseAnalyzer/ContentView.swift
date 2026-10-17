@@ -575,7 +575,7 @@ struct ContentView: View {
   private var workoutOfLoadedSet: StoredWorkout? {
     guard session.source == .file else { return nil }
     if path.count > 1, case .workout(let under) = path[path.count - 2] {
-      return under.resolve(live: workouts.live, saved: workouts.sessions, now: Date())
+      return under.resolve(live: workouts.shownLive, saved: workouts.sessions, now: Date())
     }
     guard let start = session.currentEntry?.span.lowerBound else { return nil }
     if let live = workouts.liveWorkout, live.contains(start) { return live }
@@ -748,7 +748,7 @@ struct ContentView: View {
       // inside it. One strip under the count, gone when the workout ends.
       // The Now bar (story 058): on a set, one tap to the running workout's page; on the camera it only reads,
       // a tap there must not walk away from a recording.
-      if let live = workouts.live {
+      if let live = workouts.shownLive {
         let sets = workouts.setsInLiveWorkout(session.recents.entries).count
         Button {
           if let page = workouts.liveWorkout { backToWorkout(page) }

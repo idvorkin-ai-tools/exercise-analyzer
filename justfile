@@ -23,7 +23,7 @@ test:
       | grep -E "Test Suite|passed|failed|error" | tail -20
 
 # Rung 0: the smell check and the formatter's lint (docs/TESTING.md "Lint"). SwiftLint runs over the whole tree
-# (errors fail, warnings print: the force-unwrap count is a baseline to burn down); swift-format lints only the
+# (errors fail, warnings print: the tree has none, so any is new); swift-format lints only the
 # Swift files this branch touched against main, until the one-time reformat lands. Both tools run in the gate.
 lint:
     #!/usr/bin/env bash
