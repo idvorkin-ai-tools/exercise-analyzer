@@ -38,8 +38,9 @@ struct WorkoutGalleryView: View {
   /// The drawing or the diamond picked above the days (#265, story 073): kept while a found day's page or set is
   /// open over the log, so "‹" comes back to the same few days; never stored, so a relaunch shows every day.
   @State private var filter = DayFilter()
-  /// The drawings row under the From Photos line, open after a tap on the filter button (#282).
-  @State private var filterOpen = false
+  /// The drawings row under the From Photos line, open after a tap on the filter button (#282). Test hook:
+  /// SWING_WORKOUTS_FILTER_OPEN=1 starts it open, for a screenshot (the simulator cannot tap).
+  @State private var filterOpen = ProcessInfo.processInfo.environment["SWING_WORKOUTS_FILTER_OPEN"] == "1"
 
   private static let dayKey: DateFormatter = {
     let f = DateFormatter()
