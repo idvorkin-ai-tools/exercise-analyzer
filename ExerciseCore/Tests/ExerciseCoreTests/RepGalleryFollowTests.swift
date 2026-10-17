@@ -40,6 +40,7 @@ final class RepGalleryFollowTests: XCTestCase {
   }
 
   func testARepWithNoPositionsHasNoColumn() {
-    XCTAssertNil(RepRecord(number: 1, positions: [:], quality: RepQuality(score: 0, metrics: [:], feedback: [])).phase(at: 1))
+    let rep = RepRecord(number: 1, positions: [:], quality: RepQuality(score: 0, metrics: [:], feedback: []))
+    XCTAssertNil(rep.phase(at: 1))
   }
 }
