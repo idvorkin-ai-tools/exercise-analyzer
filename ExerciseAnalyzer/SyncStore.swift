@@ -360,17 +360,20 @@ final class SyncStore: ObservableObject {
         }
       }
       await MainActor.run {
-        if self.ledgerGeneration == generation {
+        // Another account since the pass began (#226): what it wrote went to the old container, so neither its
+        // prints nor its tombstones count; the deletes stay pending for the retry (Codex on PR #287).
+        let sameAccount = self.ledgerGeneration == generation
+        if sameAccount {
           for (id, print) in done { self.ledger[id] = print }
+          let sets = stones.filter { self.recents.deleted[$0.id] == $0.at }.map(\.id)
+          self.recents.clearDeleted(sets)
+          self.recents.undelete(sets.filter(skipped.contains))
+          self.workouts.clearDeleted(
+            stones.filter { $0.id.hasPrefix("workout:") }.map { (id: String($0.id.dropFirst(8)), at: $0.at) }
+              .filter { self.workouts.deleted[$0.id] == $0.at }.map(\.id))
         } else {
           self.again = true
         }
-        let sets = stones.filter { self.recents.deleted[$0.id] == $0.at }.map(\.id)
-        self.recents.clearDeleted(sets)
-        self.recents.undelete(sets.filter(skipped.contains))
-        self.workouts.clearDeleted(
-          stones.filter { $0.id.hasPrefix("workout:") }.map { (id: String($0.id.dropFirst(8)), at: $0.at) }
-            .filter { self.workouts.deleted[$0.id] == $0.at }.map(\.id))
         UserDefaults.standard.set(self.ledger, forKey: Self.ledgerKey)
         let ms = Int(Date().timeIntervalSince(started) * 1000)
         self.status.mirrored = self.ledger.count
