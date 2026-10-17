@@ -12,7 +12,8 @@ final class WorkoutTimelineTests: XCTestCase {
     exercise: ExerciseKind = .kettlebellSwing
   ) -> RecentEntry {
     RecentEntry(
-      id: id, analyzedAt: date(9_999), recordedAt: recorded.map(date), duration: duration, repCount: reps, bestScore: 80,
+      id: id, analyzedAt: date(9_999), recordedAt: recorded.map(date), duration: duration, repCount: reps,
+      bestScore: 80,
       source: .file(name: "clip.mov"), thumbnail: nil, exercise: exercise, originalName: nil,
       clipStartedAt: clipStart.map(date))
   }
@@ -21,11 +22,13 @@ final class WorkoutTimelineTests: XCTestCase {
     let identity = WorkoutIdentity(start: date(1000))
     let live = WorkoutWire(startedAt: 1000, heartRateAverage: 125)
     let first = set("first", clipStart: 1100)
-    let opened = try XCTUnwrap(WorkoutPageSnapshot(
-      identity: identity, live: live, saved: [], now: date(1200), sets: [first], heartRate: nil))
-    let later = try XCTUnwrap(WorkoutPageSnapshot(
-      identity: identity, live: live, saved: [], now: date(1400),
-      sets: [first, set("second", clipStart: 1320)], heartRate: nil))
+    let opened = try XCTUnwrap(
+      WorkoutPageSnapshot(
+        identity: identity, live: live, saved: [], now: date(1200), sets: [first], heartRate: nil))
+    let later = try XCTUnwrap(
+      WorkoutPageSnapshot(
+        identity: identity, live: live, saved: [], now: date(1400),
+        sets: [first, set("second", clipStart: 1320)], heartRate: nil))
     XCTAssertEqual(opened.timeline.rows.map(\.id), ["first"])
     XCTAssertEqual(later.timeline.rows.map(\.id), ["first", "second"])
     XCTAssertEqual(later.timeline.rows.reduce(0) { $0 + $1.reps }, 20)
@@ -42,13 +45,15 @@ final class WorkoutTimelineTests: XCTestCase {
     let saved = StoredWorkout(id: "ended", start: date(1000), end: date(1400), heartRateAverage: 135)
     let sets = [set("first", clipStart: 1100), set("second", clipStart: 1320), set("outside", clipStart: 1500)]
     for mirror in [live, nil] {
-      let page = try XCTUnwrap(WorkoutPageSnapshot(
-        identity: identity, live: mirror, saved: [saved], now: date(1600), sets: sets, heartRate: nil))
+      let page = try XCTUnwrap(
+        WorkoutPageSnapshot(
+          identity: identity, live: mirror, saved: [saved], now: date(1600), sets: sets, heartRate: nil))
       XCTAssertEqual(page.workout, saved)
       XCTAssertEqual(page.wholeSeconds, 400)
       XCTAssertEqual(page.timeline.rows.map(\.id), ["first", "second"])
     }
-    XCTAssertNil(identity.resolve(live: WorkoutWire(startedAt: 1500), saved: [], now: date(1600)),
+    XCTAssertNil(
+      identity.resolve(live: WorkoutWire(startedAt: 1500), saved: [], now: date(1600)),
       "A discarded workout must not follow a different live session")
   }
 
@@ -56,9 +61,10 @@ final class WorkoutTimelineTests: XCTestCase {
     let saved = StoredWorkout(id: "saved", start: date(1000), end: date(1400))
     let sets = [set("inside", clipStart: 1100), set("outside", clipStart: 1500)]
     for now in [1600.0, 2000] {
-      let page = try XCTUnwrap(WorkoutPageSnapshot(
-        identity: WorkoutIdentity(start: saved.start), live: WorkoutWire(startedAt: 1500), saved: [saved],
-        now: date(now), sets: sets, heartRate: nil))
+      let page = try XCTUnwrap(
+        WorkoutPageSnapshot(
+          identity: WorkoutIdentity(start: saved.start), live: WorkoutWire(startedAt: 1500), saved: [saved],
+          now: date(now), sets: sets, heartRate: nil))
       XCTAssertEqual(page.workout, saved)
       XCTAssertEqual(page.wholeSeconds, 400)
       XCTAssertEqual(page.timeline, WorkoutTimeline(workout: saved, sets: sets, heartRate: nil))
@@ -70,12 +76,17 @@ final class WorkoutTimelineTests: XCTestCase {
   /// later (the heart lags the work), down to 120 a minute after the end unless the next set started first.
   func testSetsRestsPeaksAndDrops() {
     let workout = StoredWorkout(start: date(1000), end: date(2000))
-    let sets = [set("c", clipStart: 1270), set("a", clipStart: 1100), set("b", clipStart: 1215), set("outside", clipStart: 2500)]
+    let sets = [
+      set("c", clipStart: 1270), set("a", clipStart: 1100), set("b", clipStart: 1215), set("outside", clipStart: 2500),
+    ]
     var samples: [HeartRateSeries.Sample] = []
     let ends = [1125.0, 1240, 1295]
     for (index, end) in ends.enumerated() {
       let nextStart = index + 1 < ends.count ? ends[index + 1] - 25 : .infinity
-      samples += [.init(at: end - 25, bpm: 130), .init(at: end - 12, bpm: 135), .init(at: end, bpm: 144), .init(at: end + 10, bpm: 150)]
+      samples += [
+        .init(at: end - 25, bpm: 130), .init(at: end - 12, bpm: 135), .init(at: end, bpm: 144),
+        .init(at: end + 10, bpm: 150),
+      ]
       samples += stride(from: 20.0, through: 60, by: 10).filter { end + $0 < nextStart }
         .map { .init(at: end + $0, bpm: 150 - ($0 - 10) * 0.6) }
     }
