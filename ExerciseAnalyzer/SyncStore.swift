@@ -129,11 +129,13 @@ final class SyncStore: ObservableObject {
         await MainActor.run { self.attach(url, ms: ms) }
       }
     }
-    NotificationCenter.default.addObserver(forName: .NSUbiquityIdentityDidChange, object: nil, queue: .main) { [weak self] _ in
+    NotificationCenter.default.addObserver(forName: .NSUbiquityIdentityDidChange, object: nil, queue: .main) {
+      [weak self] _ in
       Task { @MainActor in self?.accountChanged() }
     }
     for (name, state) in [
-      (UIApplication.willEnterForegroundNotification, "foreground"), (UIApplication.didEnterBackgroundNotification, "background"),
+      (UIApplication.willEnterForegroundNotification, "foreground"),
+      (UIApplication.didEnterBackgroundNotification, "background"),
     ] {
       NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
         Task { @MainActor in self?.appPhase(state) }
@@ -193,7 +195,8 @@ final class SyncStore: ObservableObject {
     let q = status.query
     return [
       "container": status.containerAvailable, "account": status.accountSignedIn, "query": q.state, "results": q.results,
-      "downloaded": q.downloaded, "not_downloaded": q.notDownloaded, "downloading": q.downloading, "download_errors": q.errors,
+      "downloaded": q.downloaded, "not_downloaded": q.notDownloaded, "downloading": q.downloading,
+      "download_errors": q.errors,
       "uploaded": q.uploaded, "uploading": q.uploading, "not_uploaded": q.notUploaded, "upload_errors": q.uploadErrors,
       "mirrored": status.mirrored, "last_mirror": status.lastMirror.summary, "last_read": status.lastRead.summary,
       "devices": Self.devicesText(status.devices, me: Self.deviceID), "mirroring": mirroring, "reading": reading,
@@ -279,7 +282,9 @@ final class SyncStore: ObservableObject {
       case .tombstone: kinds.tombstones += 1
       }
     }
-    note("sync_mirror_start", ["jobs": jobs.count, "sets": kinds.sets, "workouts": kinds.workouts, "tombstones": kinds.tombstones])
+    note(
+      "sync_mirror_start",
+      ["jobs": jobs.count, "sets": kinds.sets, "workouts": kinds.workouts, "tombstones": kinds.tombstones])
     Task.detached(priority: .utility) { [jobs, container] in
       var done: [(String, String)] = []
       var skipped: [String] = []
@@ -297,7 +302,9 @@ final class SyncStore: ObservableObject {
           }
           // One line per file (not in the screen's events: a first mirror writes thousands).
           await MainActor.run {
-            for file in written { self.log("sync_mirror_file", ["id": job.ledgerID, "path": file.path, "bytes": file.bytes]) }
+            for file in written {
+              self.log("sync_mirror_file", ["id": job.ledgerID, "path": file.path, "bytes": file.bytes])
+            }
           }
           files += written.count
           bytes += written.reduce(0) { $0 + $1.bytes }
@@ -325,11 +332,14 @@ final class SyncStore: ObservableObject {
         self.status.mirrored = self.ledger.count
         self.status.lastMirror = SyncStatus.Pass(
           at: Date(),
-          summary: "jobs \(jobs.count), done \(done.count), skipped \(skipped.count), failed \(failed), files \(files), \(bytes) bytes, \(ms) ms")
+          summary:
+            "jobs \(jobs.count), done \(done.count), skipped \(skipped.count), failed \(failed), files \(files), \(bytes) bytes, \(ms) ms"
+        )
         self.note(
           "sync_mirrored",
           [
-            "jobs": jobs.count, "done": done.count, "skipped": skipped.count, "failed": failed, "files": files, "bytes": bytes,
+            "jobs": jobs.count, "done": done.count, "skipped": skipped.count, "failed": failed, "files": files,
+            "bytes": bytes,
             "ms": ms,
           ])
         self.mirroring = false
@@ -374,7 +384,8 @@ final class SyncStore: ObservableObject {
     }
     let query = NSMetadataQuery()
     query.searchScopes = [NSMetadataQueryUbiquitousDocumentsScope]
-    query.predicate = NSPredicate(format: "%K LIKE '*.json' OR %K LIKE '*.jpg'", NSMetadataItemFSNameKey, NSMetadataItemFSNameKey)
+    query.predicate = NSPredicate(
+      format: "%K LIKE '*.json' OR %K LIKE '*.jpg'", NSMetadataItemFSNameKey, NSMetadataItemFSNameKey)
     for name in [Notification.Name.NSMetadataQueryDidFinishGathering, .NSMetadataQueryDidUpdate] {
       NotificationCenter.default.addObserver(forName: name, object: query, queue: .main) { [weak self] notification in
         let info = notification.userInfo ?? [:]
@@ -454,14 +465,20 @@ final class SyncStore: ObservableObject {
       "upload_errors": counts.uploadErrors, "asked": toAsk.count,
     ]
     if gathered, let queryStarted { fields["ms"] = Int(Date().timeIntervalSince(queryStarted) * 1000) }
-    if !gathered { fields["added"] = change.added; fields["changed"] = change.changed; fields["removed"] = change.removed }
+    if !gathered {
+      fields["added"] = change.added
+      fields["changed"] = change.changed
+      fields["removed"] = change.removed
+    }
     if !counts.lastError.isEmpty { fields["download_error"] = counts.lastError }
     if !counts.lastUploadError.isEmpty { fields["upload_error"] = counts.lastUploadError }
     note("sync_query", fields)
     for (kind, url, error) in errors {
       let path = Self.relativePath(url)
       guard errorsLogged.insert("\(kind) \(path) \(error.code)").inserted else { continue }
-      log("sync_item_error", ["kind": kind, "path": path, "domain": error.domain, "code": error.code, "message": error.localizedDescription])
+      log(
+        "sync_item_error",
+        ["kind": kind, "path": path, "domain": error.domain, "code": error.code, "message": error.localizedDescription])
     }
     if !toAsk.isEmpty {
       Task.detached(priority: .utility) {
@@ -479,7 +496,9 @@ final class SyncStore: ObservableObject {
   /// "sets/<id>/row.json" or "workouts/<id>.json": the file's path under the container's Documents.
   private nonisolated static func relativePath(_ url: URL) -> String {
     let parts = url.pathComponents
-    if let i = parts.lastIndex(where: { $0 == "sets" || $0 == "workouts" }) { return parts[i...].joined(separator: "/") }
+    if let i = parts.lastIndex(where: { $0 == "sets" || $0 == "workouts" }) {
+      return parts[i...].joined(separator: "/")
+    }
     return url.lastPathComponent
   }
 
@@ -505,10 +524,16 @@ final class SyncStore: ObservableObject {
       // its analysis arrived would be re-analyzed here instead of read.
       let theirs = found.sets.filter {
         !SyncOwnership.isMine($0.device, me: me) && found.setTombstones[$0.id] == nil && deleted[$0.id] == nil
-      }.map { (from: container.appendingPathComponent("sets/\($0.id)", isDirectory: true), to: recentsRoot.appendingPathComponent($0.id, isDirectory: true)) }
+      }.map {
+        (
+          from: container.appendingPathComponent("sets/\($0.id)", isDirectory: true),
+          to: recentsRoot.appendingPathComponent($0.id, isDirectory: true)
+        )
+      }
       var copied = Self.copyFiles(theirs)
       let theirWorkouts = found.workouts.filter {
-        !SyncOwnership.isMine($0.device, me: me) && found.workoutTombstones[$0.id] == nil && deletedWorkouts[$0.id] == nil
+        !SyncOwnership.isMine($0.device, me: me) && found.workoutTombstones[$0.id] == nil
+          && deletedWorkouts[$0.id] == nil
       }.map(\.id)
       let heartRates = Self.copyWorkoutHeartRates(theirWorkouts, from: container, to: workoutsRoot)
       copied.files += heartRates.files
@@ -520,13 +545,17 @@ final class SyncStore: ObservableObject {
         for failure in failures {
           self.log(
             "sync_read_failed",
-            ["step": failure.step, "path": failure.path, "domain": failure.domain, "code": failure.code, "message": failure.message])
+            [
+              "step": failure.step, "path": failure.path, "domain": failure.domain, "code": failure.code,
+              "message": failure.message,
+            ])
         }
         // A delete made here whose tombstone is not written yet keeps its row out all the same.
         let sets = self.recents.mergeRemote(
           found.sets, tombstones: found.setTombstones.merging(self.recents.deleted, uniquingKeysWith: max), me: me)
         let workouts = self.workouts.mergeRemote(
-          found.workouts, tombstones: found.workoutTombstones.merging(self.workouts.deleted, uniquingKeysWith: max), me: me)
+          found.workouts, tombstones: found.workoutTombstones.merging(self.workouts.deleted, uniquingKeysWith: max),
+          me: me)
         // A tombstone older than a change of ours (written before our row reached the deleting device): the row
         // is written again, which takes the tombstone away.
         var rewrite = false
@@ -562,7 +591,8 @@ final class SyncStore: ObservableObject {
           [
             "sets": found.sets.count, "added": sets.added, "updated": sets.updated, "removed": sets.removed,
             "workouts": found.workouts.count, "workouts_added": workouts.added, "workouts_updated": workouts.updated,
-            "workouts_removed": workouts.removed, "tombstones": found.setTombstones.count + found.workoutTombstones.count,
+            "workouts_removed": workouts.removed,
+            "tombstones": found.setTombstones.count + found.workoutTombstones.count,
             "files": copied.files, "bytes": copied.bytes, "waiting": stillWaiting, "rows_waiting": found.rowsWaiting,
             "rows_missing": found.rowsMissing, "query_not_downloaded": queryNotDownloaded,
             "failed": failures.count, "devices": Self.devicesText(self.status.devices, me: me), "ms": ms,
@@ -703,7 +733,9 @@ final class SyncStore: ObservableObject {
 
   /// Off the main thread: another device's set files into the set's own folder here, those missing or older.
   /// A placeholder is asked for and counted as waiting.
-  private nonisolated static func copyFiles(_ pairs: [(from: URL, to: URL)]) -> (files: Int, bytes: Int, waiting: Int, failures: [Failure]) {
+  private nonisolated static func copyFiles(
+    _ pairs: [(from: URL, to: URL)]
+  ) -> (files: Int, bytes: Int, waiting: Int, failures: [Failure]) {
     let fm = FileManager.default
     var files = 0
     var bytes = 0
@@ -743,7 +775,9 @@ final class SyncStore: ObservableObject {
 
   /// Off the main thread: the other devices' workouts' heart-rate series (`workouts/<id>.heartrate.json`) into
   /// `Documents/workouts/<id>/` here, those missing or older (#225). A placeholder is asked for.
-  private nonisolated static func copyWorkoutHeartRates(_ ids: [String], from container: URL, to root: URL)
+  private nonisolated static func copyWorkoutHeartRates(
+    _ ids: [String], from container: URL, to root: URL
+  )
     -> (files: Int, bytes: Int, waiting: Int, failures: [Failure])
   {
     let fm = FileManager.default
@@ -760,7 +794,8 @@ final class SyncStore: ObservableObject {
         continue
       }
       guard fm.fileExists(atPath: from.path) else { continue }
-      let folder = root.appendingPathComponent("workouts", isDirectory: true).appendingPathComponent(id, isDirectory: true)
+      let folder = root.appendingPathComponent("workouts", isDirectory: true).appendingPathComponent(
+        id, isDirectory: true)
       let to = folder.appendingPathComponent(HeartRateSeries.fileName)
       if let have = try? to.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate,
         let theirs = try? from.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate,
@@ -860,8 +895,14 @@ final class SyncStore: ObservableObject {
       try? fm.removeItem(at: dir.appendingPathComponent("\(id).deleted.json"))
       var written: [(path: String, bytes: Int)] = []
       let heartRate = folder.appendingPathComponent(HeartRateSeries.fileName)
-      if fm.fileExists(atPath: heartRate.path), try copyIfNewer(heartRate, to: dir.appendingPathComponent(workoutHeartRateName(id))) {
-        written.append(("workouts/\(workoutHeartRateName(id))", (try? heartRate.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0))
+      if fm.fileExists(atPath: heartRate.path),
+        try copyIfNewer(heartRate, to: dir.appendingPathComponent(workoutHeartRateName(id)))
+      {
+        written.append(
+          (
+            "workouts/\(workoutHeartRateName(id))",
+            (try? heartRate.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+          ))
       }
       try write(row, to: dir.appendingPathComponent("\(id).json"))
       written.append(("workouts/\(id).json", row.count))

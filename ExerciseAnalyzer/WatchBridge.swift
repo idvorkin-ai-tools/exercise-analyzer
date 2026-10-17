@@ -247,7 +247,10 @@ extension WatchBridge: WCSessionDelegate {
     let oldest = (try? files[0].resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
     onEvent?(
       "watch_inbox",
-      ["stuck": files.count, "recovered": recovered, "oldest_days": oldest.map { Int(-$0.timeIntervalSinceNow / 86400) } ?? -1])
+      [
+        "stuck": files.count, "recovered": recovered,
+        "oldest_days": oldest.map { Int(-$0.timeIntervalSinceNow / 86400) } ?? -1,
+      ])
   }
 
   nonisolated func sessionDidBecomeInactive(_ session: WCSession) {}
