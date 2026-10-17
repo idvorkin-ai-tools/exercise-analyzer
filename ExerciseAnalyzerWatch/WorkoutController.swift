@@ -43,7 +43,7 @@ final class WorkoutController: NSObject, ObservableObject {
   /// The head's sets: the continued workout's under this session's (#238).
   var shownTally: (sets: Int, reps: Int, exerciseSets: [ExerciseKind: Int], exerciseOrder: [ExerciseKind]) {
     carried?.adding(sets: sets, reps: reps, exerciseSets: exerciseSets, exerciseOrder: exerciseOrder)
-      ?? (sets, reps, exerciseSets, exerciseOrder)
+      ?? (sets: sets, reps: reps, exerciseSets: exerciseSets, exerciseOrder: exerciseOrder)
   }
   /// Analyzed sets since Start and their reps: the phone's post-pass counts (045), never the live count, and the
   /// sets typed by hand (059).
@@ -175,10 +175,13 @@ final class WorkoutController: NSObject, ObservableObject {
       activityOpen = false
       phase = .running
       saveTally()
-      log(
-        "workout_start",
-        carried.map { ["continues": true, "ended_s_ago": Int(start.timeIntervalSince($0.end)), "sets": $0.sets] }
-          ?? [:])
+      var startFields: [String: Any] = [:]
+      if let carried {
+        startFields = [
+          "continues": true, "ended_s_ago": Int(start.timeIntervalSince(carried.end)), "sets": carried.sets,
+        ]
+      }
+      log("workout_start", startFields)
       sendWire()
     } catch {
       phase = .none
