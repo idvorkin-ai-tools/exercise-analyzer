@@ -303,7 +303,9 @@ struct ContentView: View {
     // import would replace it (Codex's recheck of PR #187).
     // A round button in the bottom-right corner, no bar (#280): the list scrolls under it and ends above it.
     .safeAreaInset(edge: .bottom, alignment: .trailing) {
-      if UIDevice.current.userInterfaceIdiom != .pad { liveButton.disabled(session.source == .camera) }
+      if UIDevice.current.userInterfaceIdiom != .pad {
+        liveButton.disabled(session.source == .camera).opacity(session.source == .camera ? 0.4 : 1)
+      }
     }
   }
 
