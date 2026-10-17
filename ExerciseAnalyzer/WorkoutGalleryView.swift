@@ -123,8 +123,12 @@ struct WorkoutGalleryView: View {
             let anyOnVideo = all.contains(where: \.allOnVideo)
             // Only worth a filter when there is something to tell apart: two exercises, or a day on video.
             let filterable = row.count > 1 || anyOnVideo
-            let filterButton = DayFilterButton(filter: filter, open: filterOpen) {
-              withAnimation(.easeInOut(duration: 0.2)) { filterOpen.toggle() }
+            let kept = shown(all)
+            let noMatch = kept.isEmpty && filter.isActive
+            // Open after a tap on the button (#282), and while no day matches, so the picked drawing stays in reach.
+            let rowOpen = filterable && (filterOpen || noMatch)
+            let filterButton = DayFilterButton(filter: filter, open: rowOpen) {
+              withAnimation(.easeInOut(duration: 0.2)) { filterOpen = !rowOpen }
               onEvent?("workouts_filter_open", ["open": filterOpen])
             }
             if !suggestions.clips.isEmpty, let onImport {
@@ -140,37 +144,33 @@ struct WorkoutGalleryView: View {
                   onImport(clip.id, clip.asset.creationDate)
                 }
               }
-            } else if suggestions.status == .notDetermined, onImport != nil {
-              Button {
-                suggestions.requestAccess()
-              } label: {
-                Label("Show recent videos from Photos", systemImage: "photo.on.rectangle")
-                  .font(.subheadline)
+            } else {
+              if suggestions.status == .notDetermined, onImport != nil {
+                Button {
+                  suggestions.requestAccess()
+                } label: {
+                  Label("Show recent videos from Photos", systemImage: "photo.on.rectangle")
+                    .font(.subheadline)
+                }
+                .buttonStyle(.bordered)
+                .padding(.top, 8)
               }
-              .buttonStyle(.bordered)
-              .padding(.top, 8)
               if filterable {
+                // No Photos line to share: the button keeps a line of its own, right-aligned.
                 HStack {
                   Spacer()
                   filterButton
                 }
               }
-            } else if filterable {
-              // No Photos line to share: the button keeps a line of its own, right-aligned.
-              HStack {
-                Spacer()
-                filterButton
-              }
             }
-            // Open only after a tap on the button (#282); a pick closes it, the button then reads the filter.
-            if filterable && filterOpen {
+            // A pick closes the row, the button then reads the filter; a pick that leaves no day keeps it open.
+            if rowOpen {
               DayFilterRow(row: row, showsDiamond: anyOnVideo, filter: $filter) {
                 onEvent?("workouts_filter", $0)
                 withAnimation(.easeInOut(duration: 0.2)) { filterOpen = false }
               }
             }
-            let kept = shown(all)
-            if kept.isEmpty && filter.isActive {
+            if noMatch {
               Text("No day matches. Tap the picked drawing again to see every day.")
                 .font(.subheadline).foregroundStyle(.secondary).padding(.vertical, 8)
             }
