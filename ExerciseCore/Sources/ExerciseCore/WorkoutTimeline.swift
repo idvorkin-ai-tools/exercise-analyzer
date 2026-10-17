@@ -102,7 +102,8 @@ public struct WorkoutTimeline: Equatable, Sendable {
       if let own = set.bellKg { lastKg[set.exerciseKind] = own }
       return SetRow(
         id: set.id, start: span.lowerBound, end: span.upperBound, exercise: set.exerciseKind, reps: set.repCount,
-        score: set.bestScore, peak: peak, average: heartRate?.average(from: span.lowerBound, to: peakEnd), restAfter: rest,
+        score: set.bestScore, peak: peak, average: heartRate?.average(from: span.lowerBound, to: peakEnd),
+        restAfter: rest,
         drop: peak.flatMap { peak in later.map { peak - $0 } }, dropOver: dropOver, byHand: set.isByHand,
         kg: kg, kgInherited: set.bellKg == nil && kg != nil)
     }

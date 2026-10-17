@@ -39,6 +39,33 @@ final class WorkoutTimelineTests: XCTestCase {
     XCTAssertEqual(later.workout.duration, 400)
   }
 
+  /// #194, story 053: while the workout runs the heart line leads with the wrist's reading now; once it is saved
+  /// the line is the average and the max, as before.
+  func testTheRunningWorkoutsHeartLineLeadsWithNow() throws {
+    let identity = WorkoutIdentity(start: date(1000))
+    let live = WorkoutWire(startedAt: 1000, heartRate: 148, heartRateAverage: 142, heartRateMax: 157)
+    let running = try XCTUnwrap(WorkoutPageSnapshot(
+      identity: identity, live: live, saved: [], now: date(1200), sets: [], heartRate: nil))
+    XCTAssertEqual(running.heartRateNow, 148)
+    XCTAssertEqual(running.heartLine, "148 now · 142 avg · 157 max")
+
+    // Before the first average arrives the now still shows; with no reading at all there is no line.
+    let early = try XCTUnwrap(WorkoutPageSnapshot(
+      identity: identity, live: WorkoutWire(startedAt: 1000, heartRate: 96), saved: [], now: date(1010), sets: [],
+      heartRate: nil))
+    XCTAssertEqual(early.heartLine, "96 now")
+    let silent = try XCTUnwrap(WorkoutPageSnapshot(
+      identity: identity, live: WorkoutWire(startedAt: 1000), saved: [], now: date(1010), sets: [], heartRate: nil))
+    XCTAssertNil(silent.heartLine)
+
+    // Saved (the mirror may not have cleared yet): no now.
+    let saved = StoredWorkout(id: "ended", start: date(1000), end: date(1400), heartRateAverage: 142, heartRateMax: 157)
+    let ended = try XCTUnwrap(WorkoutPageSnapshot(
+      identity: identity, live: live, saved: [saved], now: date(1500), sets: [], heartRate: nil))
+    XCTAssertNil(ended.heartRateNow)
+    XCTAssertEqual(ended.heartLine, "142 avg · 157 max")
+  }
+
   func testOpenLivePageHandsOverToSavedRecordEvenBeforeMirrorClears() throws {
     let identity = WorkoutIdentity(start: date(1000))
     let live = WorkoutWire(startedAt: 1000, heartRateAverage: 125)
