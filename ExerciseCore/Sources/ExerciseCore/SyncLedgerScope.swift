@@ -10,7 +10,7 @@ public struct SyncLedgerScope: Equatable {
   public var ledger: [String: String]
   /// The account it now belongs to, to store beside it; nil only when there was never one.
   public var identity: Data?
-  /// The ledger was dropped for another account.
+  /// The ledger was dropped for another account, or for one never recorded.
   public var reset: Bool
 
   /// Signed out keeps everything (nothing can be written, and the same account back must not rewrite it all); a
