@@ -49,7 +49,7 @@ final class WorkoutMirror: NSObject, ObservableObject {
 
   /// Sets recorded inside the running workout, from the app's own store.
   func setsInLiveWorkout(_ entries: [RecentEntry]) -> [RecentEntry] {
-    guard let live else { return [] }
+    guard let live = shownLive else { return [] }
     return entries.filter { $0.start >= live.startDate }
   }
 
@@ -62,8 +62,10 @@ final class WorkoutMirror: NSObject, ObservableObject {
     }
     onEvent?(
       "workout_mirror",
-      ["state": session.state.rawValue, "app_state": UIApplication.shared.applicationState.rawValue,
-       "started_at": start.timeIntervalSince1970])
+      [
+        "state": session.state.rawValue, "app_state": UIApplication.shared.applicationState.rawValue,
+        "started_at": start.timeIntervalSince1970,
+      ])
     requestAuthorizationIfNeeded()
   }
 
@@ -75,7 +77,8 @@ final class WorkoutMirror: NSObject, ObservableObject {
     guard store.authorizationStatus(for: .workoutType()) == .notDetermined else { return }
     guard UIApplication.shared.applicationState == .active else { return }  // retried on the next foreground
     authorizationRequested = true
-    store.requestAuthorization(toShare: [.workoutType()], read: [HKQuantityType(.heartRate)]) { [weak self] granted, error in
+    store.requestAuthorization(toShare: [.workoutType()], read: [HKQuantityType(.heartRate)]) {
+      [weak self] granted, error in
       Task { @MainActor in
         self?.onEvent?("workout_auth", ["granted": granted, "message": error.map { "\($0)" } ?? ""])
       }
@@ -120,7 +123,10 @@ final class WorkoutMirror: NSObject, ObservableObject {
     let read = await heartRate(from: workout.start.addingTimeInterval(-60), to: workout.end.addingTimeInterval(180))
     onEvent?(
       "workout_heart_rate",
-      ["samples": read?.samples.count ?? 0, "stored": stored?.samples.count ?? 0, "median_interval_s": read?.medianInterval ?? 0])
+      [
+        "samples": read?.samples.count ?? 0, "stored": stored?.samples.count ?? 0,
+        "median_interval_s": read?.medianInterval ?? 0,
+      ])
     guard let read, read.samples.count > (stored?.samples.count ?? 0) else { return stored }
     if workout.id != Self.liveID {
       try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
@@ -138,14 +144,20 @@ final class WorkoutMirror: NSObject, ObservableObject {
   /// The id the page of 053 gives the running workout, shown as a span up to now.
   nonisolated static let liveID = WorkoutIdentity.liveID
 
-  /// The ended workouts as the phone shows them: those under 30 minutes apart are one session (#169). Health
-  /// keeps its records; the list, the page and "‹ Workout" read these.
-  // ponytail: the running workout is not merged with one that ended under 30 minutes before it; it joins that
-  // session once it ends. Upgrade: give `liveWorkout` the earlier session's start and hide that session.
-  var sessions: [StoredWorkout] { index.sessions() }
+  /// The ended workouts as the phone shows them: those under 30 minutes apart are one session (#169), and while
+  /// a workout runs, the session it joins is not among them (#238). Health keeps its records; the list, the page
+  /// and "‹ Workout" read these.
+  var sessions: [StoredWorkout] { index.joining(live, now: Date()).sessions }
+
+  // ponytail: the Live Activity still follows `live`, so its clock counts from the wrist's Start. Upgrade: feed
+  // it `shownLive`.
+  /// The running workout as the phone shows it (#238): a workout started under 30 minutes after the last one
+  /// ended is that session going on, from its start with both counts, as it will be once it ends. `live` stays
+  /// the wrist's own, which `ended(at:)` saves.
+  var shownLive: WorkoutWire? { index.joining(live, now: Date()).live }
 
   /// The running workout as a span up to now (053, #123): what its page and "‹" open, never kept.
-  var liveWorkout: StoredWorkout? { live.map(Self.soFar) }
+  var liveWorkout: StoredWorkout? { shownLive.map(Self.soFar) }
 
   nonisolated static func soFar(_ live: WorkoutWire) -> StoredWorkout {
     StoredWorkout(
@@ -168,7 +180,8 @@ final class WorkoutMirror: NSObject, ObservableObject {
     }
     for part in parts {
       try? FileManager.default.removeItem(
-        at: root.appendingPathComponent("workouts", isDirectory: true).appendingPathComponent(part.id, isDirectory: true))
+        at: root.appendingPathComponent("workouts", isDirectory: true).appendingPathComponent(
+          part.id, isDirectory: true))
     }
     do {
       try index.save(root: root)
@@ -177,25 +190,30 @@ final class WorkoutMirror: NSObject, ObservableObject {
     }
     // The simulator has no watch records, and its permission sheet would wait for a tap no run can give.
     #if !targetEnvironment(simulator)
-    if HKHealthStore.isHealthDataAvailable(), !parts.isEmpty {
-      do {
-        // Finding the record needs reading workouts, which the mirror never asked for; Health prompts only for
-        // what was not asked yet.
-        try await store.requestAuthorization(toShare: [.workoutType()], read: [.workoutType(), HKQuantityType(.heartRate)])
-        let family = Bundle.main.bundleIdentifier ?? "com.idvorkin.exerciseanalyzer"
-        let query = HKSampleQueryDescriptor(
-          predicates: [.workout(HKQuery.predicateForSamples(withStart: session.start.addingTimeInterval(-60), end: session.end.addingTimeInterval(60)))],
-          sortDescriptors: [])
-        let records = try await query.result(for: store).filter { record in
-          record.sourceRevision.source.bundleIdentifier.hasPrefix(family)
-            && parts.contains { abs(record.startDate.timeIntervalSince($0.start)) < 60 }
+      if HKHealthStore.isHealthDataAvailable(), !parts.isEmpty {
+        do {
+          // Finding the record needs reading workouts, which the mirror never asked for; Health prompts only for
+          // what was not asked yet.
+          try await store.requestAuthorization(
+            toShare: [.workoutType()], read: [.workoutType(), HKQuantityType(.heartRate)])
+          let family = Bundle.main.bundleIdentifier ?? "com.idvorkin.exerciseanalyzer"
+          let query = HKSampleQueryDescriptor(
+            predicates: [
+              .workout(
+                HKQuery.predicateForSamples(
+                  withStart: session.start.addingTimeInterval(-60), end: session.end.addingTimeInterval(60)))
+            ],
+            sortDescriptors: [])
+          let records = try await query.result(for: store).filter { record in
+            record.sourceRevision.source.bundleIdentifier.hasPrefix(family)
+              && parts.contains { abs(record.startDate.timeIntervalSince($0.start)) < 60 }
+          }
+          if !records.isEmpty { try await store.delete(records) }
+          deletion.healthRecords = records.count
+        } catch {
+          deletion.failure = "Health kept its record: \(error.localizedDescription)"
         }
-        if !records.isEmpty { try await store.delete(records) }
-        deletion.healthRecords = records.count
-      } catch {
-        deletion.failure = "Health kept its record: \(error.localizedDescription)"
       }
-    }
     #endif
     onEvent?(
       "workout_deleted",
@@ -282,7 +300,7 @@ final class WorkoutMirror: NSObject, ObservableObject {
   }
 
   #if targetEnvironment(simulator)
-  func endSeededWorkout() { ended(at: Date()) }
+    func endSeededWorkout() { ended(at: Date()) }
   #endif
 }
 
@@ -296,7 +314,8 @@ struct WorkoutDeletion {
 
 extension WorkoutMirror: HKWorkoutSessionDelegate {
   nonisolated func workoutSession(
-    _ workoutSession: HKWorkoutSession, didChangeTo toState: HKWorkoutSessionState, from fromState: HKWorkoutSessionState,
+    _ workoutSession: HKWorkoutSession, didChangeTo toState: HKWorkoutSessionState,
+    from fromState: HKWorkoutSessionState,
     date: Date
   ) {
     Task { @MainActor in
@@ -309,7 +328,9 @@ extension WorkoutMirror: HKWorkoutSessionDelegate {
     Task { @MainActor in onEvent?("workout_mirror_failed", ["message": "\(error)"]) }
   }
 
-  nonisolated func workoutSession(_ workoutSession: HKWorkoutSession, didReceiveDataFromRemoteWorkoutSession data: [Data]) {
+  nonisolated func workoutSession(
+    _ workoutSession: HKWorkoutSession, didReceiveDataFromRemoteWorkoutSession data: [Data]
+  ) {
     let wires = data.compactMap { try? JSONDecoder().decode(WorkoutWire.self, from: $0) }
     guard var last = wires.last else { return }
     let wantsStatus = wires.contains { $0.wantsStatus == true }
@@ -323,8 +344,10 @@ extension WorkoutMirror: HKWorkoutSessionDelegate {
       lastDataLogged = now
       onEvent?(
         "workout_data",
-        ["heart_rate": last.heartRate ?? 0, "hr_avg": last.heartRateAverage ?? 0, "hr_max": last.heartRateMax ?? 0,
-         "sets": last.sets, "reps": last.reps, "ending": last.ending, "discarded": last.discarded])
+        [
+          "heart_rate": last.heartRate ?? 0, "hr_avg": last.heartRateAverage ?? 0, "hr_max": last.heartRateMax ?? 0,
+          "sets": last.sets, "reps": last.reps, "ending": last.ending, "discarded": last.discarded,
+        ])
     }
   }
 }

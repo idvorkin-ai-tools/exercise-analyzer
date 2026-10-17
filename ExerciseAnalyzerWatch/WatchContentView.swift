@@ -11,6 +11,9 @@ struct WatchContentView: View {
   /// Ticks so a status that stops arriving turns stale on screen.
   @State private var now = Date()
   @State private var confirmDiscard = false
+  /// Start under ten minutes after an End asks to continue that workout (#238); the question, set at the tap.
+  @State private var askingContinue = false
+  @State private var continueQuestion = ""
   /// The count page of a set typed by hand is up (059).
   @State private var countingSet = false
   private let clock = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
@@ -29,8 +32,12 @@ struct WatchContentView: View {
         idlePages
       }
     }
-    .onReceive(clock) { now = $0; if !phone.isLive { phone.ping() } }
-    .onAppear { phone.sceneActive(true) }  // also pings; the phone learns the app is in front even without a scene change
+    .onReceive(clock) {
+      now = $0
+      if !phone.isLive { phone.ping() }
+    }
+    // Also pings: the phone learns the app is in front even without a scene change.
+    .onAppear { phone.sceneActive(true) }
     .onChange(of: scenePhase) { _, phase in phone.sceneActive(phase == .active) }
     // Redraw when the wake grace runs out, so a phone that never answered is shown as such on time.
     .task(id: scenePhase) {
@@ -70,17 +77,24 @@ struct WatchContentView: View {
             if !workout.running {
               Image(systemName: "iphone.slash").font(.largeTitle).foregroundStyle(.secondary)
             }
-            Text(phone.reachable ? "Waiting for the phone…" : "Not connected to the phone. It reconnects on its own; if it doesn't, open Exercise Analyzer on the phone.")
-              .font(.caption).multilineTextAlignment(.center).foregroundStyle(.secondary)
+            Text(
+              phone.reachable
+                ? "Waiting for the phone…"
+                : "Not connected to the phone. It reconnects on its own; if it doesn't, open Exercise Analyzer on the phone."
+            )
+            .font(.caption).multilineTextAlignment(.center).foregroundStyle(.secondary)
             if status.rolling {
               Text("Last seen recording: \(status.reps) reps").font(.caption2).foregroundStyle(.tertiary)
             }
             if let since = phone.receivedAt {
               // Reconnects by itself (retries every 2 s); this just says how long it has been.
-              Text("Last heard \(Int(max(0, now.timeIntervalSince(since)))) s ago").font(.caption2).foregroundStyle(.tertiary)
+              Text("Last heard \(Int(max(0, now.timeIntervalSince(since)))) s ago").font(.caption2).foregroundStyle(
+                .tertiary)
             }
             startWorkoutButton
-            Button { phone.retry() } label: {
+            Button {
+              phone.retry()
+            } label: {
               Label(phone.retrying ? "Trying…" : "Retry", systemImage: "arrow.clockwise").frame(maxWidth: .infinity)
             }
             setByHandButton  // the set waits for the phone (059)
@@ -89,10 +103,14 @@ struct WatchContentView: View {
             if !workout.running {
               Image(systemName: "iphone.gen3").font(.largeTitle).foregroundStyle(.secondary)
             }
-            Text("The phone app is in the background. Unlock the phone and open Exercise Analyzer; it stays awake while the watch is connected.")
-              .font(.caption2).multilineTextAlignment(.center).foregroundStyle(.secondary)
+            Text(
+              "The phone app is in the background. Unlock the phone and open Exercise Analyzer; it stays awake while the watch is connected."
+            )
+            .font(.caption2).multilineTextAlignment(.center).foregroundStyle(.secondary)
             startWorkoutButton
-            Button { phone.send(.start) } label: {
+            Button {
+              phone.send(.start)
+            } label: {
               Label("Send a reminder to the phone", systemImage: "bell").frame(maxWidth: .infinity)
             }
             setByHandButton
@@ -118,13 +136,17 @@ struct WatchContentView: View {
                 .font(.headline).monospacedDigit()
             }
             startWorkoutButton
-            Button { phone.send(.start) } label: {
+            Button {
+              phone.send(.start)
+            } label: {
               Label("Record", systemImage: "record.circle").frame(maxWidth: .infinity)
             }
             .tint(.red)
             .disabled(!phone.reachable)
             // Framing first: the camera without the recorder, then Record from the picture (047, #73).
-            Button { phone.send(.viewfinder) } label: {
+            Button {
+              phone.send(.viewfinder)
+            } label: {
               Label("Preview", systemImage: "camera.fill").frame(maxWidth: .infinity)
             }
             .disabled(!phone.reachable)
@@ -152,9 +174,12 @@ struct WatchContentView: View {
       .sheet(isPresented: $countingSet) {
         let start = HandSet.start(mode: status.mode, analyzed: status.lastSet, byHand: phone.lastTyped)
         SetByHandPage(
-          exercise: start.exercise, start: start.reps, choosing: phone.screenshotOpensExerciseList
-        ) { exercise, reps in
-          phone.saveSetByHand(exercise: exercise, reps: reps)
+          exercise: start.exercise, start: start.reps, choosing: phone.screenshotOpensExerciseList,
+          startKg: {
+            HandSet.startKg(for: $0, phone: status.bellKg, typed: phone.lastTyped, analyzed: status.lastSet)
+          }
+        ) { exercise, reps, kg in
+          phone.saveSetByHand(exercise: exercise, reps: reps, kg: kg)
         }
       }
     }
@@ -163,9 +188,13 @@ struct WatchContentView: View {
   /// No videos for a while (071, #236; Igor: "not going to record videos for a while"): under the pickers on
   /// every idle page; orange while on, when it reads "Videos again".
   private var noVideosToggle: some View {
-    Button { phone.setNoVideos(!phone.noVideos) } label: {
-      Label(phone.noVideos ? "Videos again" : "No videos for a while", systemImage: phone.noVideos ? "video" : "video.slash")
-        .frame(maxWidth: .infinity)
+    Button {
+      phone.setNoVideos(!phone.noVideos)
+    } label: {
+      Label(
+        phone.noVideos ? "Videos again" : "No videos for a while", systemImage: phone.noVideos ? "video" : "video.slash"
+      )
+      .frame(maxWidth: .infinity)
     }
     .tint(phone.noVideos ? .orange : nil)
   }
@@ -173,7 +202,9 @@ struct WatchContentView: View {
   /// A set done without Record (059): only inside a workout, which it belongs to; the count page does the rest.
   @ViewBuilder private var setByHandButton: some View {
     if workout.running {
-      Button { countingSet = true } label: {
+      Button {
+        countingSet = true
+      } label: {
         Label("Set by hand", systemImage: "plus").frame(maxWidth: .infinity)
       }
       .disabled(workout.phase == .ending)
@@ -185,6 +216,9 @@ struct WatchContentView: View {
   /// rest length and orange after, and the session clock goes small and green beside the heart rate.
   private var workoutHeader: some View {
     let resting = workout.phase == .ending ? nil : phone.rest.restEnded
+    let drop = resting == nil ? nil : workout.setPeak.drop(now: workout.heartRate)
+    // A continued workout (#238) shows from its first part: that clock, those sets with this session's.
+    let tally = workout.shownTally
     return VStack(spacing: 2) {
       if let resting {
         Text("REST · \(Self.duration(Double(phone.rest.length)))")
@@ -195,66 +229,96 @@ struct WatchContentView: View {
       } else {
         Text(workout.phase == .ending ? "ENDING…" : "WORKOUT")
           .font(.caption2.weight(.semibold)).kerning(1).foregroundStyle(.green)
-        if let startedAt = workout.startedAt {
+        if let startedAt = workout.shownStart {
           Text(startedAt, style: .timer)
             .font(.system(size: 40, weight: .bold, design: .rounded)).monospacedDigit()
         }
       }
       HStack(spacing: 4) {
         Image(systemName: "heart.fill").font(.caption).foregroundStyle(.red)
-        Text(workout.heartRate.map(String.init) ?? "--")
-          .font(.title3.bold()).monospacedDigit()
-        Text("BPM").font(.caption2).foregroundStyle(.secondary)
-        if resting != nil, let startedAt = workout.startedAt {
-          Text("·").foregroundStyle(.secondary)
-          Text(startedAt, style: .timer).font(.title3.bold()).monospacedDigit().foregroundStyle(.green)
-        }
+        heartLine(drop: drop, clock: resting == nil ? nil : workout.shownStart)
+          // One text, so it shrinks as a whole: as separate texts the drop wrapped on the 49 mm face and
+          // truncated with the clock on the 40 mm (#195).
+          .lineLimit(1)
+          .minimumScaleFactor(0.5)
       }
-      .accessibilityLabel("Heart rate \(workout.heartRate.map(String.init) ?? "unknown")")
+      .accessibilityLabel(
+        "Heart rate \(workout.heartRate.map(String.init) ?? "unknown")"
+          + (drop.map { ", \($0) below the last set's peak" } ?? ""))
       // The sets by exercise with the drawings, as the phone's Today line reads mid-workout (#206, #192; Igor:
       // "show sets and exercises completed like I see it on the workouts view … just those coarse details"),
       // and nothing else: "6 sets · 47 reps" went ("drop n sets reps, the icons are enough").
-      if !workout.exerciseOrder.isEmpty {
+      if !tally.exerciseOrder.isEmpty {
         HStack(spacing: 8) {
-          ForEach(workout.exerciseOrder) { kind in
+          ForEach(tally.exerciseOrder) { kind in
             HStack(spacing: 2) {
               ExerciseGlyph(kind: kind, size: 16)
-              Text("\(workout.exerciseSets[kind, default: 0])").font(.caption.bold()).monospacedDigit()
+              Text("\(tally.exerciseSets[kind, default: 0])").font(.caption.bold()).monospacedDigit()
             }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("\(workout.exerciseSets[kind, default: 0]) sets of \(kind.repWord(2))")
+            .accessibilityLabel("\(tally.exerciseSets[kind, default: 0]) sets of \(kind.repWord(2))")
           }
         }
         .padding(.top, 2)
-      } else if workout.sets > 0 {
+      } else if tally.sets > 0 {
         // Sets with no exercise to draw (a name the watch does not know, a tally saved before #206) still show.
-        Text("\(workout.sets) set\(workout.sets == 1 ? "" : "s") · \(workout.reps) reps")
+        Text("\(tally.sets) set\(tally.sets == 1 ? "" : "s") · \(tally.reps) reps")
           .font(.caption).monospacedDigit().foregroundStyle(.secondary)
       }
     }
     .padding(.bottom, 4)
   }
 
+  /// "128 BPM", resting "128 · −29 BPM · 42:13": the rate now, its drop from the last recorded set's peak
+  /// (#195) and the session clock small and green (050).
+  private func heartLine(drop: Int?, clock: Date?) -> Text {
+    let rate = Text(workout.heartRate.map(String.init) ?? "--").font(.title3.bold()).monospacedDigit()
+    let fall = drop.map { Text(" · −\($0)").font(.title3.bold()).monospacedDigit() } ?? Text("")
+    let unit = Text(" BPM").font(.caption2).foregroundStyle(.secondary)
+    let session =
+      clock.map {
+        Text(" · ").foregroundStyle(.secondary)
+          + Text($0, style: .timer).font(.title3.bold()).monospacedDigit().foregroundStyle(.green)
+      } ?? Text("")
+    return rate + fall + unit + session
+  }
+
   /// Start by hand, above Record (048): the warm-up is workout time. Gone once the workout runs.
   @ViewBuilder private var startWorkoutButton: some View {
     if !workout.running {
-      Button { phone.startWorkout() } label: {
+      Button {
+        // Igor (#238): "On quick restart workout ask if want to continue."
+        if let ended = workout.continuable {
+          continueQuestion = ended.question(at: Date())
+          askingContinue = true
+        } else {
+          phone.startWorkout()
+        }
+      } label: {
         Label(workout.phase == .starting ? "Starting…" : "Start workout", systemImage: "clock")
           .frame(maxWidth: .infinity)
       }
       .tint(.green)
       .disabled(workout.phase == .starting)
+      .confirmationDialog(continueQuestion, isPresented: $askingContinue, titleVisibility: .visible) {
+        Button("Continue") { phone.startWorkout(continuing: true) }
+        Button("New workout") { phone.startWorkout() }
+      }
     }
   }
 
   /// At the bottom of the page, under the pickers: End writes the workout to Health, Discard asks first.
   private var workoutEndButtons: some View {
     VStack(spacing: 8) {
-      Button { phone.endWorkout(discard: false) } label: {
+      Button {
+        phone.endWorkout(discard: false)
+      } label: {
         Label("End workout", systemImage: "checkmark").frame(maxWidth: .infinity)
       }
       .tint(.green)
-      Button(role: .destructive) { confirmDiscard = true } label: {
+      Button(role: .destructive) {
+        confirmDiscard = true
+      } label: {
         Label("Discard", systemImage: "trash").frame(maxWidth: .infinity)
       }
       .confirmationDialog("Discard this workout?", isPresented: $confirmDiscard, titleVisibility: .visible) {
@@ -305,101 +369,112 @@ struct WatchContentView: View {
   }
 
   private var recordingOverlays: some View {
-      VStack(spacing: 6) {
-        if status.viewfinder {
-          // Framing, not recording: no count, no time (047); the rest keeps counting beside the chip (050).
-          HStack(spacing: 6) {
-            Spacer(minLength: 0)
-            Text("PREVIEW")
-              .font(.system(size: 15, weight: .semibold, design: .rounded))
+    VStack(spacing: 6) {
+      if status.viewfinder {
+        // Framing, not recording: no count, no time (047); the rest keeps counting beside the chip (050).
+        HStack(spacing: 6) {
+          Spacer(minLength: 0)
+          Text("PREVIEW")
+            .font(.system(size: 15, weight: .semibold, design: .rounded))
+            .padding(.horizontal, 8).padding(.vertical, 2)
+            .background(.ultraThinMaterial, in: Capsule())
+          if let restEnded = phone.rest.restEnded {
+            (Text("REST ") + Text(restEnded, style: .timer))
+              .font(.system(size: 15, weight: .semibold, design: .rounded)).monospacedDigit()
+              .foregroundStyle(restIsOver(restEnded) ? .orange : .primary)
+              .lineLimit(1).fixedSize()
               .padding(.horizontal, 8).padding(.vertical, 2)
               .background(.ultraThinMaterial, in: Capsule())
-            if let restEnded = phone.rest.restEnded {
-              (Text("REST ") + Text(restEnded, style: .timer))
-                .font(.system(size: 15, weight: .semibold, design: .rounded)).monospacedDigit()
-                .foregroundStyle(restIsOver(restEnded) ? .orange : .primary)
-                .lineLimit(1).fixedSize()
-                .padding(.horizontal, 8).padding(.vertical, 2)
-                .background(.ultraThinMaterial, in: Capsule())
-            }
-            Spacer(minLength: 0)
           }
-          .padding(.horizontal, 8)
-          .padding(.top, 2)
-          // The workout's heart rate while framing (#106): the rest and the heart are what say "go again". A
-          // line of its own, because PREVIEW, the rest and the heart do not fit one row even on the Ultra.
+          Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 8)
+        .padding(.top, 2)
+        // The workout's heart rate while framing (#106): the rest and the heart are what say "go again". A
+        // line of its own, because PREVIEW, the rest and the heart do not fit one row even on the Ultra.
+        heartRateChip
+      } else {
+        HStack {
+          Text("\(status.reps)")
+            .font(.system(size: 24, weight: .bold, design: .rounded))
+            .padding(.horizontal, 8).padding(.vertical, 1)
+            .background(.ultraThinMaterial, in: Capsule())
+          Spacer()
           heartRateChip
+          Text(elapsed).monospacedDigit()
+            .font(.system(size: 16, weight: .semibold, design: .rounded))
+            .padding(.horizontal, 8).padding(.vertical, 3)
+            .background(.ultraThinMaterial, in: Capsule())
+        }
+        .padding(.horizontal, 8)
+        .padding(.top, 2)
+      }
+      Spacer()
+      // A capsule as wide as its words, not a bar across the picture; red stays strong enough to read.
+      Text(hintText)
+        .font(.caption2.weight(.semibold)).multilineTextAlignment(.center)
+        .padding(.horizontal, 10).padding(.vertical, 3)
+        .background(
+          phone.answersLost
+            ? Color.orange.opacity(0.8) : status.frame.inFrame ? Color.green.opacity(0.4) : Color.red.opacity(0.7),
+          in: Capsule()
+        )
+        .padding(.bottom, 2)
+    }
+    .safeAreaInset(edge: .bottom) {
+      HStack(spacing: 8) {
+        if status.viewfinder {
+          // Record · Camera · Cancel: no Pause, no Done (047).
+          Button {
+            phone.send(.start)
+          } label: {
+            Image(systemName: "record.circle")
+              .font(.body)
+              .frame(width: 40, height: 40)
+              .background(Color.red.opacity(0.8), in: Circle())
+              .foregroundStyle(.white)
+          }
+          .buttonStyle(.plain)
+          .accessibilityLabel("Record")
+          faceCameraButton
+          faceCancelButton
         } else {
-          HStack {
-            Text("\(status.reps)")
-              .font(.system(size: 24, weight: .bold, design: .rounded))
-              .padding(.horizontal, 8).padding(.vertical, 1)
-              .background(.ultraThinMaterial, in: Capsule())
-            Spacer()
-            heartRateChip
-            Text(elapsed).monospacedDigit()
-              .font(.system(size: 16, weight: .semibold, design: .rounded))
-              .padding(.horizontal, 8).padding(.vertical, 3)
-              .background(.ultraThinMaterial, in: Capsule())
+          Button {
+            phone.send(status.paused ? .resume : .pause)
+          } label: {
+            Image(systemName: status.paused ? "play.fill" : "pause.fill")
+              .font(.body)
+              .frame(width: 40, height: 40)
+              .background(
+                status.paused ? AnyShapeStyle(Color.orange.opacity(0.8)) : AnyShapeStyle(.ultraThinMaterial),
+                in: Circle()
+              )
+              .foregroundStyle(.white)
           }
-          .padding(.horizontal, 8)
-          .padding(.top, 2)
-        }
-        Spacer()
-        // A capsule as wide as its words, not a bar across the picture; red stays strong enough to read.
-        Text(hintText)
-          .font(.caption2.weight(.semibold)).multilineTextAlignment(.center)
-          .padding(.horizontal, 10).padding(.vertical, 3)
-          .background(
-            phone.answersLost ? Color.orange.opacity(0.8) : status.frame.inFrame ? Color.green.opacity(0.4) : Color.red.opacity(0.7),
-            in: Capsule())
-          .padding(.bottom, 2)
-      }
-      .safeAreaInset(edge: .bottom) {
-        HStack(spacing: 8) {
-          if status.viewfinder {
-            // Record · Camera · Cancel: no Pause, no Done (047).
-            Button { phone.send(.start) } label: {
-              Image(systemName: "record.circle")
-                .font(.body)
-                .frame(width: 40, height: 40)
-                .background(Color.red.opacity(0.8), in: Circle())
-                .foregroundStyle(.white)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Record")
-            faceCameraButton
-            faceCancelButton
-          } else {
-            Button { phone.send(status.paused ? .resume : .pause) } label: {
-              Image(systemName: status.paused ? "play.fill" : "pause.fill")
-                .font(.body)
-                .frame(width: 40, height: 40)
-                .background(status.paused ? AnyShapeStyle(Color.orange.opacity(0.8)) : AnyShapeStyle(.ultraThinMaterial), in: Circle())
-                .foregroundStyle(.white)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(status.paused ? "Resume" : "Pause")
-            faceCameraButton
-            Button { phone.send(.finish) } label: {
-              Image(systemName: "checkmark")
-                .font(.body.bold())
-                .frame(width: 40, height: 40)
-                .background(Color.green.opacity(0.75), in: Circle())
-                .foregroundStyle(.white)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Done")
-            faceCancelButton
+          .buttonStyle(.plain)
+          .accessibilityLabel(status.paused ? "Resume" : "Pause")
+          faceCameraButton
+          Button {
+            phone.send(.finish)
+          } label: {
+            Image(systemName: "checkmark")
+              .font(.body.bold())
+              .frame(width: 40, height: 40)
+              .background(Color.green.opacity(0.75), in: Circle())
+              .foregroundStyle(.white)
           }
+          .buttonStyle(.plain)
+          .accessibilityLabel("Done")
+          faceCancelButton
         }
-        .padding(.horizontal, 10)
-        .padding(.bottom, 18)
       }
-      // The row lives in the bottom safe area (the Ultra reserves ~34 pt there): lifted 18 pt and inset 10 pt,
-      // the outer buttons' lower corners stay outside a 60 pt corner radius. The phone rung is the truth for
-      // the real bezel; the simulator raster has no corner mask.
-      .ignoresSafeArea(edges: .bottom)
+      .padding(.horizontal, 10)
+      .padding(.bottom, 18)
+    }
+    // The row lives in the bottom safe area (the Ultra reserves ~34 pt there): lifted 18 pt and inset 10 pt,
+    // the outer buttons' lower corners stay outside a 60 pt corner radius. The phone rung is the truth for
+    // the real bezel; the simulator raster has no corner mask.
+    .ignoresSafeArea(edges: .bottom)
   }
 
   /// The workout's heart rate on the picture page, recording (048) or framing (#106); no workout, no chip.
@@ -418,7 +493,9 @@ struct WatchContentView: View {
 
   /// The round camera-cycler both face rows share.
   private var faceCameraButton: some View {
-    Button { phone.send(.switchCamera) } label: {
+    Button {
+      phone.send(.switchCamera)
+    } label: {
       Text(cameraLevel)
         .font(.caption.bold())
         .minimumScaleFactor(0.5).lineLimit(1)
@@ -432,7 +509,9 @@ struct WatchContentView: View {
 
   /// The round cancel both face rows share.
   private var faceCancelButton: some View {
-    Button { phone.send(.cancel) } label: {
+    Button {
+      phone.send(.cancel)
+    } label: {
       Image(systemName: "xmark")
         .font(.body.bold())
         .frame(width: 36, height: 36)
@@ -450,7 +529,9 @@ struct WatchContentView: View {
         if !status.exercise.isEmpty {
           Text(status.exercise).font(.caption2).foregroundStyle(.secondary)
         }
-        Button(role: .destructive) { phone.send(.cancel) } label: {
+        Button(role: .destructive) {
+          phone.send(.cancel)
+        } label: {
           Label("Cancel", systemImage: "xmark.circle").frame(maxWidth: .infinity)
         }
         watchModeToggle
@@ -473,9 +554,14 @@ struct WatchContentView: View {
   /// Watch mode on the phone: big digits on its screen, everything driven from here. Only while recording: the
   /// phone refuses it otherwise (#36).
   private var watchModeToggle: some View {
-    Button { phone.send(.watchMode) } label: {
-      Label(status.watchMode ? "Phone: watch mode on" : "Phone: watch mode", systemImage: status.watchMode ? "iphone.gen3.radiowaves.left.and.right" : "iphone.gen3")
-        .frame(maxWidth: .infinity)
+    Button {
+      phone.send(.watchMode)
+    } label: {
+      Label(
+        status.watchMode ? "Phone: watch mode on" : "Phone: watch mode",
+        systemImage: status.watchMode ? "iphone.gen3.radiowaves.left.and.right" : "iphone.gen3"
+      )
+      .frame(maxWidth: .infinity)
     }
     .tint(status.watchMode ? .blue : nil)
   }
@@ -506,7 +592,8 @@ struct WatchContentView: View {
 
   /// Auto or a specific exercise; the phone re-analyzes and reports back through `mode`.
   private var exercisePicker: some View {
-    let options: [(String, String)] = [("auto", "Auto")] + ExerciseKind.analyzable.map { ($0.rawValue, $0.definition.name) }
+    let options: [(String, String)] =
+      [("auto", "Auto")] + ExerciseKind.analyzable.map { ($0.rawValue, $0.definition.name) }
     return Picker("Exercise", selection: Binding(get: { status.mode }, set: { phone.pick(exercise: $0) })) {
       ForEach(options, id: \.0) { option in Text(option.1).tag(option.0) }
     }
@@ -534,26 +621,52 @@ struct WatchContentView: View {
 /// step it by one with a tick each, 1…200. The exercise is a button: it opens the list of exercises, and the one
 /// tapped there is the set's (#154). Save adds the set; Cancel, or the sheet's close button, adds nothing.
 private struct SetByHandPage: View {
-  let onSave: (ExerciseKind, Int) -> Void
+  /// Exercise, reps and the bell's weight (nil for none).
+  let onSave: (ExerciseKind, Int, Int?) -> Void
+  /// Each exercise's last weight (#271): the weight row opens on it and follows the exercise until turned.
+  let startKg: (ExerciseKind) -> Int?
   @State private var exercise: ExerciseKind
   /// The Crown's value; the count is it rounded and clamped.
   @State private var count: Double
   @State private var choosing = false
+  /// The weight row's Crown value: 0 for none, then `HandSet.weights` in order.
+  @State private var kgStep: Double
+  @State private var kgPicked = false
   @FocusState private var crownFocused: Bool
+  @FocusState private var kgFocused: Bool
   @Environment(\.dismiss) private var dismiss
 
-  init(exercise: ExerciseKind, start: Int, choosing: Bool = false, onSave: @escaping (ExerciseKind, Int) -> Void) {
+  init(
+    exercise: ExerciseKind, start: Int, choosing: Bool = false, startKg: @escaping (ExerciseKind) -> Int?,
+    onSave: @escaping (ExerciseKind, Int, Int?) -> Void
+  ) {
     self.onSave = onSave
+    self.startKg = startKg
     _exercise = State(initialValue: exercise)
     _count = State(initialValue: Double(start))
     _choosing = State(initialValue: choosing)
+    _kgStep = State(initialValue: Self.step(for: startKg(exercise)))
   }
 
   private var reps: Int { HandSet.clamp(Int(count.rounded())) }
 
+  private var kg: Int? {
+    let step = Int(kgStep.rounded())
+    return HandSet.weights.indices.contains(step - 1) ? HandSet.weights[step - 1] : nil
+  }
+
+  /// A weight off the code (a 36 kg tapped on the phone) opens on the nearest bell.
+  private static func step(for kg: Int?) -> Double {
+    guard let kg else { return 0 }
+    let nearest = HandSet.weights.indices.min { abs(HandSet.weights[$0] - kg) < abs(HandSet.weights[$1] - kg) }
+    return Double((nearest ?? -1) + 1)
+  }
+
   var body: some View {
     VStack(spacing: 4) {
-      Button { choosing = true } label: {
+      Button {
+        choosing = true
+      } label: {
         HStack(spacing: 4) {
           Text(exercise.definition.name).font(.headline).lineLimit(1).minimumScaleFactor(0.7)
           Image(systemName: "chevron.down").font(.caption2.bold())
@@ -571,12 +684,27 @@ private struct SetByHandPage: View {
           .focused($crownFocused)
           .digitalCrownRotation(
             $count, from: Double(HandSet.range.lowerBound), through: Double(HandSet.range.upperBound), by: 1,
-            sensitivity: .low, isContinuous: false, isHapticFeedbackEnabled: true)
+            sensitivity: .low, isContinuous: false, isHapticFeedbackEnabled: true
+          )
           .accessibilityLabel("\(reps) reps")
         stepButton("plus", by: 1)
       }
+      // The bell's weight (#271): a tap gives it the Crown, which steps None, 8 … 32 kg.
+      Text(kg.map { "\($0) kg" } ?? "No kg")
+        .font(.headline).monospacedDigit()
+        .foregroundStyle(kg == nil ? .secondary : .primary)
+        .frame(maxWidth: .infinity, minHeight: 28)
+        .focusable()
+        .focused($kgFocused)
+        .digitalCrownRotation(
+          $kgStep, from: 0, through: Double(HandSet.weights.count), by: 1, sensitivity: .low, isContinuous: false,
+          isHapticFeedbackEnabled: true
+        )
+        // Given the Crown, the weight is the lifter's: a change of exercise no longer moves it.
+        .onChange(of: kgFocused) { _, focused in if focused { kgPicked = true } }
+        .accessibilityLabel(kg.map { "\($0) kilograms. Turn the Crown to change" } ?? "No weight")
       Button {
-        onSave(exercise, reps)
+        onSave(exercise, reps, kg)
         dismiss()
       } label: {
         Text("Save").frame(maxWidth: .infinity)
@@ -585,19 +713,23 @@ private struct SetByHandPage: View {
       Button("Cancel", role: .cancel) { dismiss() }
     }
     .onAppear { crownFocused = true }
-    .sheet(isPresented: $choosing, onDismiss: { crownFocused = true }) {
-      List(ExerciseKind.allCases) { kind in
-        Button {
-          exercise = kind
-          // An exercise with a usual count opens on it (#196); the others keep the count on the page.
-          if let usual = HandSet.usualReps(for: kind) { count = Double(usual) }
-          choosing = false
-        } label: {
-          HStack {
-            Text(kind.definition.name)
-            Spacer()
-            if kind == exercise { Image(systemName: "checkmark").foregroundStyle(.green) }
-          }
+    .sheet(isPresented: $choosing, onDismiss: { crownFocused = true }, content: { exercisePicker })
+  }
+
+  private var exercisePicker: some View {
+    List(ExerciseKind.allCases) { kind in
+      Button {
+        exercise = kind
+        // An exercise with a usual count opens on it (#196); the others keep the count on the page.
+        if let usual = HandSet.usualReps(for: kind) { count = Double(usual) }
+        // And its last weight, unless one was turned to (#271).
+        if !kgPicked { kgStep = Self.step(for: startKg(kind)) }
+        choosing = false
+      } label: {
+        HStack {
+          Text(kind.definition.name)
+          Spacer()
+          if kind == exercise { Image(systemName: "checkmark").foregroundStyle(.green) }
         }
       }
     }

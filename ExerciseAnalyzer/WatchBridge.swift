@@ -240,14 +240,17 @@ extension WatchBridge: WCSessionDelegate {
     var recovered = 0
     for url in files {
       guard let data = try? Data(contentsOf: url) else { continue }
-      for set in HandSet.typedSets(inStuckTransfer: data) {
-        if take(set, via: "watch_inbox") { recovered += 1 }
+      for set in HandSet.typedSets(inStuckTransfer: data) where take(set, via: "watch_inbox") {
+        recovered += 1
       }
     }
     let oldest = (try? files[0].resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
     onEvent?(
       "watch_inbox",
-      ["stuck": files.count, "recovered": recovered, "oldest_days": oldest.map { Int(-$0.timeIntervalSinceNow / 86400) } ?? -1])
+      [
+        "stuck": files.count, "recovered": recovered,
+        "oldest_days": oldest.map { Int(-$0.timeIntervalSinceNow / 86400) } ?? -1,
+      ])
   }
 
   nonisolated func sessionDidBecomeInactive(_ session: WCSession) {}

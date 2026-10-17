@@ -235,11 +235,43 @@ public struct WorkoutIndex: Codable, Equatable, Sendable {
       session.sets = entry.parts.reduce(0) { $0 + $1.sets }
       session.reps = entry.parts.reduce(0) { $0 + $1.reps }
       session.heartRateMax = entry.parts.compactMap(\.heartRateMax).max()
-      let rated = entry.parts.compactMap { part in part.heartRateAverage.map { (bpm: Double($0), seconds: part.duration) } }
+      let rated = entry.parts.compactMap { part in
+        part.heartRateAverage.map { (bpm: Double($0), seconds: part.duration) }
+      }
       let seconds = rated.reduce(0) { $0 + $1.seconds }
-      session.heartRateAverage = seconds > 0 ? Int((rated.reduce(0) { $0 + $1.bpm * $1.seconds } / seconds).rounded()) : nil
+      session.heartRateAverage =
+        seconds > 0 ? Int((rated.reduce(0) { $0 + $1.bpm * $1.seconds } / seconds).rounded()) : nil
       return session
     }
+  }
+
+  /// The running workout and the ended sessions as the phone shows them while it runs (#238): a workout started
+  /// under `gap` after the last session ended is part of it now, as it will be once it ends (`sessions()`). It
+  /// shows from that session's start with both counts, and the session leaves the list. The mirror keeps the
+  /// wrist's own `live` for saving; only what is shown joins.
+  public func joining(
+    _ live: WorkoutWire?, now: Date, gap: TimeInterval = sessionGap
+  ) -> (
+    live: WorkoutWire?, sessions: [StoredWorkout]
+  ) {
+    var sessions = sessions(gap: gap)
+    guard var shown = live, let last = sessions.last, shown.startDate >= last.end,
+      shown.startDate.timeIntervalSince(last.end) < gap
+    else { return (live, sessions) }
+    sessions.removeLast()
+    let running = max(0, now.timeIntervalSince(shown.startDate))
+    let rated = [
+      last.heartRateAverage.map { (bpm: Double($0), seconds: last.duration) },
+      shown.heartRateAverage.map { (bpm: Double($0), seconds: running) },
+    ].compactMap { $0 }
+    let seconds = rated.reduce(0) { $0 + $1.seconds }
+    shown.heartRateAverage =
+      seconds > 0 ? Int((rated.reduce(0) { $0 + $1.bpm * $1.seconds } / seconds).rounded()) : nil
+    shown.heartRateMax = [last.heartRateMax, shown.heartRateMax].compactMap { $0 }.max()
+    shown.startedAt = last.start.timeIntervalSince1970
+    shown.sets += last.sets
+    shown.reps += last.reps
+    return (shown, sessions)
   }
 
   /// The ended workouts a line of `sessions()` stands for: every workout inside its span (065).

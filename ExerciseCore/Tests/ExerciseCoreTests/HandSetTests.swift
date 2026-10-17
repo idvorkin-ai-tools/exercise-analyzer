@@ -104,7 +104,8 @@ final class HandSetTests: XCTestCase {
   /// #197: a transfer WatchConnectivity received on 2026-10-05 and never delivered, copied from the phone's
   /// Documents/Inbox; the set's JSON sits verbatim inside it. A log line's transfer holds no set.
   func testATypedSetIsReadOutOfAStuckTransfer() throws {
-    let url = try XCTUnwrap(Bundle.module.url(forResource: "watch-inbox-typed-set", withExtension: "bin", subdirectory: "Fixtures"))
+    let url = try XCTUnwrap(
+      Bundle.module.url(forResource: "watch-inbox-typed-set", withExtension: "bin", subdirectory: "Fixtures"))
     let sets = HandSet.typedSets(inStuckTransfer: try Data(contentsOf: url))
     XCTAssertEqual(sets.map(\.id), ["A065AD9D-E337-482E-867C-D7BD06BC18BF"])
     XCTAssertEqual(sets.first?.reps, 10)
@@ -155,7 +156,8 @@ final class HandSetTests: XCTestCase {
   }
 
   func testAnIndexFromBeforeTheWristStillDecodes() throws {
-    let old = #"[{"id":"a","analyzedAt":0,"duration":30,"repCount":10,"bestScore":80,"source":{"file":{"name":"clip.mov"}}}]"#
+    let old =
+      #"[{"id":"a","analyzedAt":0,"duration":30,"repCount":10,"bestScore":80,"source":{"file":{"name":"clip.mov"}}}]"#
     let entries = try JSONDecoder().decode([RecentEntry].self, from: Data(old.utf8))
     XCTAssertEqual(entries.map(\.id), ["a"])
     XCTAssertFalse(entries[0].isByHand)
@@ -199,7 +201,8 @@ final class HandSetTests: XCTestCase {
     XCTAssertEqual(timeline.handSet(at: Date(timeIntervalSince1970: 1600)).exercise, .pullUp)
     // Before every set: the first set's; with no set: a swing set of 10.
     XCTAssertEqual(timeline.handSet(at: Date(timeIntervalSince1970: 1050)).exercise, getUp)
-    let empty = WorkoutTimeline(workout: workout, sets: [], heartRate: nil).handSet(at: Date(timeIntervalSince1970: 1050))
+    let empty = WorkoutTimeline(workout: workout, sets: [], heartRate: nil).handSet(
+      at: Date(timeIntervalSince1970: 1050))
     XCTAssertEqual(empty.exercise, swing)
     XCTAssertEqual(empty.reps, HandSet.defaultReps)
   }
@@ -230,7 +233,8 @@ final class HandSetTests: XCTestCase {
     XCTAssertNil(WorkoutTimeline(workout: workout, sets: [set("s1", swing, reps: 10, at: 1100)], heartRate: nil).loadKg)
     XCTAssertEqual(set("k", swing, reps: 10, at: 1100, kg: 16).keptByHand(exercise: swing, reps: 9).bellKg, 16)
     // An index from before 066 has no weight and still decodes.
-    let old = #"[{"id":"a","analyzedAt":0,"duration":30,"repCount":10,"bestScore":80,"source":{"file":{"name":"clip.mov"}}}]"#
+    let old =
+      #"[{"id":"a","analyzedAt":0,"duration":30,"repCount":10,"bestScore":80,"source":{"file":{"name":"clip.mov"}}}]"#
     XCTAssertNil(try JSONDecoder().decode([RecentEntry].self, from: Data(old.utf8))[0].bellKg)
   }
 
@@ -248,5 +252,49 @@ final class HandSetTests: XCTestCase {
     XCTAssertNil(timeline.row(near: Date(timeIntervalSince1970: 1510), slop: 20))
     XCTAssertNil(timeline.typedRow(near: Date(timeIntervalSince1970: 1600), slop: 20))
     XCTAssertNil(timeline.typedRow(near: Date(timeIntervalSince1970: 1120), slop: 20))
+  }
+
+  /// #271, story 066: the last weight of each exercise, from any workout, is what a by-hand picker opens on.
+  func testTheLastWeightPerExerciseIsTheNewestSetsOwn() {
+    func set(_ kind: ExerciseKind, at: Double, kg: Int?) -> RecentEntry {
+      var entry = HandSet(exercise: kind, reps: 10, at: at).entry
+      entry.bellKg = kg
+      return entry
+    }
+    let entries = [
+      set(swing, at: 300, kg: nil), set(swing, at: 200, kg: 24), set(swing, at: 100, kg: 16),
+      set(getUp, at: 50, kg: 20),
+    ]
+    XCTAssertEqual(RecentEntry.lastBellKg(entries), [swing: 24, getUp: 20])
+    XCTAssertEqual(RecentEntry.lastBellKg(entries.reversed()), [swing: 24, getUp: 20], "not by list order")
+  }
+
+  /// The wrist opens on the phone's last weight of the exercise, or on the set typed on the wrist when that one is
+  /// newer than the phone's last set (the phone may not have it yet); nil when neither says.
+  func testTheWristsPickerOpensOnTheLastWeight() {
+    let analyzed = LastSet(reps: 10, exercise: swing.definition.name, seconds: 30, at: 1000)
+    let phone = [swing.rawValue: 24]
+    XCTAssertEqual(HandSet.startKg(for: swing, phone: phone, typed: nil, analyzed: analyzed), 24)
+    let typedLater = HandSet(exercise: swing, reps: 10, at: 1100, kg: 28)
+    XCTAssertEqual(HandSet.startKg(for: swing, phone: phone, typed: typedLater, analyzed: analyzed), 28)
+    let typedEarlier = HandSet(exercise: swing, reps: 10, at: 900, kg: 28)
+    XCTAssertEqual(HandSet.startKg(for: swing, phone: phone, typed: typedEarlier, analyzed: analyzed), 24)
+    XCTAssertEqual(HandSet.startKg(for: getUp, phone: phone, typed: typedLater, analyzed: analyzed), nil)
+    XCTAssertEqual(HandSet.startKg(for: swing, phone: [:], typed: typedEarlier, analyzed: analyzed), 28)
+  }
+
+  /// The weight rides the set to the phone and lands on it as a tapped weight would; old payloads have none.
+  func testATypedWeightIsTheSetsOwn() throws {
+    let set = HandSet(exercise: getUp, reps: 2, at: 1000, kg: 20)
+    XCTAssertEqual(HandSet(userInfo: set.userInfo)?.kg, 20)
+    XCTAssertEqual(set.entry.bellKg, 20)
+    let old = #"{"id":"a","exercise":"turkish-get-up","reps":2,"at":1000}"#
+    XCTAssertNil(try JSONDecoder().decode(HandSet.self, from: Data(old.utf8)).kg)
+    var status = WatchStatus(
+      recording: false, frame: FrameStatus(personSeen: false, clippedEdges: [], coverage: 0), reps: 0, phase: "",
+      elapsed: 0, camera: "", exercise: "")
+    status.bellKg = [swing.rawValue: 24]
+    let decoded = try JSONDecoder().decode(WatchStatus.self, from: JSONEncoder().encode(status))
+    XCTAssertEqual(decoded.bellKg, [swing.rawValue: 24])
   }
 }

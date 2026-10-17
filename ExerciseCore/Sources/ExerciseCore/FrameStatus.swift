@@ -54,7 +54,9 @@ public struct FrameStatus: Codable, Equatable, Sendable {
     if Double(box.minX) <= edgeMargin { edges.append(.left) }
     if Double(box.maxX) >= 1 - edgeMargin { edges.append(.right) }
     // A stored track with fewer points than COCO-17 has no ankles to read (every other reader guards the index too).
-    let pose = pose.flatMap { $0.conf.count > CocoKeypoint.rightAnkle.rawValue && $0.xyn.count > CocoKeypoint.rightAnkle.rawValue ? $0 : nil }
+    let pose = pose.flatMap {
+      $0.conf.count > CocoKeypoint.rightAnkle.rawValue && $0.xyn.count > CocoKeypoint.rightAnkle.rawValue ? $0 : nil
+    }
     if let pose, !edges.contains(.bottom), Double(box.maxY) >= 0.97 {
       let ankles = [CocoKeypoint.leftAnkle, .rightAnkle].map { pose.conf[$0.rawValue] }
       if ankles.allSatisfy({ $0 < 0.1 }) { edges.append(.bottom) }
@@ -63,7 +65,8 @@ public struct FrameStatus: Codable, Equatable, Sendable {
     // stops a few percent short of it. A Bulgarian's rear foot and bench off the left edge (79271425) counted
     // nothing, and live the hint only flickered "Feet cut off". An ankle this close to a side counts as cut off there.
     if let pose {
-      for ankle in [CocoKeypoint.leftAnkle, .rightAnkle] where pose.conf[ankle.rawValue] > BodySkeleton.visibleThreshold {
+      for ankle in [CocoKeypoint.leftAnkle, .rightAnkle] where pose.conf[ankle.rawValue] > BodySkeleton.visibleThreshold
+      {
         let x = Double(pose.xyn[ankle.rawValue].x)
         if x < ankleSideMargin, !edges.contains(.left) { edges.append(.left) }
         if x > 1 - ankleSideMargin, !edges.contains(.right) { edges.append(.right) }
@@ -120,6 +123,9 @@ public struct WatchStatus: Codable, Equatable, Sendable {
   /// When the phone sent this (seconds since 1970, the phone's clock), stamped as it goes out; nil from an old
   /// phone app. The wrist orders what it hears by it (`replaces`).
   public var sentAt: Double? = nil
+  /// Each exercise's last weight on the phone by raw value (#271): what the wrist's by-hand picker opens on.
+  /// Old payloads decode as empty.
+  public var bellKg: [String: Int] = [:]
   /// The recorder rolls: a set is being written. The face and the rest count key off this, never off
   /// `recording` alone, so a Preview (camera live, nothing written) is not a set (043, 046, 047).
   public var rolling: Bool { recording && !viewfinder }
@@ -140,7 +146,7 @@ public struct WatchStatus: Codable, Equatable, Sendable {
 
   enum CodingKeys: String, CodingKey {
     case recording, frame, reps, phase, elapsed, camera, exercise, phoneActive, mode, zoom, zoomPresets, watchMode,
-      paused, lastSet, viewfinder, sentAt
+      paused, lastSet, viewfinder, sentAt, bellKg
   }
 
   /// Whether the wrist should show this in place of `shown`: only when the phone sent it later. The same status
@@ -171,6 +177,7 @@ public struct WatchStatus: Codable, Equatable, Sendable {
     lastSet = try c.decodeIfPresent(LastSet.self, forKey: .lastSet)
     viewfinder = try c.decodeIfPresent(Bool.self, forKey: .viewfinder) ?? false
     sentAt = try c.decodeIfPresent(Double.self, forKey: .sentAt)
+    bellKg = try c.decodeIfPresent([String: Int].self, forKey: .bellKg) ?? [:]
   }
 
   public static let idle = WatchStatus(

@@ -354,15 +354,18 @@ final class PhoneLink: NSObject, ObservableObject {
     )
   }
 
-  /// Start on the workout page (048): the wrist's own session, no phone needed.
-  func startWorkout() {
-    logEvent("command", ["command": "workout_start", "reachable": reachable, "live": isLive])
+  /// Start on the workout page (048): the wrist's own session, no phone needed. `continuing`: Continue on the ask
+  /// that follows an End by under ten minutes (#238).
+  func startWorkout(continuing: Bool = false) {
+    logEvent(
+      "command",
+      ["command": "workout_start", "reachable": reachable, "live": isLive, "continuing": continuing])
     guard screenshot == nil else { return }
     // A new workout starts with no rest: the count from the last workout's final set carried over and read as
     // a rest of hours (#273; Igor: "the rest needs to reset when I started a workout").
     rest.clear()
     WKInterfaceDevice.current().play(.click)
-    workout.start()
+    workout.start(continuing: continuing)
   }
 
   /// End writes the workout to Health; Discard writes nothing. Either way the wrist goes back to idle.
@@ -377,9 +380,9 @@ final class PhoneLink: NSObject, ObservableObject {
   /// Save on the count page (059): the wrist counts the set at once and starts the rest as Done does; the phone
   /// gets it as queued user info, like `logEvent`, so an unreachable phone gets it when it hears from us again.
   /// No Health activity: an activity needs a start, and this set has only its save.
-  func saveSetByHand(exercise: ExerciseKind, reps: Int) {
+  func saveSetByHand(exercise: ExerciseKind, reps: Int, kg: Int? = nil) {
     guard screenshot == nil else { return }
-    let set = HandSet(exercise: exercise, reps: HandSet.clamp(reps), at: Date().timeIntervalSince1970)
+    let set = HandSet(exercise: exercise, reps: HandSet.clamp(reps), at: Date().timeIntervalSince1970, kg: kg)
     handSet = set
     lastTyped = set
     workout.setAnalyzed(reps: set.reps, exercise: exercise)
@@ -390,7 +393,7 @@ final class PhoneLink: NSObject, ObservableObject {
     logEvent(
       "set_by_hand",
       [
-        "id": set.id, "exercise": exercise.rawValue, "reps": set.reps, "reachable": reachable,
+        "id": set.id, "exercise": exercise.rawValue, "reps": set.reps, "kg": kg ?? 0, "reachable": reachable,
         "outstanding": session.outstandingUserInfoTransfers.count, "activation": session.activationState.rawValue,
       ])
     WKInterfaceDevice.current().play(.success)

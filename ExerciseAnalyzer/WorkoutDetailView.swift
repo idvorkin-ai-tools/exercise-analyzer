@@ -34,7 +34,7 @@ struct WorkoutDetailView: View {
   var body: some View {
     let series = heartRateFor == identity ? heartRate : nil
     let snapshot = WorkoutPageSnapshot(
-      identity: identity, live: workouts.live, saved: workouts.sessions,
+      identity: identity, live: workouts.shownLive, saved: workouts.sessions,
       // The 20 s tick, not Date(): a live workout's end read per render changed on every pan and pinch frame,
       // re-logging `workout_page` and rebuilding the timeline each time.
       now: tick, sets: store.entries, heartRate: series)
@@ -67,7 +67,8 @@ struct WorkoutDetailView: View {
       guard scenePhase == .active else { return }
       tick = Date()
       while !Task.isCancelled {
-        guard identity.resolve(live: workouts.live, saved: workouts.sessions, now: Date())?.id == WorkoutMirror.liveID
+        guard
+          identity.resolve(live: workouts.shownLive, saved: workouts.sessions, now: Date())?.id == WorkoutMirror.liveID
         else { return }
         do { try await Task.sleep(for: .seconds(20)) } catch { return }
         tick = Date()
@@ -329,8 +330,12 @@ private struct WorkoutPageView: View {
       BellWeightSheet(kg: row?.kg, inherited: row?.kgInherited ?? false) { onSetBellKg?(entry, $0) }
     }
     .sheet(item: $adding) { draft in
-      SetByHandSheet(entry: draft, title: "Add a set at \(Self.clock.string(from: draft.analyzedAt))") {
-        add(draft, exercise: $0, reps: $1)
+      // The weight opens on the exercise's last one, from any workout (#271).
+      SetByHandSheet(
+        entry: draft, title: "Add a set at \(Self.clock.string(from: draft.analyzedAt))",
+        lastKg: RecentEntry.lastBellKg(sets)
+      ) {
+        add(draft, exercise: $0, reps: $1, kg: $2)
       }
     }
     if timeline.rows.isEmpty {
@@ -353,8 +358,9 @@ private struct WorkoutPageView: View {
       if let load = timeline.loadKg {
         Text("\(load.formatted()) kg moved").font(.subheadline).monospacedDigit().foregroundStyle(.secondary)
       }
-      if let average = workout.heartRateAverage, let max = workout.heartRateMax {
-        Label("\(average) avg · \(max) max", systemImage: "heart.fill")
+      // "148 now · 142 avg · 157 max" while it runs (#194).
+      if let line = snapshot.heartLine {
+        Label(line, systemImage: "heart.fill")
           .font(.subheadline).monospacedDigit().foregroundStyle(.red)
       }
     }
@@ -367,7 +373,11 @@ private struct WorkoutPageView: View {
     // The series runs a minute before and three after the workout (for the last set's drop); the chart draws
     // the workout only, or the line runs off the plot. Zoomed, only the window and a minute either side are
     // drawn (the y scale stays the workout's, so the line does not jump as the window moves).
-    let whole = heartRate?.slice(from: workout.start, to: workout.end).samples ?? []
+    // While it runs, Health trails the wrist; the line ends on the reading the header says now (#194).
+    var whole: [HeartRateSeries.Sample] = heartRate?.slice(from: workout.start, to: workout.end).samples ?? []
+    if let now = snapshot.heartRateNow {
+      whole.append(HeartRateSeries.Sample(at: workout.end.timeIntervalSince1970, bpm: Double(now)))
+    }
     let low = (whole.map(\.bpm).min() ?? 80) - 5
     let high = (whole.map(\.bpm).max() ?? 160) + 5
     let samples =
@@ -549,7 +559,10 @@ private struct WorkoutPageView: View {
             guard env["SWING_WORKOUT_ADD_SAVE"] != nil else { return }
             try? await Task.sleep(for: .seconds(1.5))
             if let draft = adding {
-              add(draft, exercise: draft.exerciseKind, reps: draft.repCount)
+              // As the sheet opens: the exercise's last weight (#271).
+              add(
+                draft, exercise: draft.exerciseKind, reps: draft.repCount,
+                kg: draft.bellKg ?? RecentEntry.lastBellKg(sets)[draft.exerciseKind])
               adding = nil
             }
           }
@@ -565,8 +578,9 @@ private struct WorkoutPageView: View {
   }
 
   /// A set added from the chart (#178): the draft's id and moment, the sheet's exercise and count.
-  private func add(_ draft: RecentEntry, exercise: ExerciseKind, reps: Int) {
-    onAddByHand?(HandSet(id: draft.id, exercise: exercise, reps: reps, at: draft.analyzedAt.timeIntervalSince1970))
+  private func add(_ draft: RecentEntry, exercise: ExerciseKind, reps: Int, kg: Int?) {
+    onAddByHand?(
+      HandSet(id: draft.id, exercise: exercise, reps: reps, at: draft.analyzedAt.timeIntervalSince1970, kg: kg))
   }
 
   /// Narrows or widens the window to `seconds` (a minute to the whole workout) with `moment` kept where it is
