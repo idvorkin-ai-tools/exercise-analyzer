@@ -559,7 +559,10 @@ private struct WorkoutPageView: View {
             guard env["SWING_WORKOUT_ADD_SAVE"] != nil else { return }
             try? await Task.sleep(for: .seconds(1.5))
             if let draft = adding {
-              add(draft, exercise: draft.exerciseKind, reps: draft.repCount)
+              // As the sheet opens: the exercise's last weight (#271).
+              add(
+                draft, exercise: draft.exerciseKind, reps: draft.repCount,
+                kg: draft.bellKg ?? RecentEntry.lastBellKg(sets)[draft.exerciseKind])
               adding = nil
             }
           }
