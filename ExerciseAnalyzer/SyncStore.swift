@@ -176,7 +176,11 @@ final class SyncStore: ObservableObject {
     status.accountSignedIn = FileManager.default.ubiquityIdentityToken != nil
     note("sync_account_changed", ["account": status.accountSignedIn, "container": container != nil])
     scopeLedger(why: "account_changed")
-    if ProcessInfo.processInfo.environment["SWING_SYNC_DIR"] == nil { lookUpContainer() }
+    if ProcessInfo.processInfo.environment["SWING_SYNC_DIR"] == nil {
+      container = nil
+      status.containerAvailable = false
+      lookUpContainer()
+    }
   }
 
   /// Keeps the ledger only under the account it was written for (`SyncLedgerScope`), and stores that account.
