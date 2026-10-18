@@ -28,11 +28,18 @@ struct WorkoutGalleryView: View {
   @AppStorage("workoutDayFolds") private var foldsStored = "{}"
   /// Test hook: every day folded, for a screenshot of the folded headers (#129; the simulator cannot scroll).
   @State private var foldAllForScreenshot = ProcessInfo.processInfo.environment["SWING_WORKOUTS_FOLDED"] == "1"
-  /// Once per launch (#123): the log lands on the running workout's page; "‹" from it is the day list, and the
-  /// list re-appearing after that must not push the page again. The app's, not the view's: the list is built twice
-  /// at launch (ea-trz: two `workouts_appear` with landed false), and a second life must not land or run the launch
-  /// hooks again.
+  /// The launch hooks ran (ea-trz): the app's, not the view's, since the list is built twice at launch (two
+  /// `workouts_appear` with landed false) and a second life must not run them again.
   private static var landed = false
+  /// Once per launch (#123): the log lands on the running workout's page; "‹" from it is the day list, and the
+  /// list re-appearing after that must not push the page again. The mirrored session can come after the list is up
+  /// (`WorkoutMirror.adopt` publishes it later; Codex on PR #289), so a live workout that shows up within
+  /// `landingWindow` of the list's first appear still lands; one started later in the launch does not.
+  private static var landedOnLive = false
+  private static var listSince: Date?
+  private static let landingWindow: TimeInterval = 10
+  /// The list is the screen: a late live workout lands only then, never over a set opened meanwhile.
+  @State private var onScreen = false
   /// This view life's id in `workouts_appear` (ea-trz), so two lives at launch show as two ids.
   @State private var life = String(UUID().uuidString.prefix(4))
   /// The workout line whose "Delete workout…" is being confirmed (065).
@@ -265,14 +272,12 @@ struct WorkoutGalleryView: View {
         ["landed": Self.landed, "life": life, "empty": days.isEmpty && suggestions.clips.isEmpty])
       suggestions.onEvent = onEvent
       suggestions.refresh(known: knownPhotosIDs)
+      if Self.listSince == nil { Self.listSince = Date() }
+      onScreen = true
+      landOnLive()
       guard !Self.landed else { return }
       Self.landed = true
-      // Mid-workout, the app opens on the workout (#123; Igor, from the gym: "if I'm in a live workout take me
-      // back to live workout"): the running workout's page, the day list one "‹" behind it.
-      if let live = workouts.liveWorkout {
-        onOpenWorkout(live)
-        onEvent?("ui", ["action": "open_live_workout"])
-      } else if let hook = ProcessInfo.processInfo.environment["SWING_OPEN_WORKOUT"],
+      if !Self.landedOnLive, let hook = ProcessInfo.processInfo.environment["SWING_OPEN_WORKOUT"],
         let workout = workouts.sessions.last
       {
         // Test hook: open the newest workout's page (053); simulator runs can't tap the line. "set" goes on to
@@ -294,6 +299,19 @@ struct WorkoutGalleryView: View {
         suggestions.requestAccess()
       }
     }
+    .onDisappear { onScreen = false }
+    .onChange(of: workouts.liveWorkout?.start) { landOnLive() }
+  }
+
+  /// Mid-workout, the app opens on the workout (#123; Igor, from the gym: "if I'm in a live workout take me back
+  /// to live workout"): the running workout's page, the day list one "‹" behind it; once, within the window.
+  private func landOnLive() {
+    guard !Self.landedOnLive, onScreen, let live = workouts.liveWorkout, let since = Self.listSince,
+      Date().timeIntervalSince(since) < Self.landingWindow
+    else { return }
+    Self.landedOnLive = true
+    onOpenWorkout(live)
+    onEvent?("ui", ["action": "open_live_workout"])
   }
 }
 
