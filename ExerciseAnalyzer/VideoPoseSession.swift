@@ -2686,6 +2686,11 @@ final class VideoPoseSession: NSObject, ObservableObject {
 
   /// Seconds kept before the first rep and after the last: enough to see the setup and the finish.
   static let trimPadding = 5.0
+  /// A set in two halves (#83, story 049): more than `trimRunGap` seconds with no rep is a walk or a hand switch the
+  /// trim cuts, keeping `trimJoinPadding` on each side of the cut. Igor's set had 12.7 s between halves; a swing
+  /// rep is about 1.2 s and a rest under 6 s stays.
+  static let trimRunGap = 6.0
+  static let trimJoinPadding = 1.0
 
   /// What a trim replaced, so it can be undone: the untrimmed clip and its analysis (file mode only).
   private struct Untrimmed {
@@ -2858,17 +2863,45 @@ final class VideoPoseSession: NSObject, ObservableObject {
       return
     }
     activity = .working("Trimming", progress: 0)
+    // A swing set in two halves keeps each run and loses the walk between (#83, story 049). Only swings: a get-up
+    // or a pull-up rests longer than 6 s between reps, and that rest is part of the set.
+    let runs =
+      analyzed.exercise == .kettlebellSwing
+      ? analyzed.repRuns(
+        padding: Self.trimPadding, joinPadding: Self.trimJoinPadding, gap: Self.trimRunGap, duration: clipDuration)
+      : [span]
     log.event(
       "trim_start",
-      ["start_s": span.start, "end_s": span.end, "reps": analyzed.reps.count, "source_duration_s": clipDuration])
+      [
+        "start_s": span.start, "end_s": span.end, "reps": analyzed.reps.count, "source_duration_s": clipDuration,
+        "runs": runs.count,
+      ])
     let started = Date()
     do {
-      let trimmed = try await VideoFile.trim(url, start: span.start, end: span.end) { [weak self] progress in
+      let progress: @Sendable (Double) -> Void = { [weak self] progress in
         Task { @MainActor in
           guard let self, self.isCurrent(operation) else { return }
           self.activity = .working("Trimming", progress: progress)
         }
       }
+      // Each kept stretch of the source, as cut (its start moved back to a keyframe), in the order it plays.
+      let trimmed: (url: URL, start: Double, spans: [(start: Double, end: Double)], passthrough: Bool)
+      if runs.count > 1 {
+        // ponytail: the pieces join by passthrough, as a paused recording's segments do; a piece that had to be
+        // re-encoded fails the join and the set keeps its whole clip ("Trim failed"). Fix if that shows up.
+        var parts: [VideoFile.Trimmed] = []
+        defer { for part in parts { try? FileManager.default.removeItem(at: part.url) } }
+        for run in runs { parts.append(try await VideoFile.trim(url, start: run.start, end: run.end)) }
+        let joined = try await VideoFile.join(parts.map(\.url), progress: progress)
+        trimmed = (
+          joined, parts[0].start, zip(parts, runs).map { (start: $0.start, end: $1.end) },
+          parts.allSatisfy(\.passthrough)
+        )
+      } else {
+        let one = try await VideoFile.trim(url, start: span.start, end: span.end, progress: progress)
+        trimmed = (one.url, one.start, [(start: one.start, end: span.end)], one.passthrough)
+      }
+      let kept = trimmed.spans.reduce(0) { $0 + $1.end - $1.start }
       let clip = trimmed.url
       #if targetEnvironment(simulator)
         await checkClipSwitch(stage: "trim", url: url, operation: operation)
@@ -2886,22 +2919,24 @@ final class VideoPoseSession: NSObject, ObservableObject {
         ])
       trimmedURL = clip
       canSave = true
-      currentClipStartedAt = clipStartedAt?.addingTimeInterval(trimmed.start)  // the first frame moved
+      // The first frame moved. A cut gap breaks the clip's clock past it, so the set gets none, as a paused
+      // recording's does (#83): heart rate at the playhead would read seconds early after the cut.
+      currentClipStartedAt = trimmed.spans.count > 1 ? nil : clipStartedAt?.addingTimeInterval(trimmed.start)
       log.event(
         "trim",
         [
           "start_s": trimmed.start, "requested_start_s": span.start, "end_s": span.end, "reps": analyzed.reps.count,
-          "source_duration_s": clipDuration, "clip": clip.lastPathComponent,
+          "source_duration_s": clipDuration, "clip": clip.lastPathComponent, "runs": trimmed.spans.count,
+          "kept_s": kept,
         ])
       if thenAnalyze {
         await analyzeAndPlay(url: clip, operation: operation)
       } else {
-        installPlayerItem(
-          url: clip, pipeline: analyzed.shifted(toStartAt: trimmed.start, end: span.end), keepUndo: true)
+        installPlayerItem(url: clip, pipeline: analyzed.joined(spans: trimmed.spans), keepUndo: true)
         extractedFrames = pipeline.track.frames
         extractionComplete = true
         analysisInterrupted = false
-        statusMessage = String(format: "Trimmed to %.1fs", span.end - trimmed.start)
+        statusMessage = String(format: "Trimmed to %.1fs", kept)
         currentFileURL = clip
         canUndoTrim = untrimmed != nil
         rememberCurrent(clipURL: clip, operation: operation)
@@ -2910,7 +2945,7 @@ final class VideoPoseSession: NSObject, ObservableObject {
         // The original is still in Photos: ask now whether to replace it (#90), the same save the button does.
         if case .photos = currentOrigin, untrimmed != nil {
           replaceOriginalPrompt = true
-          log.event("replace_prompt", ["clip": clip.lastPathComponent, "seconds": span.end - trimmed.start])
+          log.event("replace_prompt", ["clip": clip.lastPathComponent, "seconds": kept])
         }
         // Test hook: SWING_UNDO_TRIM=1 undoes the trim a moment later (simulator runs can't tap the UI).
         if ProcessInfo.processInfo.environment["SWING_UNDO_TRIM"] == "1" {
