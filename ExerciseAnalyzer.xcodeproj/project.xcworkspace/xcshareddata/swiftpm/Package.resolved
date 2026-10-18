@@ -6,8 +6,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/idvorkin/bug-kit",
       "state" : {
-        "revision" : "a47d15e041f13861dcecd39530d377b2cbe7244d",
-        "version" : "0.3.4"
+        "revision" : "de16ade241b947818dac82e3d74a4896291c45bf",
+        "version" : "0.3.5"
       }
     },
     {
