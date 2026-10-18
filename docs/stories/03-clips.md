@@ -149,7 +149,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 049:
 
 - **Summary:** The trim keeps the reps and cuts the walk between them
-- **Status:** implemented in [f54564f](https://github.com/idvorkin/exercise-analyzer/commit/f54564f) ([#83](https://github.com/idvorkin/exercise-analyzer/issues/83)); verified on the host (`TrimRunsTests`: Igor's 2026-09-16 set splits into two runs and the second run's reps follow the first's end, rep numbers running on) and lint; the build and the phone pending
+- **Status:** implemented in [f54564f](https://github.com/idvorkin/exercise-analyzer/commit/f54564f) ([#83](https://github.com/idvorkin/exercise-analyzer/issues/83)); verified on the host (`TrimRunsTests`: Igor's 2026-09-16 set splits into two runs and the second run's reps follow the first's end, rep numbers running on) and lint; the sound, the clock and the parts' cleanup in [1f44bfa](https://github.com/idvorkin/exercise-analyzer/commit/1f44bfa); the build and the phone pending
 - **Why:** Igor, 2026-09-16, after a swing set of ten each side with a pause on the wrist between them: "When we're in kettlebell mode, this is a special trim where I paused on my watch so I'll have 10 on the right and 10 on the left or vice versa. When you're doing the trim for the swings, cut that middle part when there are no sessions because it's really like two clips of swings trimmed together."
 
 #### Use Case:
@@ -161,7 +161,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Scenario:** A set with a gap between two runs of reps
 - **Given:** a swing set whose reps come in two runs with more than 6 s of no reps between them (the 2026-09-16 15:45 set: reps 1–10 at 5–20 s, reps 11–20 at 33–49 s, 12.7 s of walking between)
 - **When:** the set is trimmed after recording, or I trim it by hand
-- **Then:** the clip keeps the 5 s padding before the first rep and after the last, keeps 1 s on each side of the cut and drops the rest of the gap (10.7 of the 12.7 s), the runs are joined the way a paused recording's segments are joined (story 040), the rep numbers run on across the join, a hand trim replays the stored poses on the joined clip with no second pass (the trim after a recording analyzes the joined clip, as it does a trimmed one today), and the log's `trim` names the runs and the seconds kept
+- **Then:** the clip keeps the 5 s padding before the first rep and after the last, keeps 1 s on each side of the cut and drops the rest of the gap (10.7 of the 12.7 s), the runs are joined the way a paused recording's segments are joined (story 040), the rep numbers run on across the join, a hand trim replays the stored poses on the joined clip with no second pass (the trim after a recording analyzes the joined clip, as it does a trimmed one today), and the log's `trim` names the runs and the seconds kept; an imported clip keeps its sound across the join, and the set shows no heart rate at the playhead after a cut, as a paused recording does, since its clock past the cut is gone
 
 - **Scenario:** A set with one run
 - **Given:** a set whose reps have no gap longer than the threshold
