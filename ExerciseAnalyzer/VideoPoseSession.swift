@@ -111,6 +111,11 @@ final class VideoPoseSession: NSObject, ObservableObject {
     let models = recents.models(for: entry)
     return models.isEmpty ? ["yolo26n-pose"] : models  // files from before the field were pose-only
   }
+  /// Sets whose clip the launch refresh could not reach, by id, with the model set it wanted (#77): the stored poses
+  /// replay once, under the stored models, and the refresh leaves the set alone until this build's models change.
+  /// Without it the set stayed models-changed and was fetched and replayed on every launch (599F988A, 7 launches on
+  /// 2026-10-10). Opening the set still goes back to its video when the clip is there.
+  private static let refreshGaveUpKey = "refreshGaveUp"
   private var pipeline = AnalysisPipeline(exercise: .kettlebellSwing)
   /// Poses of the loaded clip (offline pass or Recents), kept so a different exercise can be analyzed instantly.
   private var extractedFrames: [FrameRecord] = []
@@ -497,9 +502,11 @@ final class VideoPoseSession: NSObject, ObservableObject {
       ])
     // A set typed on the wrist has no poses and no clip: nothing to re-read or re-run (059). Another device's
     // set is its owner's to re-analyze; the new row arrives by sync (070, step 4).
+    var gaveUp = UserDefaults.standard.dictionary(forKey: Self.refreshGaveUpKey) as? [String: [String]] ?? [:]
     let stale = recents.entries.filter {
       !$0.isByHand && SyncOwnership.isMine($0.device, me: SyncStore.deviceID)
-        && (recents.isStale($0) || !Set(models.names).isSubset(of: storedModels($0)))
+        && (recents.isStale($0)
+          || (!Set(models.names).isSubset(of: storedModels($0)) && gaveUp[$0.id] != models.names))
     }
     guard !stale.isEmpty else {
       log.event("recents_refresh_start", ["count": 0, "version": AnalysisVersion.current, "models": models.names])
@@ -516,9 +523,16 @@ final class VideoPoseSession: NSObject, ObservableObject {
         mode: exerciseMode, storedExercise: stored.exercise, detection: nil)
       // The clip fetch can take seconds (iCloud); the user-pass check comes after it, at the moment the job is
       // described, and run() refuses a replay over a user pass regardless (the 2026-09-15 review).
-      if case .rerunFromClip = plan, let predictor = models.predictor,
-        let clipURL = await recents.clipURL(for: entry), !userPassActive
-      {
+      var rerunClip: URL?
+      if case .rerunFromClip = plan {
+        rerunClip = await recents.clipURL(for: entry)
+        if rerunClip == nil {
+          log.event("recents_missing", ["id": entry.id, "where": "refresh"])
+          gaveUp[entry.id] = models.names
+          UserDefaults.standard.set(gaveUp, forKey: Self.refreshGaveUpKey)
+        }
+      }
+      if case .rerunFromClip = plan, let predictor = models.predictor, let clipURL = rerunClip, !userPassActive {
         let job = describeJob(
           url: clipURL, kind: .replay(entry: entry, where: "refresh", exercise: stored.exercise),
           predictor: predictor, bellDetector: models.bellDetector)

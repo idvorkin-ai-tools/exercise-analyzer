@@ -217,7 +217,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 035:
 
 - **Summary:** A set made by older models is run through the new ones when I reopen it (technical)
-- **Status:** implemented in [818d952](https://github.com/idvorkin/exercise-analyzer/commit/818d952), [a37440b](https://github.com/idvorkin/exercise-analyzer/commit/a37440b), [9e5e61e](https://github.com/idvorkin/exercise-analyzer/commit/9e5e61e); verified on the host (`StoredSetPlan` tests), the simulator (the smoke checks) and the phone (a reopened pre-detector get-up logged `analyzed` with reason rerun_models); the track past its clip (#80) in [95b5173](https://github.com/idvorkin/exercise-analyzer/commit/95b5173), verified on the host and the simulator, Igor's check pending (the reopened pistol set); the set switch (#52) in [920e803](https://github.com/idvorkin/exercise-analyzer/commit/920e803), verified on the host and the simulator
+- **Status:** implemented in [818d952](https://github.com/idvorkin/exercise-analyzer/commit/818d952), [a37440b](https://github.com/idvorkin/exercise-analyzer/commit/a37440b), [9e5e61e](https://github.com/idvorkin/exercise-analyzer/commit/9e5e61e); verified on the host (`StoredSetPlan` tests), the simulator (the smoke checks) and the phone (a reopened pre-detector get-up logged `analyzed` with reason rerun_models); the track past its clip (#80) in [95b5173](https://github.com/idvorkin/exercise-analyzer/commit/95b5173), verified on the host and the simulator, Igor's check pending (the reopened pistol set); the set switch (#52) in [920e803](https://github.com/idvorkin/exercise-analyzer/commit/920e803), verified on the host and the simulator; the catch-up giving up on a set whose clip is gone (#77, 599F988A replayed on 7 launches of 2026-10-10) on `fix/2026-10-18-refresh-loop-77`, host `just test` and lint, the build pending
 
 #### Use Case:
 - **As a** developer shipping a new model (a detector, a bigger pose model)
@@ -234,6 +234,12 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Given:** stored sets whose tracks lack a model this build runs, or were made by the detector at other settings (the model set names the detector with its floor and box cap)
 - **When:** I launch the app and leave it on the gallery
 - **Then:** those sets go through the models again from their clips one at a time in the background (`recents_rerun` and `offline_pass` with `where: refresh` in the log), each replacing its own entry, without my opening them; opening a set while that runs takes priority and the interrupted set waits for the next launch; a set whose clip is out of reach is refreshed from its stored poses, and that replay runs today's tracker over the stored sightings (the bell a set was saved with is never kept through a replay)
+
+- **Scenario:** The gallery's catch-up gives up on a set whose clip is gone (#77)
+- **Given:** a stored set that lacks a model this build runs, and whose clip is not in Photos or the app
+- **When:** I launch the app again and again
+- **Then:** the first launch replays its stored poses (`recents_missing` with `where: refresh`) and the later
+  ones leave it alone until the models change again, instead of fetching and replaying it on every launch
 
 - **Scenario:** A stored track that runs past its clip
 - **Given:** a set whose stored track ends later than its clip plays (the pistol set of 2025-12-08: 1221 frames to 40.66 s over a 38.68 s clip, the skeleton two seconds ahead of the lifter)
