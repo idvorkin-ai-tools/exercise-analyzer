@@ -53,4 +53,35 @@ final class LoadedClipTests: XCTestCase {
     XCTAssertEqual(clip.startedAt, started)
     XCTAssertEqual(clip.entryID, "set")
   }
+
+  // Trimmed again, the session keeps the first Untrimmed: undo goes back to the very first original and its clock.
+  func testUndoAfterTwoTrimsGoesBackToTheFirstOriginal() {
+    var clip = recorded
+    let before = untrimmed(of: clip)
+    clip.untrimmed = before
+    clip.trimmed(to: cut, start: 4.5, joined: false)
+    let second = URL(fileURLWithPath: "/tmp/trimmed-again.mov")
+    clip.trimmed(to: second, start: 2, joined: false)
+    XCTAssertEqual(clip.startedAt, started.addingTimeInterval(6.5))
+    XCTAssertEqual(clip.undo(to: before), second)
+    XCTAssertEqual(clip.playing, original)
+    XCTAssertEqual(clip.startedAt, started)
+  }
+
+  func testUndoAfterAJoinedTrimGetsTheClockBack() {
+    var clip = recorded
+    let before = untrimmed(of: clip)
+    clip.untrimmed = before
+    clip.trimmed(to: cut, start: 4.5, joined: true)
+    XCTAssertNil(clip.startedAt)
+    _ = clip.undo(to: before)
+    XCTAssertEqual(clip.startedAt, started)
+  }
+
+  func testUndoWithNoTrimDropsNothing() {
+    var clip = recorded
+    XCTAssertNil(clip.undo(to: untrimmed(of: clip)))
+    XCTAssertEqual(clip.playing, original)
+    XCTAssertEqual(clip.startedAt, started)
+  }
 }
