@@ -17,10 +17,13 @@ xcrun simctl install "$WATCH" "$WATCHAPP" >/dev/null
 fail=0
 shoot() {  # state: relaunch with the fixed state, wait for first render, screenshot
   xcrun simctl terminate "$WATCH" "$BUNDLE" 2>/dev/null || true
-  SIMCTL_CHILD_WATCH_STATE="$1" xcrun simctl launch "$WATCH" "$BUNDLE" >/dev/null || true
-  sleep 3
   local shot="$SCREENS/watch-$1.png"
   rm -f "$shot"  # a previous run's picture must not pass for this one's
+  # A failed launch would screenshot whatever is on screen and pass for this state (#77).
+  if ! SIMCTL_CHILD_WATCH_STATE="$1" xcrun simctl launch "$WATCH" "$BUNDLE" >/dev/null; then
+    echo "FAIL  $1: launch failed"; fail=1; return
+  fi
+  sleep 3
   xcrun simctl io "$WATCH" screenshot "$shot" 2>/dev/null || true
   if [ -f "$shot" ]; then echo "ok    $1: $shot"; else echo "FAIL  $1: no screenshot"; fail=1; fi
 }
