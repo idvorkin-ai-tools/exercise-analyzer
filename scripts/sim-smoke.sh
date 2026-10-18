@@ -45,18 +45,21 @@ check_trim() {  # clip expected-reps wait-seconds: auto-trims after analysis, ex
   SIMCTL_CHILD_SWING_VIDEO="$SAMPLES/$1.mp4" SIMCTL_CHILD_SWING_AUTO_TRIM=1 xcrun simctl launch "$SIM" "$BUNDLE" >/dev/null
   sleep 3
   wait_for trim "$3" || echo "      (timed out after $3 s waiting for the trim)"
-  sleep 4  # let the trimmed item install and display its first frames
+  sleep 4  # let the trimmed clip settle where the set keeps it
   local f; f=$(newest_log)
   local pass start req first reps
   pass=$(jq -r 'select(.type=="trim_done") | .passthrough' "$f" | tail -1)
   start=$(jq -r 'select(.type=="trim") | .start_s' "$f" | tail -1)
   req=$(jq -r 'select(.type=="trim") | .requested_start_s' "$f" | tail -1)
   reps=$(jq -r 'select(.type=="trim") | .reps' "$f" | tail -1)
-  # first displayed frame of the trimmed item: the player must start at the cut, not at the next keyframe
-  first=$(jq -sr '
-    ([.[] | select(.type=="trim")][-1].t) as $trim |
-    [.[] | select(.type=="display_frame" and .t >= $trim)][0].player_time // empty
-  ' "$f")
+  # The cut must keep its keyframe, or it plays from the next one (#13): read the trimmed file's first decodable
+  # frame. Not the player's first tick, which under load lands half a second into playback (ea-7sx).
+  local clip data cut
+  clip=$(jq -r 'select(.type=="trim") | .clip' "$f" | tail -1)
+  data="$(dirname "$(dirname "$LOGS")")"
+  cut=$(find "$data" -name "$clip" -print -quit 2>/dev/null || true)
+  first=$([ -n "$cut" ] && ffprobe -v error -select_streams v:0 -show_entries frame=pts_time -of default=nw=1:nk=1 \
+    "$cut" | head -1 || true)
   if [ "$pass" = "true" ] && [ "$reps" = "$2" ] && awk "BEGIN{exit !($start <= $req && $req - $start < 1.5 && $first < 0.2)}"; then
     echo "ok    trim $1: passthrough, start $start (asked $req), first frame at ${first}s, $reps reps"
   else echo "FAIL  trim $1: passthrough=$pass start=$start asked=$req first_frame=$first reps=$reps (wanted $2)"; fail=1; fi
