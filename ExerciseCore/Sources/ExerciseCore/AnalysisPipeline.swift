@@ -138,6 +138,56 @@ public final class AnalysisPipeline: @unchecked Sendable {
     guard let first = reps.first, let last = reps.last else { return nil }
     return (max(0, first.startTime - padding), min(duration, last.endTime + padding))
   }
+
+  /// The runs of reps (#83, story 049): reps split where more than `gap` seconds pass with none, as a set done ten
+  /// one side, a walk, ten the other. The clip's two ends keep `padding`, like `repSpan`; each side of a cut keeps
+  /// only `joinPadding`, so the walk goes (5 s a side would keep 10 of its 12.7 s). Runs that would meet stay one.
+  /// One run is `repSpan`; no reps, none.
+  public func repRuns(
+    padding: Double, joinPadding: Double, gap: Double, duration: Double
+  ) -> [(
+    start: Double, end: Double
+  )] {
+    var runs: [(start: Double, end: Double)] = []
+    for rep in reps {
+      if let last = runs.last, rep.startTime - last.end <= gap || rep.startTime - joinPadding <= last.end + joinPadding
+      {
+        runs[runs.count - 1].end = max(last.end, rep.endTime)
+      } else {
+        runs.append((rep.startTime, rep.endTime))
+      }
+    }
+    return runs.indices.map { i in
+      (
+        start: i == 0 ? max(0, runs[i].start - padding) : runs[i].start - joinPadding,
+        end: i == runs.count - 1 ? min(duration, runs[i].end + padding) : runs[i].end + joinPadding
+      )
+    }
+  }
+
+  /// A copy for a clip made of `spans` played back to back (#83): each span's frames and reps re-timed to follow
+  /// the spans before it, the gaps gone. The rep numbers run on. One span is `shifted(toStartAt:end:)`.
+  public func joined(spans: [(start: Double, end: Double)]) -> AnalysisPipeline {
+    let pipeline = AnalysisPipeline(exercise: exercise)
+    var frames: [FrameRecord] = []
+    var joinedReps: [RepRecord] = []
+    var offset = 0.0
+    for span in spans {
+      frames += track.shifted(toStartAt: span.start, end: span.end).frames.map {
+        FrameRecord(
+          time: $0.time + offset, imageSize: $0.imageSize, pose: $0.pose, box: $0.box, analysis: $0.analysis,
+          bells: $0.bells, bell: $0.bell, bench: $0.bench)
+      }
+      joinedReps += reps.filter { $0.startTime >= span.start && $0.endTime <= span.end }.map {
+        $0.shifted(by: offset - span.start)
+      }
+      offset += span.end - span.start
+    }
+    pipeline.track.replaceAll(with: frames)
+    pipeline.reps = joinedReps
+    pipeline.cardImage = cardImage
+    return pipeline
+  }
 }
 
 /// When the automatic trim after a recording must not trust the count (#141): a count far too low for the
