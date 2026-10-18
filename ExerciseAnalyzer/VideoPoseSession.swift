@@ -2884,11 +2884,10 @@ final class VideoPoseSession: NSObject, ObservableObject {
       let trimmed: (url: URL, start: Double, spans: [(start: Double, end: Double)], passthrough: Bool)
       if runs.count > 1 {
         // ponytail: the pieces join by passthrough, as a paused recording's segments do; a piece that had to be
-        // re-encoded fails the join and the set keeps its whole clip ("Trim failed"). The set's wall clock is
-        // right up to the first cut only (heart rate past it is shifted by the cut). Fix if either shows up.
+        // re-encoded fails the join and the set keeps its whole clip ("Trim failed"). Fix if that shows up.
         var parts: [VideoFile.Trimmed] = []
-        for run in runs { parts.append(try await VideoFile.trim(url, start: run.start, end: run.end)) }
         defer { for part in parts { try? FileManager.default.removeItem(at: part.url) } }
+        for run in runs { parts.append(try await VideoFile.trim(url, start: run.start, end: run.end)) }
         let joined = try await VideoFile.join(parts.map(\.url), progress: progress)
         trimmed = (
           joined, parts[0].start, zip(parts, runs).map { (start: $0.start, end: $1.end) },
@@ -2916,7 +2915,9 @@ final class VideoPoseSession: NSObject, ObservableObject {
         ])
       trimmedURL = clip
       canSave = true
-      currentClipStartedAt = clipStartedAt?.addingTimeInterval(trimmed.start)  // the first frame moved
+      // The first frame moved. A cut gap breaks the clip's clock past it, so the set gets none, as a paused
+      // recording's does (#83): heart rate at the playhead would read seconds early after the cut.
+      currentClipStartedAt = trimmed.spans.count > 1 ? nil : clipStartedAt?.addingTimeInterval(trimmed.start)
       log.event(
         "trim",
         [

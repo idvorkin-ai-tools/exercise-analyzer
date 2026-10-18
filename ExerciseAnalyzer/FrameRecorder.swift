@@ -200,11 +200,13 @@ enum VideoFile {
 
   /// Joins same-orientation segments without re-encoding: one composition track, each segment's full range in
   /// turn, a passthrough export, the first segment's preferred transform kept on the track. A plain pause
-  /// mid-set joins this way (seconds, no quality loss); rotating across it still takes `stitch` (#67).
+  /// mid-set joins this way (seconds, no quality loss); rotating across it still takes `stitch` (#67). Sound
+  /// comes along when a segment has it: a trim of an imported clip into runs (#83) must not go silent.
   static func join(_ urls: [URL], progress: (@Sendable (Double) -> Void)? = nil) async throws -> URL {
     let composition = AVMutableComposition()
     guard let track = composition.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid)
     else { throw VideoFileError.exportFailed("no composition track") }
+    var audio: AVMutableCompositionTrack?
     var cursor = CMTime.zero
     var keptTransform: CGAffineTransform?
     for url in urls {
@@ -212,7 +214,15 @@ enum VideoFile {
       guard let source = try await asset.loadTracks(withMediaType: .video).first else { continue }
       let duration = try await asset.load(.duration)
       if keptTransform == nil { keptTransform = try await source.load(.preferredTransform) }
-      try track.insertTimeRange(CMTimeRange(start: .zero, duration: duration), of: source, at: cursor)
+      let range = CMTimeRange(start: .zero, duration: duration)
+      try track.insertTimeRange(range, of: source, at: cursor)
+      if let sound = try await asset.loadTracks(withMediaType: .audio).first {
+        if audio == nil {
+          audio = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid)
+        }
+        // The sound can end a little before the picture; inserting past its end throws.
+        try audio?.insertTimeRange(range.intersection(try await sound.load(.timeRange)), of: sound, at: cursor)
+      }
       cursor = CMTimeAdd(cursor, duration)
     }
     guard cursor != .zero else { throw VideoFileError.exportFailed("no video in segments") }
