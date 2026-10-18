@@ -220,8 +220,10 @@ enum VideoFile {
         if audio == nil {
           audio = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid)
         }
-        // The sound can end a little before the picture; inserting past its end throws.
-        try audio?.insertTimeRange(range.intersection(try await sound.load(.timeRange)), of: sound, at: cursor)
+        // The sound can start a little after the picture or end before it: inserting past its ends throws, and
+        // its own start keeps it in sync with the picture.
+        let heard = range.intersection(try await sound.load(.timeRange))
+        try audio?.insertTimeRange(heard, of: sound, at: CMTimeAdd(cursor, heard.start))
       }
       cursor = CMTimeAdd(cursor, duration)
     }
