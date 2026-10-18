@@ -36,7 +36,7 @@ extension VideoPoseSession {
         screen: { [unowned self] in self.bugScreen },
         context: { [unowned self] in
           // The moment of the shake: the frame comes from the clip and playhead as they were when the sheet opened.
-          self.bugClip = self.source == .camera ? nil : self.currentFileURL.map { ($0, self.currentTime) }
+          self.bugClip = self.source == .camera ? nil : self.clip.map { ($0.url, self.currentTime) }
           return self.bugContext()
         },
         sessionLog: { ("logs/\(log.url.lastPathComponent)", Int(Date().timeIntervalSince(log.startedAt) * 1000)) },
@@ -87,8 +87,8 @@ extension VideoPoseSession {
       "reps": .int(reps.count),
       "phase": .string(latestFrame?.analysis?.phase ?? "–"),
     ]
-    if let id = currentEntryID { context["recents_id"] = .string(id) }
-    if let url = trimmedURL ?? currentFileURL { context["clip"] = .string(url.lastPathComponent) }
+    if let id = clip?.entryID { context["recents_id"] = .string(id) }
+    if let url = clip?.playing { context["clip"] = .string(url.lastPathComponent) }
     if let detection {
       context["detected"] = .string(detection.exercise.rawValue)
       context["detected_confidence"] = .int(detection.confidence)
