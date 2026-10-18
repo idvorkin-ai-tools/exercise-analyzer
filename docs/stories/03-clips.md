@@ -164,7 +164,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Then:** the clip keeps the 5 s padding before the first rep and after the last, keeps 1 s on each side of the cut and drops the rest of the gap (10.7 of the 12.7 s), the runs are joined the way a paused recording's segments are joined (story 040), the rep numbers run on across the join, a hand trim replays the stored poses on the joined clip with no second pass (the trim after a recording analyzes the joined clip, as it does a trimmed one today), and the log's `trim` names the runs and the seconds kept; an imported clip keeps its sound across the join, and the set shows no heart rate at the playhead after a cut, as a paused recording does, since its clock past the cut is gone
 
 - **Scenario:** A set with one run
-- **Given:** a set whose reps have no gap longer than the threshold
+- **Given:** a set whose reps have no gap longer than the threshold, or a set of anything but swings (a get-up's or a pull-up's rest between reps is part of the set)
 - **When:** it is trimmed
 - **Then:** nothing changes from today's trim
 

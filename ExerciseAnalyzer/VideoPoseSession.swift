@@ -2863,9 +2863,13 @@ final class VideoPoseSession: NSObject, ObservableObject {
       return
     }
     activity = .working("Trimming", progress: 0)
-    // A set in two halves keeps each run and loses the walk between (#83, story 049).
-    let runs = analyzed.repRuns(
-      padding: Self.trimPadding, joinPadding: Self.trimJoinPadding, gap: Self.trimRunGap, duration: clipDuration)
+    // A swing set in two halves keeps each run and loses the walk between (#83, story 049). Only swings: a get-up
+    // or a pull-up rests longer than 6 s between reps, and that rest is part of the set.
+    let runs =
+      analyzed.exercise == .kettlebellSwing
+      ? analyzed.repRuns(
+        padding: Self.trimPadding, joinPadding: Self.trimJoinPadding, gap: Self.trimRunGap, duration: clipDuration)
+      : [span]
     log.event(
       "trim_start",
       [
