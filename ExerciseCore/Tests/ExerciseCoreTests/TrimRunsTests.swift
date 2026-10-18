@@ -85,6 +85,54 @@ final class TrimRunsTests: XCTestCase {
     XCTAssertFalse(joined.track.frames.isEmpty)
   }
 
+  /// The decision is "more than 6 s with no rep splits": exactly 6 s stays one run, 6.1 s splits.
+  func testTheGapSplitsOnlyPastSixSeconds() {
+    let six = pipeline([rep(1, 4, 10), rep(2, 16, 17)])
+    XCTAssertEqual(six.repRuns(padding: 5, joinPadding: 1, gap: 6, duration: 51).count, 1)
+    let past = pipeline([rep(1, 4, 10), rep(2, 16.1, 17)])
+    let runs = past.repRuns(padding: 5, joinPadding: 1, gap: 6, duration: 51)
+    XCTAssertEqual(runs.count, 2)
+    XCTAssertEqual(runs[0].end, 11, accuracy: 0.001)
+    XCTAssertEqual(runs[1].start, 15.1, accuracy: 0.001)
+  }
+
+  /// A real swing track (swing-pickup-10reps, Igor's count of 10) done twice with a 12.7 s walk between, the
+  /// analyzer run over the whole: two runs, the walk cut, the joined set keeps every counted rep in order.
+  func testARealSwingSetInTwoHalvesCutsTheWalk() throws {
+    let half = try XCTUnwrap(Fixture.all.first { $0.name == "swing-pickup-10reps" }).frames()
+    let length = try XCTUnwrap(half.last?.time) + 1 / 30
+    let walk = (0..<381).map { i in
+      FrameRecord(
+        time: length + Double(i) / 30, imageSize: half[0].imageSize, pose: nil, box: nil, analysis: nil)
+    }
+    let second = half.map {
+      FrameRecord(
+        time: $0.time + length + 12.7, imageSize: $0.imageSize, pose: $0.pose, box: $0.box, analysis: nil,
+        bells: $0.bells, bell: $0.bell, bench: $0.bench)
+    }
+    let duration = 2 * length + 12.7
+    let set = AnalysisPipeline.analyze(frames: half + walk + second, exercise: .kettlebellSwing)
+    // The second half's hike after 12.7 s of no pose is not counted (19 of 20): a counting question, not the trim's.
+    let firstHalf = set.reps.filter { $0.endTime <= length }
+    let secondHalf = set.reps.filter { $0.startTime >= length + 12.7 }
+    XCTAssertGreaterThanOrEqual(firstHalf.count, 9)
+    XCTAssertGreaterThanOrEqual(secondHalf.count, 9)
+    XCTAssertEqual(firstHalf.count + secondHalf.count, set.reps.count)
+    let runs = set.repRuns(padding: 5, joinPadding: 1, gap: 6, duration: duration)
+    XCTAssertEqual(runs.count, 2)
+    XCTAssertEqual(runs[0].end, try XCTUnwrap(firstHalf.last).endTime + 1, accuracy: 0.001)
+    XCTAssertEqual(runs[1].start, try XCTUnwrap(secondHalf.first).startTime - 1, accuracy: 0.001)
+    XCTAssertLessThan(runs[0].end, length + 12.7)  // the cut falls inside the walk
+    XCTAssertGreaterThan(runs[1].start, length)
+    let joined = set.joined(spans: runs)
+    XCTAssertEqual(joined.reps.map(\.number), Array(1...set.reps.count))
+    let kept = runs.reduce(0) { $0 + $1.end - $1.start }
+    XCTAssertLessThan(kept, duration - 6)
+    let times = joined.track.frames.map(\.time)
+    XCTAssertEqual(times, times.sorted())
+    XCTAssertLessThanOrEqual(try XCTUnwrap(joined.reps.last).endTime, kept)
+  }
+
   /// One span is today's shift.
   func testJoiningOneSpanIsShifting() {
     let set = twoHalves
