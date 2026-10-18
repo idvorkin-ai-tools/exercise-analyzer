@@ -3,8 +3,8 @@
 //  Rep gallery, ported from swing-analyzer's RepGalleryWidget / RepGalleryModal: rows of reps × phase thumbnails.
 //  Tap a thumbnail to seek, tap a phase header to zoom that column, select reps in the sheet to compare.
 
-import SwiftUI
 import ExerciseCore
+import SwiftUI
 
 /// Inline gallery shown under the video.
 struct RepGalleryWidget: View {
@@ -20,7 +20,9 @@ struct RepGalleryWidget: View {
 
   /// The rep and column under the playhead, nil between reps.
   private var reached: PlayheadPosition? {
-    guard let rep = reps.first(where: { $0.number == currentRep }), let phase = rep.phase(at: playhead) else { return nil }
+    guard let rep = reps.first(where: { $0.number == currentRep }), let phase = rep.phase(at: playhead) else {
+      return nil
+    }
     return PlayheadPosition(rep: rep.number, phase: phase)
   }
 
@@ -36,15 +38,9 @@ struct RepGalleryWidget: View {
                   rep: rep, columns: columns, isCurrent: rep.number == currentRep, focusedPhase: focusedPhase,
                   width: width, height: rep.number == focusedRep ? 150 : 72,
                   onSeek: onSeek,
-                  onFocus: { phase in
+                  onFocus: {
                     withAnimation(.easeInOut(duration: 0.2)) {
-                      if focusedRep == rep.number && focusedPhase == phase {
-                        focusedRep = nil
-                        focusedPhase = nil
-                      } else {
-                        focusedRep = rep.number
-                        focusedPhase = phase
-                      }
+                      focusedRep = focusedRep == rep.number ? nil : rep.number
                     }
                   },
                   onOpen: onOpen
@@ -61,8 +57,9 @@ struct RepGalleryWidget: View {
         .onChange(of: currentRep) { _, rep in
           if let rep { withAnimation { proxy.scrollTo(rep, anchor: .center) } }
         }
-        // Each new position the playhead reaches gets the double tap's zoom (#152); a double tap still picks
-        // another until the playhead moves on, and between reps the last zoom stays.
+        // Each new position the playhead reaches grows its row and widens its column (#152); a tap on a rep's
+        // number or a phase header still picks another until the playhead moves on, and between reps the last
+        // zoom stays.
         .onChange(of: reached) { _, reached in
           guard let reached else { return }
           withAnimation(.easeInOut(duration: 0.2)) {
@@ -140,16 +137,21 @@ struct RepRow: View {
   let width: CGFloat
   let height: CGFloat
   let onSeek: (RepPosition) -> Void
-  var onFocus: ((String) -> Void)? = nil
+  var onFocus: (() -> Void)? = nil
   var onOpen: ((RepPosition) -> Void)? = nil
 
   var body: some View {
     HStack(spacing: GalleryLayout.spacing) {
-      VStack(spacing: 2) {
-        Text("\(rep.number)\(rep.sideLabel)").font(.headline.monospacedDigit())
-        Text("\(rep.quality.score)").font(.caption2).foregroundStyle(.secondary)
+      // The rep's number grows its row, and a second tap puts it back (#174: it was a double-tap on a still).
+      if let onFocus {
+        number
+          .contentShape(Rectangle())
+          .onTapGesture { onFocus() }
+          .accessibilityAddTraits(.isButton)
+          .accessibilityHint("Grows this rep's row")
+      } else {
+        number
       }
-      .frame(width: GalleryLayout.gutter)
       ForEach(columns, id: \.id) { phase in
         PoseThumbnail(position: rep.positions[phase.id])
           .frame(
@@ -157,7 +159,7 @@ struct RepRow: View {
               for: phase.id, focused: focusedPhase, count: columns.count, totalWidth: width),
             height: height
           )
-          .onTapGesture(count: 2) { onFocus?(phase.id) }
+          // No double-tap (#174, Igor's pick): it made every tap wait it out; the phase header widens a column.
           .onTapGesture {
             if let position = rep.positions[phase.id] { onSeek(position) }
           }
@@ -172,6 +174,15 @@ struct RepRow: View {
     .padding(.vertical, 2)
     .background(isCurrent ? Color.accentColor.opacity(0.15) : Color.clear)
     .clipShape(RoundedRectangle(cornerRadius: 6))
+  }
+
+  private var number: some View {
+    VStack(spacing: 2) {
+      Text("\(rep.number)\(rep.sideLabel)").font(.headline.monospacedDigit())
+      Text("\(rep.quality.score)").font(.caption2).foregroundStyle(.secondary)
+    }
+    .frame(width: GalleryLayout.gutter)
+    .frame(maxHeight: .infinity)
   }
 }
 

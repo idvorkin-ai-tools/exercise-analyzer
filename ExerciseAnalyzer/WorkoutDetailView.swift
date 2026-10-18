@@ -322,7 +322,7 @@ private struct WorkoutPageView: View {
     }
     .setDeletionDialog($deleting) { onDelete?($0) }
     .setByHandSheet(
-      $editing, onSave: { onKeepByHand?($0, $1, $2) },
+      $editing, onSave: { onKeepByHand?($0, $1, $2) }, onSetBellKg: onSetBellKg,
       onDelete: onDelete
     )
     .sheet(item: $weighing) { entry in

@@ -1,7 +1,7 @@
 // Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 
 //  #152: as the playhead moves through a rep, the gallery zooms the position it has reached, the same zoom a
-//  double tap gives. The rule is which column that is.
+//  tap on a rep's number and a phase header gives. The rule is which column that is.
 
 import CoreGraphics
 import XCTest
@@ -40,6 +40,7 @@ final class RepGalleryFollowTests: XCTestCase {
   }
 
   func testARepWithNoPositionsHasNoColumn() {
-    XCTAssertNil(RepRecord(number: 1, positions: [:], quality: RepQuality(score: 0, metrics: [:], feedback: [])).phase(at: 1))
+    let rep = RepRecord(number: 1, positions: [:], quality: RepQuality(score: 0, metrics: [:], feedback: []))
+    XCTAssertNil(rep.phase(at: 1))
   }
 }

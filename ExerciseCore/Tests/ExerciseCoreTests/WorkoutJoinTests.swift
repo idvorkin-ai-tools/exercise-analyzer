@@ -40,6 +40,18 @@ final class WorkoutJoinTests: XCTestCase {
     XCTAssertEqual(saved.sessions().map(\.start), [shownStart])
   }
 
+  /// The earlier session already merged two parts with a gap between them: its average weighs by the parts' time
+  /// (as `sessions()` does), not by its span, so the gap does not count as heart rate (ea-4md).
+  func testAMergedSessionWeighsByItsPartsNotItsSpan() {
+    let index = WorkoutIndex(workouts: [
+      StoredWorkout(id: "a", start: date(0), end: date(600), heartRateAverage: 100, sets: 1, reps: 1),
+      StoredWorkout(id: "b", start: date(1800), end: date(2400), heartRateAverage: 140, sets: 1, reps: 1),
+    ])
+    let live = WorkoutWire(startedAt: 2460, heartRateAverage: 160, sets: 1, reps: 1)
+    // 600 s at 100, 600 s at 140 and 1200 s at 160: 140. By the 2400 s span it would read 133.
+    XCTAssertEqual(index.joining(live, now: date(2460 + 1200)).live?.heartRateAverage, 140)
+  }
+
   func testNoJoinAfterHalfAnHourOrWithNothingRunning() {
     let index = WorkoutIndex(workouts: [first])
     let late = WorkoutWire(startedAt: 1440 + 1800, sets: 1, reps: 5)
