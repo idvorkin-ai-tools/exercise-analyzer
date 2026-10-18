@@ -75,8 +75,6 @@ final class SyncStore: ObservableObject {
   static let containerID = "iCloud.com.idvorkin.exerciseanalyzer"
   @Published private(set) var status = SyncStatus()
   private static let ledgerKey = "syncMirrored"
-  /// The iCloud account the ledger was written under (#226): the archived `ubiquityIdentityToken`.
-  private static let identityKey = "syncIdentity"
   private static let deviceKey = "syncDeviceID"
 
   /// This device's id on the rows it writes, made once; a reinstall is a new device, whose rows the old id's
@@ -96,11 +94,8 @@ final class SyncStore: ObservableObject {
   /// What the container holds, by id: the fingerprint of the row or workout it was written from, "deleted" for
   /// a tombstone. Kept across launches so only changes are written.
   private var ledger: [String: String]
-  /// Bumped when the ledger is reset for another account: a pass begun before keeps its prints out of the new
-  /// ledger, since it wrote to the old account's container (#226).
-  private var ledgerGeneration = 0
-  /// Bumped by each container lookup: only the newest attaches, so a launch lookup still blocked when the account
-  /// changed cannot put the old container back over the new one (Codex on PR #287).
+  /// Bumped by each container lookup: only the newest attaches, so a launch lookup still blocked when iCloud signed
+  /// in cannot detach the container the later lookup found (Codex on PR #287).
   private var lookup = 0
   private var mirroring = false
   private var again = false
@@ -116,7 +111,6 @@ final class SyncStore: ObservableObject {
     self.workouts = workouts
     self.log = log
     ledger = UserDefaults.standard.dictionary(forKey: Self.ledgerKey) as? [String: String] ?? [:]
-    scopeLedger(why: "launch")
     recents.$entries.dropFirst().receive(on: DispatchQueue.main).sink { [weak self] _ in self?.mirrorChanges() }
       .store(in: &cancellables)
     workouts.$index.dropFirst().receive(on: DispatchQueue.main).sink { [weak self] _ in self?.mirrorChanges() }
@@ -180,43 +174,13 @@ final class SyncStore: ObservableObject {
     }
   }
 
-  /// `NSUbiquityIdentityDidChange`: the iCloud account came, went or changed; the token says whether one is there.
-  /// Another account's container starts empty, so the ledger goes with the old one, and the container is looked up
-  /// again: one that was not there at launch is attached now, not at the next launch (#226).
+  /// `NSUbiquityIdentityDidChange`: iCloud signed in or out; the token says whether an account is there. The
+  /// container is looked up again, so one that was not there at launch is attached now, not at the next launch
+  /// (#226). One lifter, one account (Igor, 2026-10-17: "Get rid of account switching"): the ledger is kept.
   private func accountChanged() {
     status.accountSignedIn = FileManager.default.ubiquityIdentityToken != nil
     note("sync_account_changed", ["account": status.accountSignedIn, "container": container != nil])
-    scopeLedger(why: "account_changed")
-    if ProcessInfo.processInfo.environment["SWING_SYNC_DIR"] == nil {
-      container = nil
-      status.containerAvailable = false
-      lookUpContainer()
-    }
-  }
-
-  /// Keeps the ledger only under the account it was written for (`SyncLedgerScope`), and stores that account.
-  private func scopeLedger(why: String) {
-    let token = FileManager.default.ubiquityIdentityToken.flatMap {
-      try? NSKeyedArchiver.archivedData(withRootObject: $0, requiringSecureCoding: false)
-    }
-    let scope = SyncLedgerScope.resolve(
-      ledger: ledger, writtenUnder: UserDefaults.standard.data(forKey: Self.identityKey), signedIn: token,
-      same: { a, b in
-        let tokens = [a, b].map { data -> NSObject? in
-          guard let reader = try? NSKeyedUnarchiver(forReadingFrom: data) else { return nil }
-          reader.requiresSecureCoding = false
-          return reader.decodeObject(forKey: NSKeyedArchiveRootObjectKey) as? NSObject
-        }
-        guard let first = tokens[0], let second = tokens[1] else { return a == b }
-        return first.isEqual(second)
-      })
-    if let identity = scope.identity { UserDefaults.standard.set(identity, forKey: Self.identityKey) }
-    guard scope.reset else { return }
-    note("sync_ledger_reset", ["why": why, "dropped": ledger.count])
-    ledger = scope.ledger
-    ledgerGeneration += 1
-    UserDefaults.standard.set(ledger, forKey: Self.ledgerKey)
-    status.mirrored = 0
+    if ProcessInfo.processInfo.environment["SWING_SYNC_DIR"] == nil { lookUpContainer() }
   }
 
   private var heartbeat: Timer?
@@ -327,7 +291,6 @@ final class SyncStore: ObservableObject {
     for (id, at) in workouts.deleted { jobs.append(.tombstone(id: "workout:" + id, at: at)) }
     guard !jobs.isEmpty else { return }
     mirroring = true
-    let generation = ledgerGeneration
     let started = Date()
     var kinds = (sets: 0, workouts: 0, tombstones: 0)
     for job in jobs {
@@ -375,20 +338,13 @@ final class SyncStore: ObservableObject {
         }
       }
       await MainActor.run {
-        // Another account since the pass began (#226): what it wrote went to the old container, so neither its
-        // prints nor its tombstones count; the deletes stay pending for the retry (Codex on PR #287).
-        let sameAccount = self.ledgerGeneration == generation
-        if sameAccount {
-          for (id, print) in done { self.ledger[id] = print }
-          let sets = stones.filter { self.recents.deleted[$0.id] == $0.at }.map(\.id)
-          self.recents.clearDeleted(sets)
-          self.recents.undelete(sets.filter(skipped.contains))
-          self.workouts.clearDeleted(
-            stones.filter { $0.id.hasPrefix("workout:") }.map { (id: String($0.id.dropFirst(8)), at: $0.at) }
-              .filter { self.workouts.deleted[$0.id] == $0.at }.map(\.id))
-        } else {
-          self.again = true
-        }
+        for (id, print) in done { self.ledger[id] = print }
+        let sets = stones.filter { self.recents.deleted[$0.id] == $0.at }.map(\.id)
+        self.recents.clearDeleted(sets)
+        self.recents.undelete(sets.filter(skipped.contains))
+        self.workouts.clearDeleted(
+          stones.filter { $0.id.hasPrefix("workout:") }.map { (id: String($0.id.dropFirst(8)), at: $0.at) }
+            .filter { self.workouts.deleted[$0.id] == $0.at }.map(\.id))
         UserDefaults.standard.set(self.ledger, forKey: Self.ledgerKey)
         let ms = Int(Date().timeIntervalSince(started) * 1000)
         self.status.mirrored = self.ledger.count
@@ -436,8 +392,7 @@ final class SyncStore: ObservableObject {
   /// not, and fires again as files arrive; everything not yet local is asked for. A plain folder (`SWING_SYNC_DIR`)
   /// is polled instead.
   private func startReading() {
-    // Once: a container looked up again after an account change (#226) keeps the running query, whose
-    // ubiquitous scope follows the account by itself.
+    // Once: a container looked up again when iCloud signs in or out (#226) keeps the running query.
     guard container != nil, query == nil, poll == nil else { return }
     if ProcessInfo.processInfo.environment["SWING_SYNC_DIR"] != nil {
       poll = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
