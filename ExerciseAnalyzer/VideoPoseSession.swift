@@ -115,6 +115,8 @@ final class VideoPoseSession: NSObject, ObservableObject {
   /// replay once, under the stored models, and the refresh leaves the set alone until this build's models change.
   /// Without it the set stayed models-changed and was fetched and replayed on every launch (599F988A, 7 launches on
   /// 2026-10-10). Opening the set still goes back to its video when the clip is there.
+  /// ponytail: an iCloud-only clip that fails to download (offline at launch) is given up on like a deleted one;
+  /// the set keeps its old models until opened or the next model change. Tell the two apart if that bites.
   private static let refreshGaveUpKey = "refreshGaveUp"
   private var pipeline = AnalysisPipeline(exercise: .kettlebellSwing)
   /// Poses of the loaded clip (offline pass or Recents), kept so a different exercise can be analyzed instantly.
