@@ -29,8 +29,12 @@ struct WorkoutGalleryView: View {
   /// Test hook: every day folded, for a screenshot of the folded headers (#129; the simulator cannot scroll).
   @State private var foldAllForScreenshot = ProcessInfo.processInfo.environment["SWING_WORKOUTS_FOLDED"] == "1"
   /// Once per launch (#123): the log lands on the running workout's page; "‹" from it is the day list, and the
-  /// list re-appearing after that must not push the page again.
-  @State private var landedOnLive = false
+  /// list re-appearing after that must not push the page again. The app's, not the view's: the list is built twice
+  /// at launch (ea-trz: two `workouts_appear` with landed false), and a second life must not land or run the launch
+  /// hooks again.
+  private static var landed = false
+  /// This view life's id in `workouts_appear` (ea-trz), so two lives at launch show as two ids.
+  @State private var life = String(UUID().uuidString.prefix(4))
   /// The workout line whose "Delete workout…" is being confirmed (065).
   @State private var deletingWorkout: StoredWorkout?
   /// What Health or the list refused while deleting, said once.
@@ -255,13 +259,14 @@ struct WorkoutGalleryView: View {
       Text(workoutDeletionFailure ?? "")
     }
     .onAppear {
-      // ea-trz: the launch hooks below ran twice on 2026-10-17 (two `workout_deleted`); a second appear with
-      // landed false is a new view life, whose @State started over.
-      onEvent?("workouts_appear", ["landed": landedOnLive])
+      // ea-trz: life tells a new view life from a re-appear, empty which branch of the body is up.
+      onEvent?(
+        "workouts_appear",
+        ["landed": Self.landed, "life": life, "empty": days.isEmpty && suggestions.clips.isEmpty])
       suggestions.onEvent = onEvent
       suggestions.refresh(known: knownPhotosIDs)
-      guard !landedOnLive else { return }
-      landedOnLive = true
+      guard !Self.landed else { return }
+      Self.landed = true
       // Mid-workout, the app opens on the workout (#123; Igor, from the gym: "if I'm in a live workout take me
       // back to live workout"): the running workout's page, the day list one "‹" behind it.
       if let live = workouts.liveWorkout {
