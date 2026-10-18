@@ -91,9 +91,13 @@ final class FrameRecorder: @unchecked Sendable {
     await withCheckedContinuation { continuation in
       queue.async { [self] in
         guard let writer, sessionStarted, writer.status == .writing else {
-          onError?(
-            "finish with nothing to write: started \(sessionStarted), status \(writer?.status.rawValue ?? -1), \(String(describing: writer?.error))"
-          )
+          // A recorder that never got a frame is a pause's suspended one, not a failure (#77); a set that ends
+          // with no file at all is logged by its caller.
+          if sessionStarted {
+            onError?(
+              "finish with nothing to write: started \(sessionStarted), status \(writer?.status.rawValue ?? -1), \(String(describing: writer?.error))"
+            )
+          }
           continuation.resume(returning: nil)
           return
         }
