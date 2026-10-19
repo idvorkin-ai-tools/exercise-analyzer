@@ -236,7 +236,9 @@ struct ContentView: View {
           reps: session.reps, columns: session.exercise.definition.galleryOrder,
           currentRep: session.currentRep?.number
         ) { position in
-          chromeSeek(to: position.time, from: "keyframe_viewer")
+          PlayerRouteView.chromeSeek(
+            to: position.time, from: "keyframe_viewer", session: session, isScrubbing: $isScrubbing,
+            scrubTime: $scrubTime)
         }
       }
       .sheet(item: $sharing) { clip in
@@ -623,6 +625,12 @@ private struct PlayerRouteView: View {
   /// frame falls inside, the running one included (#123). Nil for the camera, a clip that is not a stored set,
   /// or a set outside every workout.
   private var workoutOfLoadedSet: StoredWorkout? {
+    Self.workoutOfLoadedSet(session: session, path: path, workouts: workouts)
+  }
+
+  static func workoutOfLoadedSet(
+    session: VideoPoseSession, path: [AppRoute], workouts: WorkoutMirror
+  ) -> StoredWorkout? {
     guard session.source == .file else { return nil }
     if path.count > 1, case .workout(let under) = path[path.count - 2] {
       return under.resolve(live: workouts.shownLive, saved: workouts.sessions, now: Date())
@@ -644,11 +652,15 @@ private struct PlayerRouteView: View {
 
   /// The workout's page: popped back to when the set was opened from it, else put on screen in the set's place.
   private func backToWorkout(_ workout: StoredWorkout) {
+    Self.backToWorkout(workout, session: session, path: $path)
+  }
+
+  static func backToWorkout(_ workout: StoredWorkout, session: VideoPoseSession, path: Binding<[AppRoute]>) {
     let identity = WorkoutIdentity(start: workout.start)
-    let fromPage = path.count > 1 && path[path.count - 2] == .workout(identity)
+    let fromPage = path.wrappedValue.count > 1 && path.wrappedValue[path.wrappedValue.count - 2] == .workout(identity)
     session.log.event("ui", ["action": "back_to_workout", "from_page": fromPage])
     session.pause()
-    if fromPage { path.removeLast() } else { path = [.workout(identity)] }
+    if fromPage { path.wrappedValue.removeLast() } else { path.wrappedValue = [.workout(identity)] }
   }
 
   /// The count's face, for its letter height: the top line's other pieces are sized and set against it.
@@ -1013,8 +1025,15 @@ private struct PlayerRouteView: View {
   /// scrub-in-progress state belongs to a drag, so a tap elsewhere ends it and the clock follows the
   /// playhead instead of a stale slider value (#54).
   private func chromeSeek(to time: Double, from source: String) {
-    isScrubbing = false
-    scrubTime = time
+    Self.chromeSeek(to: time, from: source, session: session, isScrubbing: $isScrubbing, scrubTime: $scrubTime)
+  }
+
+  static func chromeSeek(
+    to time: Double, from source: String, session: VideoPoseSession, isScrubbing: Binding<Bool>,
+    scrubTime: Binding<Double>
+  ) {
+    isScrubbing.wrappedValue = false
+    scrubTime.wrappedValue = time
     session.seek(to: time, from: source)
   }
 
@@ -1303,30 +1322,6 @@ private struct PlayerRouteView: View {
 }
 
 extension ContentView {
-  private func chromeSeek(to time: Double, from source: String) {
-    isScrubbing = false
-    scrubTime = time
-    session.seek(to: time, from: source)
-  }
-
-  private var workoutOfLoadedSet: StoredWorkout? {
-    guard session.source == .file else { return nil }
-    if path.count > 1, case .workout(let under) = path[path.count - 2] {
-      return under.resolve(live: workouts.shownLive, saved: workouts.sessions, now: Date())
-    }
-    guard let start = session.currentEntry?.span.lowerBound else { return nil }
-    if let live = workouts.liveWorkout, live.contains(start) { return live }
-    return workouts.sessions.last { $0.contains(start) }
-  }
-
-  private func backToWorkout(_ workout: StoredWorkout) {
-    let identity = WorkoutIdentity(start: workout.start)
-    let fromPage = path.count > 1 && path[path.count - 2] == .workout(identity)
-    session.log.event("ui", ["action": "back_to_workout", "from_page": fromPage])
-    session.pause()
-    if fromPage { path.removeLast() } else { path = [.workout(identity)] }
-  }
-
   /// The screen a report names: the log, a workout's page, the player, or the camera.
   private static func bugScreen(path: [AppRoute], source: VideoPoseSession.Source) -> String {
     switch path.last {
@@ -1384,8 +1379,8 @@ extension ContentView {
         if env["SWING_BACK_TO_WORKOUT"] == "1" {
           Task { @MainActor in
             try? await Task.sleep(for: .seconds(4))
-            if let workout = workoutOfLoadedSet {
-              backToWorkout(workout)
+            if let workout = PlayerRouteView.workoutOfLoadedSet(session: session, path: path, workouts: workouts) {
+              PlayerRouteView.backToWorkout(workout, session: session, path: $path)
             } else {
               session.log.event("ui", ["action": "back_to_workout_missing"])
             }

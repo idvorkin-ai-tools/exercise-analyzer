@@ -35,9 +35,9 @@ final class WatchBridge: NSObject {
   private static let inboxSetsTakenKey = "watchInboxRecovered"
   private var lastInboxRun = Date.distantPast
   private(set) var reachable = false
-  /// The last command, status, heartbeat or scene message from the watch (#142); not published, as heartbeats
+  /// The last command, status, heartbeat or scene message from the watch (#142); not observed, as heartbeats
   /// arrive every second.
-  private(set) var lastContact: Date?
+  @ObservationIgnored private(set) var lastContact: Date?
   var onContact: (() -> Void)?
   /// The wrist's Retry, by queued user info (#189).
   var onRetry: (() -> Void)?
