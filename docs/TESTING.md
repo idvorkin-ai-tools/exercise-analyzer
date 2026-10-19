@@ -177,6 +177,7 @@ read from the environment (pass them through `simctl` as `SIMCTL_CHILD_<name>`):
 | `SWING_INTERRUPT_READER=<frame>` | fail the first pass at that frame with `readerFailed("Operation Interrupted")`, like a backgrounded decoder (#57) |
 | `SWING_MODE=<exercise\|auto>` | switch exercise 2 s after an interrupted pass, proving a mode switch re-runs the clip (#57); launch-only, persists no default, and every smoke check resets the mode default first |
 | `SWING_OPEN_RECENT=1` | reopen the newest Recents entry |
+| `SWING_OPEN_RECENT=<A>,<B>` | `1,2` for the two newest: open A as a tap does, play 4 s, leave by "‹", open B as a tap does, in one launch (`hook_second_open` marks the second). `ONLY=second_open just test-sim` asks that the player's `hud_reps` showed B's set and count: on iOS 27 a pushed player that did not observe the session kept A's HUD over B's video (2026-10-18) |
 | `SWING_BUG=text` | BugKit's launch hook: save a bug report 2 s after launch; `first\|second` saves two from the one picture, as "Log it and another" does (#212), and the `bug_again` smoke check reads both lines of bugs.jsonl for the id, the screenshot, `frame.jpg` among `files`, the typed context and two distinct folders |
 | `SWING_SHAKE_AFTER=8` | BugKit's launch hook: open the report sheet 8 s after launch, for a screenshot of its buttons (#212) |
 | `SWING_SHOW_GALLERY=1` | open the rep gallery sheet on launch (gallery screenshots, #61) |
