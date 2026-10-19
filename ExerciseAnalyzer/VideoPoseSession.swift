@@ -16,6 +16,7 @@ import BugKit
 import Combine
 import CoreMedia
 import ExerciseCore
+import Observation
 import Photos
 import PhotosUI
 import QuartzCore
@@ -24,7 +25,8 @@ import UIKit
 import UltralyticsYOLO
 
 @MainActor
-final class VideoPoseSession: NSObject, ObservableObject {
+@Observable
+final class VideoPoseSession: NSObject {
   enum Source {
     case none, file, camera
   }
@@ -46,7 +48,7 @@ final class VideoPoseSession: NSObject, ObservableObject {
   let player = AVPlayer()
   let log: SessionLog
   /// Shake to report, BugKit's reporter with this app's hooks (BugReport.swift); made on first use.
-  private(set) lazy var bugReporter: BugReporter = makeBugReporter()
+  @ObservationIgnored private(set) lazy var bugReporter: BugReporter = makeBugReporter()
   /// The screen the report names, kept current by ContentView: workouts, workout, player or camera.
   var bugScreen = "workouts"
   /// The clip and playhead when the report sheet opened, for its `frame.jpg`.
@@ -60,50 +62,50 @@ final class VideoPoseSession: NSObject, ObservableObject {
   /// Recordings into Photos by themselves, and the backlog once approved (story 070, step 3).
   private var exporter: PhotosExporter?
   /// The one-time ask about the sets recorded before step 3, whose clips live only here.
-  @Published var photosExportPrompt = false
+  var photosExportPrompt = false
   private var refreshing = false
   /// Both models and their compute plans behind one readiness gate (#52 step 4); kicks loading on creation.
   let models: ModelSet
 
-  @Published private(set) var source: Source = .none
-  @Published private(set) var activity: Activity = .idle
-  @Published private(set) var statusMessage: String?
-  @Published private(set) var latestFrame: FrameRecord?
-  @Published private(set) var reps: [RepRecord] = []
-  @Published private(set) var lastQuality: RepQuality?
-  @Published private(set) var fps = 0.0
-  @Published private(set) var isPlaying = false
-  @Published private(set) var currentTime = 0.0
-  @Published private(set) var duration = 0.0
-  @Published private(set) var cameraPreviewLayer: AVCaptureVideoPreviewLayer?
-  @Published private(set) var cameraPosition: AVCaptureDevice.Position = .back
-  @Published private(set) var cameraZoom: Double = 1
+  private(set) var source: Source = .none
+  private(set) var activity: Activity = .idle
+  private(set) var statusMessage: String?
+  private(set) var latestFrame: FrameRecord?
+  private(set) var reps: [RepRecord] = []
+  private(set) var lastQuality: RepQuality?
+  private(set) var fps = 0.0
+  private(set) var isPlaying = false
+  private(set) var currentTime = 0.0
+  private(set) var duration = 0.0
+  private(set) var cameraPreviewLayer: AVCaptureVideoPreviewLayer?
+  private(set) var cameraPosition: AVCaptureDevice.Position = .back
+  private(set) var cameraZoom: Double = 1
   /// Watch mode: the phone shows big digits readable from across the room and is driven from the wrist. It only
   /// exists while a set is being recorded and ends with the set (#36).
-  @Published private(set) var watchMode = false
+  private(set) var watchMode = false
   /// The lifter left watch mode on the phone this set: the watch coming to the front must not switch back (#68).
   private var watchModeDeclined = false
   /// The current camera start was asked from the watch: enter watch mode once it attaches (#68).
   private var startRequestedFromWatch = false
   /// Whether the athlete is inside the picture (live camera only); mirrored to the watch.
-  @Published private(set) var frameStatus = FrameStatus(box: nil, pose: nil)
+  private(set) var frameStatus = FrameStatus(box: nil, pose: nil)
   let watch = WatchBridge()
-  @Published private(set) var canSave = false
+  private(set) var canSave = false
   /// Normalized image rect to zoom to for the "me view": stable over a replayed track, slowly adapting while live.
-  @Published private(set) var personCrop: CGRect?
+  private(set) var personCrop: CGRect?
   /// Where the lifter's eyes are in a replayed track (normalized y), so the zoom keeps them under the HUD's header
   /// (#98); nil while live, where the crop comes from the person box and the zoom reads the eyes off its padding.
-  @Published private(set) var personEyeLine: CGFloat?
+  private(set) var personEyeLine: CGFloat?
   /// The bell detector's switch as the menu shows it (story 034, #85); ModelSet holds the truth.
-  @Published private(set) var bellDetectorOn = ModelSet.bellDetectorEnabled
+  private(set) var bellDetectorOn = ModelSet.bellDetectorEnabled
   /// Which exercise the lifter chose (or Auto), and the exercise currently being analyzed.
-  @Published private(set) var exerciseMode: ExerciseMode
+  private(set) var exerciseMode: ExerciseMode
   /// The wrist said no videos for a while (071, #236): shown over Live, which still works; nothing else changes
   /// here, the mode is the watch's.
-  @Published private(set) var noVideos = false
-  @Published private(set) var exercise: ExerciseKind = .kettlebellSwing
-  @Published private(set) var detection: ExerciseDetection?
-  @Published var rate: Float = 1.0 {
+  private(set) var noVideos = false
+  private(set) var exercise: ExerciseKind = .kettlebellSwing
+  private(set) var detection: ExerciseDetection?
+  var rate: Float = 1.0 {
     didSet { if isPlaying { player.rate = rate } }
   }
 
@@ -125,7 +127,7 @@ final class VideoPoseSession: NSObject, ObservableObject {
   /// without re-scanning (story 003). False during a pass and after any failure, so a switch re-runs (#57).
   private var extractionComplete = false
   /// Set when a pass fails (not on cancel): the status line offers a retry and the HUD shows a gym-sized button.
-  @Published private(set) var analysisInterrupted = false
+  private(set) var analysisInterrupted = false
   /// Frames the interrupted pass had reported via heartbeats; logged with `offline_interrupted` (#57).
   private var passFramesSeen = 0
   private let liveDetector = ExerciseDetector()
@@ -176,7 +178,7 @@ final class VideoPoseSession: NSObject, ObservableObject {
   private var cameraFramesDelivered = 0
   private var cameraFramesAnalyzed = 0
   /// Pause state (#67): the clip, the count and the elapsed time freeze while the camera keeps running.
-  @Published private(set) var paused = false
+  private(set) var paused = false
   /// Seconds cut out by pauses so far, and the camera pts when the current pause began (nil between pauses).
   private var pausedTotal = 0.0
   private var pausedAt: Double?
@@ -192,7 +194,7 @@ final class VideoPoseSession: NSObject, ObservableObject {
     }
   }
   /// A Photos clip was just trimmed: the view offers to replace the original in Photos right away (#90).
-  @Published var replaceOriginalPrompt = false
+  var replaceOriginalPrompt = false
   private typealias Operation = ClipOperation<Origin>
   private var clipOperations = ClipOperationSlot<Origin>()
 
@@ -257,7 +259,7 @@ final class VideoPoseSession: NSObject, ObservableObject {
   /// When the recorder took its first frame of the set being recorded.
   private var recordingStartedAt: Date?
   /// Heart rate around the current clip, from Health (051); nil when the set was not inside a workout.
-  @Published private(set) var heartRate: HeartRateSeries?
+  private(set) var heartRate: HeartRateSeries?
   /// "♥ 141" for the HUD: the reading at the playhead, nil when there is none within 15 s of it.
   var heartRateAtPlayhead: Int? {
     guard let start = clip?.startedAt, source == .file else { return nil }
@@ -378,8 +380,14 @@ final class VideoPoseSession: NSObject, ObservableObject {
     // A set typed on the wrist (059): a Workouts entry with no clip, once per id however often it arrives.
     watch.onHandSet = { [weak self] set, road in self?.addByHand(set, from: road) ?? false }
     watch.recoverInbox()
-    WorkoutMirror.shared.$live.map { $0 != nil }.removeDuplicates().dropFirst().receive(on: DispatchQueue.main)
-      .sink { [weak self] _ in self?.updateKeepAwake() }.store(in: &cancellables)
+    var hadWorkout = WorkoutMirror.shared.live != nil
+    workoutObservation = MainQueueObservation(
+      read: { WorkoutMirror.shared.live != nil },
+      onChange: { [weak self] active in
+        guard active != hadWorkout else { return }
+        hadWorkout = active
+        self?.updateKeepAwake()
+      })
     watch.onExercise = { [weak self] mode in
       guard let self else { return }
       self.log.event("ui", ["action": "exercise", "from": "watch", "mode": mode])
@@ -466,18 +474,20 @@ final class VideoPoseSession: NSObject, ObservableObject {
         }
       }
     }
-    watch.$reachable.dropFirst().receive(on: DispatchQueue.main).sink { [weak self] _ in self?.updateKeepAwake() }
-      .store(in: &cancellables)
-    watch.$watchActive.dropFirst().receive(on: DispatchQueue.main).sink { [weak self] active in
-      guard let self, active, self.source == .camera else { return }
-      // A set started on the phone switches the moment the watch app comes to the front (#68); leaving on the
-      // phone declines for the rest of the set, and idle or playback stays refused as before (#36 stands).
-      if self.watchModeDeclined {
-        self.log.event("watch_mode_refused", ["from": "watch_front", "reason": "declined"])
-      } else {
-        self.setWatchMode(true, from: "watch_front")
-      }
-    }.store(in: &cancellables)
+    reachableObservation = MainQueueObservation(
+      read: { [watch] in watch.reachable }, onChange: { [weak self] _ in self?.updateKeepAwake() })
+    watchActiveObservation = MainQueueObservation(
+      read: { [watch] in watch.watchActive },
+      onChange: { [weak self] active in
+        guard let self, active, self.source == .camera else { return }
+        // A set started on the phone switches the moment the watch app comes to the front (#68); leaving on the
+        // phone declines for the rest of the set, and idle or playback stays refused as before (#36 stands).
+        if self.watchModeDeclined {
+          self.log.event("watch_mode_refused", ["from": "watch_front", "reason": "declined"])
+        } else {
+          self.setWatchMode(true, from: "watch_front")
+        }
+      })
     Task {
       await refreshStaleEntries()
       // Step 3 of story 070: the clips of sets left behind go to Photos; the backlog is asked about once.
@@ -1207,11 +1217,11 @@ final class VideoPoseSession: NSObject, ObservableObject {
     /// Of the set under way, 0–1 (the pass's own progress).
     var progress = 0.0
   }
-  @Published private(set) var instrumentedRun: InstrumentedRun?
+  private(set) var instrumentedRun: InstrumentedRun?
   private var instrumentedRunCancelled = false
-  @Published private(set) var canCancelAnalysis = false
+  private(set) var canCancelAnalysis = false
   /// Set after an analysis that found no reps in a recording made by this app: offer to delete it.
-  @Published var emptyRecordingPrompt = false
+  var emptyRecordingPrompt = false
 
   /// Stops the offline pass; the clip stays loaded (paused) with no analysis and nothing saved.
   func cancelAnalysis() {
@@ -2045,14 +2055,17 @@ final class VideoPoseSession: NSObject, ObservableObject {
   private var lastSet: LastSet?
   private var analyzingLastSet = false
   /// The camera is up for framing only: the pipeline runs but the recorder does not (story 047, #73).
-  @Published private(set) var viewfinder = false
+  private(set) var viewfinder = false
   /// When the viewfinder attached, for the `viewfinder_s` framing seconds on `record_start`.
   private var viewfinderSince: Date?
   /// The camera last ended by Cancel, not Done: Cancel goes back to where the camera was opened from (058, #146).
   private(set) var cameraCancelled = false
   private var cancellables = Set<AnyCancellable>()
+  private var workoutObservation: MainQueueObservation<Bool>?
+  private var reachableObservation: MainQueueObservation<Bool>?
+  private var watchActiveObservation: MainQueueObservation<Bool>?
   private var keepAwake = KeepAwake.idle
-  private lazy var dimmer: ScreenDimmer = {
+  @ObservationIgnored private lazy var dimmer: ScreenDimmer = {
     let dimmer = ScreenDimmer()
     dimmer.onEvent = { [weak self] in self?.log.event($0, $1) }
     return dimmer
@@ -2695,7 +2708,7 @@ final class VideoPoseSession: NSObject, ObservableObject {
 
   /// What a trim replaced, so it can be undone (file mode only).
   private typealias Untrimmed = LoadedClip<Origin>.Untrimmed
-  @Published private(set) var canUndoTrim = false
+  private(set) var canUndoTrim = false
 
   /// The undo is ending: an in-app set's stash served only it (#199), so it goes rather than sit as a second
   /// full-size copy beside the trimmed clip. A Photos replace's stash is kept (it is not marked `stashedFor`).

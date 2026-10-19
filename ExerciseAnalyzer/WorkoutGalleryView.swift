@@ -10,9 +10,9 @@ import ExerciseCore
 import SwiftUI
 
 struct WorkoutGalleryView: View {
-  @ObservedObject var store: RecentsStore
+  let store: RecentsStore
   /// The workouts the watch ran (048): a day that had one carries its line under the header.
-  @ObservedObject var workouts: WorkoutMirror
+  let workouts: WorkoutMirror
   let onOpen: (RecentEntry) -> Void
   /// Opens a Photos video that has not been analyzed yet (identifier and creation date).
   var onImport: ((String, Date?) -> Void)? = nil
@@ -23,7 +23,7 @@ struct WorkoutGalleryView: View {
   var onWhatsNew: (() -> Void)? = nil
   /// Pushes a workout's page (053), from a tap on its line, or on landing mid-workout (#123).
   let onOpenWorkout: (StoredWorkout) -> Void
-  @StateObject private var suggestions = PhotosSuggestions()
+  @State private var suggestions = PhotosSuggestions()
   /// The days folded or opened by hand, kept across launches (#121); the rest follow the age rule in `DayFolds`.
   @AppStorage("workoutDayFolds") private var foldsStored = "{}"
   /// Test hook: every day folded, for a screenshot of the folded headers (#129; the simulator cannot scroll).
@@ -395,7 +395,7 @@ struct DayFilterButton: View {
 
 /// Recent set-sized videos in Photos: one tap opens a new one in place, or the set an analyzed one became.
 struct PhotosSuggestionsRow<Trailing: View>: View {
-  @ObservedObject var suggestions: PhotosSuggestions
+  let suggestions: PhotosSuggestions
   /// Sits at the line's right end: the filter button (#282, Igor picked A: "maybe on the same line as photos").
   @ViewBuilder var trailing: Trailing
   let onImport: (PhotosSuggestions.Clip) -> Void
@@ -818,7 +818,7 @@ struct WrappingHStack: Layout {
 /// One exercise on one day: icon, name, totals, and a horizontal strip of set cards.
 struct ExerciseSetsRow: View {
   let group: ExerciseSets
-  @ObservedObject var store: RecentsStore
+  let store: RecentsStore
   let onOpen: (RecentEntry) -> Void
   /// Deletes the set once the dialog is confirmed (#111); the session does it, so a set on screen is let go of.
   let onDelete: (RecentEntry) -> Void

@@ -7,7 +7,7 @@
 import SwiftUI
 
 struct SyncStatusView: View {
-  @ObservedObject var sync: SyncStore
+  let sync: SyncStore
   @Environment(\.dismiss) private var dismiss
 
   var body: some View {

@@ -1,8 +1,8 @@
 // Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 
-import Combine
 import ExerciseCore
 import Foundation
+import Observation
 import WatchConnectivity
 import WatchKit
 import WidgetKit
@@ -10,20 +10,21 @@ import WidgetKit
 /// Watch side of the connection: receives WatchStatus from the phone, sends WatchCommand back, taps the wrist
 /// when the lifter leaves the frame and on every rep.
 @MainActor
-final class PhoneLink: NSObject, ObservableObject {
-  @Published private(set) var status = WatchStatus.idle
-  @Published private(set) var reachable = false
-  @Published private(set) var lastError: String?
-  @Published private(set) var receivedAt: Date?
+@Observable
+final class PhoneLink: NSObject {
+  private(set) var status = WatchStatus.idle
+  private(set) var reachable = false
+  private(set) var lastError: String?
+  private(set) var receivedAt: Date?
   /// Latest preview frame from the phone (about 1 fps while recording).
-  @Published private(set) var preview: UIImage?
+  private(set) var preview: UIImage?
   /// The last set typed here (story 059): the last-set line shows it while it is newer than the phone's
   /// `lastSet`; the next set that rolls clears it, as the phone clears its own.
-  @Published private(set) var handSet: HandSet?
+  private(set) var handSet: HandSet?
   /// Workout only, no videos (071, #236; Igor: "not going to record videos for a while"): the wrist offers no
   /// Record or Preview and keeps pinging the phone but shows nothing about it until it is turned off. Kept
   /// across launches; the phone hears it through the application context.
-  @Published private(set) var noVideos = UserDefaults.standard.bool(forKey: PhoneLink.noVideosKey)
+  private(set) var noVideos = UserDefaults.standard.bool(forKey: PhoneLink.noVideosKey)
   private static let noVideosKey = "noVideos"
   static let noVideosContextKey = "no_videos"
   /// The last set typed here, kept through filmed sets and relaunches: the count page reopens on it (#183).
@@ -54,7 +55,6 @@ final class PhoneLink: NSObject, ObservableObject {
   private(set) var rest: RestTimer!
   /// The workout on the wrist (story 048): its own HealthKit session, fed the set transitions heard here.
   private(set) var workout: WorkoutController!
-  private var cancellables: Set<AnyCancellable> = []
 
   /// Status older than this is stale: the phone app may be gone without having sent an idle status.
   static let maxStatusAge: TimeInterval = 8
@@ -134,7 +134,7 @@ final class PhoneLink: NSObject, ObservableObject {
   }
 
   /// Retry is at work: the button says so.
-  @Published private(set) var retrying = false
+  private(set) var retrying = false
   private var retryTask: Task<Void, Never>?
   /// How many times Retry sends its message, a second apart, unless the phone answers first.
   static let retryAttempts = 5
@@ -179,8 +179,7 @@ final class PhoneLink: NSObject, ObservableObject {
     rest = RestTimer { [weak self] type, fields in self?.logEvent(type, fields) }
     workout = WorkoutController(
       log: { [weak self] type, fields in self?.logEvent(type, fields) }, screenshot: WatchScreenshotState.launch)
-    // The view observes the link; the workout's changes (heart rate, sets) redraw through it.
-    workout.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+    // Views track the workout's heart rate and sets directly through Observation.
     // The phone's status also comes through the workout session while one runs (#189).
     workout.onPhoneData = { [weak self] data in self?.apply(["status": data], via: "workout") }
     // A set that finished analyzing while the app was down arrived before the workout was back, and was not

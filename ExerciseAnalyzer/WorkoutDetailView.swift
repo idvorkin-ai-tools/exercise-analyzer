@@ -11,8 +11,8 @@ import SwiftUI
 
 struct WorkoutDetailView: View {
   let identity: WorkoutIdentity
-  @ObservedObject var store: RecentsStore
-  @ObservedObject var workouts: WorkoutMirror
+  let store: RecentsStore
+  let workouts: WorkoutMirror
   let onOpen: (RecentEntry) -> Void
   var thumbnail: (RecentEntry) -> UIImage? = { _ in nil }
   var onEvent: ((String, [String: Any]) -> Void)? = nil

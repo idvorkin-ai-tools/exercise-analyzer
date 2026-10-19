@@ -10,10 +10,10 @@
 //  tombstone), the later change winning. The clip itself travels by iCloud Photos (step 3). The device's own
 //  Documents stay the source of truth; the container is a copy, so an iCloud outage costs nothing but freshness.
 
-import Combine
 import CryptoKit
 import ExerciseCore
 import Foundation
+import Observation
 import Photos
 import UIKit
 
@@ -71,9 +71,10 @@ struct SyncStatus: Equatable {
 }
 
 @MainActor
-final class SyncStore: ObservableObject {
+@Observable
+final class SyncStore {
   static let containerID = "iCloud.com.idvorkin.exerciseanalyzer"
-  @Published private(set) var status = SyncStatus()
+  private(set) var status = SyncStatus()
   private static let ledgerKey = "syncMirrored"
   private static let deviceKey = "syncDeviceID"
 
@@ -104,17 +105,18 @@ final class SyncStore: ObservableObject {
   private var readAgain: Int?
   private var query: NSMetadataQuery?
   private var poll: Timer?
-  private var cancellables: Set<AnyCancellable> = []
+  private var entriesObservation: MainQueueObservation<[RecentEntry]>?
+  private var indexObservation: MainQueueObservation<WorkoutIndex>?
 
   init(recents: RecentsStore, workouts: WorkoutMirror, log: @escaping (String, [String: Any]) -> Void) {
     self.recents = recents
     self.workouts = workouts
     self.log = log
     ledger = UserDefaults.standard.dictionary(forKey: Self.ledgerKey) as? [String: String] ?? [:]
-    recents.$entries.dropFirst().receive(on: DispatchQueue.main).sink { [weak self] _ in self?.mirrorChanges() }
-      .store(in: &cancellables)
-    workouts.$index.dropFirst().receive(on: DispatchQueue.main).sink { [weak self] _ in self?.mirrorChanges() }
-      .store(in: &cancellables)
+    entriesObservation = MainQueueObservation(
+      read: { recents.entries }, onChange: { [weak self] _ in self?.mirrorChanges() })
+    indexObservation = MainQueueObservation(
+      read: { workouts.index }, onChange: { [weak self] _ in self?.mirrorChanges() })
     workouts.onHeartRateSaved = { [weak self] in self?.mirrorChanges() }  // a fuller series, no row change (#225)
     // SWING_SYNC_DIR=<path> (simulator, docs/TESTING.md): a plain folder stands in for the container, which
     // the simulator has no iCloud account for; a second simulator can read the same folder (step 2).

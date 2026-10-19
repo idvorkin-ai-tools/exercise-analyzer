@@ -4,8 +4,9 @@
 //  with the wrist down the app is suspended, so the tap at length is a scheduled local notification; two
 //  haptic taps cover the app-in-front case, both, never neither.
 
-import Foundation
 import ExerciseCore
+import Foundation
+import Observation
 import SwiftUI
 import UserNotifications
 import WatchKit
@@ -13,12 +14,15 @@ import WatchKit
 /// Counts the rest since the last set ended. Driven by `PhoneLink`: set when the phone's `rolling` goes
 /// true→false (a set ended; a Preview neither starts nor ends a rest, 047), cleared when it goes true or on Record.
 @MainActor
-final class RestTimer: ObservableObject {
+@Observable
+final class RestTimer {
   /// When the last set ended; nil while recording or before the first set.
   var restEnded: Date? { state.endedAt }
-  @Published private var state = RestTimerState()
+  private var state = RestTimerState()
   /// Rest length in seconds, a watch setting (story 046).
-  @AppStorage("restLength") var length = 90
+  var length = UserDefaults.standard.object(forKey: "restLength") as? Int ?? 90 {
+    didSet { UserDefaults.standard.set(length, forKey: "restLength") }
+  }
   static let choices = [60, 90, 120, 180]
   nonisolated static let requestID = "rest-over"
 
@@ -28,8 +32,10 @@ final class RestTimer: ObservableObject {
   /// In-front double tap at length (the notification covers suspended).
   private var tapTask: Task<Void, Never>?
 
-  init(notifications: RestNotifications = SystemRestNotifications(),
-       log: @escaping (String, [String: Any]) -> Void) {
+  init(
+    notifications: RestNotifications = SystemRestNotifications(),
+    log: @escaping (String, [String: Any]) -> Void
+  ) {
     self.notifications = notifications
     self.log = log
   }
@@ -72,7 +78,10 @@ final class RestTimer: ObservableObject {
 
   /// Record (or a new set going true): stop counting, drop the tap.
   func clear() {
-    guard restEnded != nil else { cancel(); return }
+    guard restEnded != nil else {
+      cancel()
+      return
+    }
     state.clear()
     cancel()
     log("rest_cleared", [:])
