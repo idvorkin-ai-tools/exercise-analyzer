@@ -309,7 +309,14 @@ struct ContentView: View {
     }
   }
 
-  @ViewBuilder private func page(_ route: AppRoute) -> some View {
+  /// A pushed page observes the session itself: iOS 27 builds a `navigationDestination` once from the parent and
+  /// no longer re-runs it when the parent's `@StateObject` publishes, so the player kept the HUD it was pushed with
+  /// (2026-10-18: the previous set's count, clock and skeleton over the new set's video).
+  private func page(_ route: AppRoute) -> some View {
+    Observing(session: session) { pageContent(route) }
+  }
+
+  @ViewBuilder private func pageContent(_ route: AppRoute) -> some View {
     switch route {
     case .workout(let workout):
       WorkoutDetailView(
@@ -951,6 +958,11 @@ struct ContentView: View {
         // One line whatever else the top line holds (the workout sign, the ♥ chip): a wrap pushes the pills down
         // over the lifter (#98).
         Text("reps · " + session.exercise.definition.name).lineLimit(1).minimumScaleFactor(0.7)
+          // The set and count the HUD shows, logged when it appears and whenever either changes: the stale player
+          // of 2026-10-18 never logged the second set's.
+          .task(id: "\(session.currentEntry?.id ?? "")/\(session.reps.count)") {
+            session.log.event("hud_reps", ["id": session.currentEntry?.id ?? "", "reps": session.reps.count])
+          }
         if session.exerciseMode == .auto {
           Image(systemName: "wand.and.stars").font(.caption2)
         }
@@ -1292,7 +1304,25 @@ struct ContentView: View {
         stacksUp = true
       }
     }
-    if let wanted = env["SWING_OPEN_RECENT"], !wanted.isEmpty {
+    if let pair = env["SWING_OPEN_RECENT"]?.split(separator: ","), pair.count == 2 {
+      // Test hook: "<A>,<B>" (or "1,2", the two newest) opens A as a tap does, plays 4 s, leaves it by "‹", then
+      // opens B as a tap does, all in one launch: the second open of a session (2026-10-18, the stale HUD).
+      let ids = pair.map(String.init)
+      let entries = session.recents.entries.filter { !$0.isByHand }
+      let pick = { (id: String) in
+        id == "1" ? entries.first : id == "2" ? entries.dropFirst().first : entries.first { $0.id == id }
+      }
+      if let first = pick(ids[0]), let second = pick(ids[1]) {
+        openSet(first)
+        Task { @MainActor in
+          try? await Task.sleep(for: .seconds(4))
+          leavePlayer()
+          try? await Task.sleep(for: .seconds(2))
+          session.log.event("hook_second_open", ["first": first.id, "second": second.id])
+          openSet(second)
+        }
+      }
+    } else if let wanted = env["SWING_OPEN_RECENT"], !wanted.isEmpty {
       // Test hook: reopen a Recents entry, the newest for "1" or the one with this id (a long clip for a memory run).
       let entry = wanted == "1" ? session.recents.entries.first : session.recents.entries.first { $0.id == wanted }
       if let entry {
@@ -1350,6 +1380,13 @@ struct ContentView: View {
       }
     }
   }
+}
+
+/// Re-runs `content` whenever the session publishes: what a pushed page needs to stay live (see `page`).
+private struct Observing<Content: View>: View {
+  @ObservedObject var session: VideoPoseSession
+  @ViewBuilder let content: () -> Content
+  var body: some View { content() }
 }
 
 /// Hands the content the zoom that puts the lifter (`crop`, a normalized rect in image space) in the middle of the

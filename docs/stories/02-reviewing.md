@@ -9,7 +9,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 005:
 
 - **Summary:** See the numbers over the video while it plays
-- **Status:** implemented in [2abe7f2](https://github.com/idvorkin/exercise-analyzer/commit/2abe7f2), [32182ec](https://github.com/idvorkin/exercise-analyzer/commit/32182ec); verified by simulator screenshot and on the phone
+- **Status:** implemented in [2abe7f2](https://github.com/idvorkin/exercise-analyzer/commit/2abe7f2), [32182ec](https://github.com/idvorkin/exercise-analyzer/commit/32182ec); verified by simulator screenshot and on the phone; one set after another (ea-nq0) in [6221fc0](https://github.com/idvorkin/exercise-analyzer/commit/6221fc0), verified on the simulator (`second_open` fails without the fix, passes with it), not yet on the phone
 
 #### Use Case:
 - **As a** lifter reviewing a set
@@ -27,7 +27,12 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **When:** I look at the head
 - **Then:** the nose and both ears are drawn with a nose–ear line on each side and no eye dots or eye bones; the count and the analysis are unchanged
 
-- **Issues:** [#62](https://github.com/idvorkin/exercise-analyzer/issues/62) the skeleton should not draw the eyes, the nose is plenty
+- **Scenario:** One set after another
+- **Given:** I opened a set from Workouts, played it, and went back with "‹"
+- **When:** I open another set
+- **Then:** the count, the phase, the angles, the clock and the skeleton are the new set's as it plays, never the last one's left over its video; the log's `hud_reps` names the set and count the HUD shows, and the simulator's `second_open` check opens two sets in one launch and asks that the HUD showed the second set with its count
+
+- **Issues:** [#62](https://github.com/idvorkin/exercise-analyzer/issues/62) the skeleton should not draw the eyes, the nose is plenty; Igor's three reports of 2026-10-18 15:43–15:54 ("Model tracking is completely broken", "Everything seems really broken. What tests where missing"): on iOS 27 the pushed player drew once and never again, so each set showed the previous one's HUD and skeleton over its own video
 
 ---
 

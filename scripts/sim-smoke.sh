@@ -61,6 +61,23 @@ check_trim() {  # clip expected-reps wait-seconds: auto-trims after analysis, ex
     echo "ok    trim $1: passthrough, start $start (asked $req), first frame at ${first}s, $reps reps"
   else echo "FAIL  trim $1: passthrough=$pass start=$start asked=$req first_frame=$first reps=$reps (wanted $2)"; fail=1; fi
 }
+check_second_open() {  # the two newest stored sets, one after the other in one launch: the pushed player must
+  # follow the second (2026-10-18: on iOS 27 it kept the first's HUD, count, clock and skeleton over B's video)
+  reset_mode
+  local index; index="$(dirname "$LOGS")/recents/index.json"
+  local want; want=$(jq -r '[.[] | select(.source.byHand == null)][1].repCount // empty' "$index" 2>/dev/null)
+  SIMCTL_CHILD_SWING_OPEN_RECENT="1,2" xcrun simctl launch "$SIM" "$BUNDLE" >/dev/null
+  sleep 3
+  wait_for hook_second_open 60 || echo "      (timed out waiting for the second open)"
+  sleep 5  # the second set loads and plays; the HUD logs its count when it changes
+  local f; f=$(newest_log)
+  local shown
+  shown=$(jq -sr '([.[] | select(.type=="hook_second_open")][0]) as $open
+    | [.[] | select(.type=="hud_reps" and .t >= $open.t and .id == $open.second)][-1].reps // empty' "$f")
+  if [ -n "$want" ] && [ "$shown" = "$want" ]; then
+    echo "ok    second_open: the player shows the second set's $shown reps"
+  else echo "FAIL  second_open: HUD shows '${shown}' reps after the second open, the set has '${want}'"; fail=1; fi
+}
 check_cancel() {  # clip wait-seconds: cancels one second into the analysis (#37), expects the pass to stop within 3 s
   reset_mode
   SIMCTL_CHILD_SWING_VIDEO="$SAMPLES/$1.mp4" SIMCTL_CHILD_SWING_CANCEL_ANALYSIS=1 xcrun simctl launch "$SIM" "$BUNDLE" >/dev/null
@@ -254,6 +271,7 @@ run check_clip_switch render
 run check_clip_switch mode
 run check_clip_switch photos
 run check_clip_switch trim
+run check_second_open
 check_photos_export() {  # 070 step 3: once approved, clips of sets not on screen go to Photos, and a set reopens from there
   reset_mode
   xcrun simctl privacy "$SIM" grant photos "$BUNDLE" >/dev/null 2>&1 || true
