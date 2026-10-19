@@ -7,12 +7,14 @@
 import AVFoundation
 import ExerciseCore
 import Foundation
+import Observation
 import Photos
 import UIKit
 
 @MainActor
-final class RecentsStore: ObservableObject {
-  @Published private(set) var entries: [RecentEntry] = []
+@Observable
+final class RecentsStore {
+  private(set) var entries: [RecentEntry] = []
   /// What was wrong with index.json at launch, if anything; the session logs it.
   let indexDamage: IndexDamage?
 
@@ -52,14 +54,15 @@ final class RecentsStore: ObservableObject {
   func entry(id: String) -> RecentEntry? { entries.first { $0.id == id } }
 
   #if targetEnvironment(simulator)
-  /// In-memory rows for the live page check; no video, analysis, or user's index is overwritten.
-  func seedWorkoutPageSet(id: String, start: Date) {
-    entries.removeAll { $0.id == id }
-    entries.append(RecentEntry(
-      id: id, analyzedAt: Date(), recordedAt: start, duration: 1, repCount: 8, bestScore: nil,
-      source: .file(name: "seed.mov"), thumbnail: nil, exercise: .kettlebellSwing, originalName: nil,
-      clipStartedAt: start))
-  }
+    /// In-memory rows for the live page check; no video, analysis, or user's index is overwritten.
+    func seedWorkoutPageSet(id: String, start: Date) {
+      entries.removeAll { $0.id == id }
+      entries.append(
+        RecentEntry(
+          id: id, analyzedAt: Date(), recordedAt: start, duration: 1, repCount: 8, bestScore: nil,
+          source: .file(name: "seed.mov"), thumbnail: nil, exercise: .kettlebellSwing, originalName: nil,
+          clipStartedAt: start))
+    }
   #endif
 
   /// Adds or replaces an entry, writing its analysis, rep images, and (for file sources) the clip itself.
@@ -119,7 +122,8 @@ final class RecentsStore: ObservableObject {
           guard let data = UIImage(cgImage: image).jpegData(compressionQuality: 0.8) else {
             throw CocoaError(.fileWriteUnknown)
           }
-          try data.write(to: dir.appendingPathComponent(Self.imageName(rep: rep.number, phase: phase)), options: .atomic)
+          try data.write(
+            to: dir.appendingPathComponent(Self.imageName(rep: rep.number, phase: phase)), options: .atomic)
         }
       }
       if let thumbnail {
@@ -197,7 +201,9 @@ final class RecentsStore: ObservableObject {
     if let identifier = entry.photosIdentifier {
       PhotosSuggestions.ignore(identifier: identifier)
       // Another device's set: the asset is known here by this device's identifier (#222).
-      if let cloud = entry.cloudIdentifier, let local = Self.localIdentifier(cloud: cloud) { PhotosSuggestions.ignore(identifier: local) }
+      if let cloud = entry.cloudIdentifier, let local = Self.localIdentifier(cloud: cloud) {
+        PhotosSuggestions.ignore(identifier: local)
+      }
     }
     var kept = entry.keptByHand(exercise: exercise, reps: reps)
     Self.touch(&kept)
@@ -315,8 +321,10 @@ final class RecentsStore: ObservableObject {
         number: rep.number,
         positions: rep.positions.mapValues { position in
           var restored = position
-          restored.image = UIImage(
-            contentsOfFile: dir.appendingPathComponent(Self.imageName(rep: rep.number, phase: position.phase)).path)?.cgImage
+          restored.image =
+            UIImage(
+              contentsOfFile: dir.appendingPathComponent(Self.imageName(rep: rep.number, phase: position.phase)).path)?
+            .cgImage
           return restored
         },
         quality: rep.quality)
@@ -372,7 +380,8 @@ final class RecentsStore: ObservableObject {
   /// has brought here. One Photos call for the lot.
   static func localIdentifiers(forCloud clouds: [String]) -> [String] {
     guard !clouds.isEmpty else { return [] }
-    let mappings = PHPhotoLibrary.shared().localIdentifierMappings(for: clouds.map { PHCloudIdentifier(stringValue: $0) })
+    let mappings = PHPhotoLibrary.shared().localIdentifierMappings(
+      for: clouds.map { PHCloudIdentifier(stringValue: $0) })
     return mappings.values.compactMap { try? $0.get() }
   }
 

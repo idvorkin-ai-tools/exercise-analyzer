@@ -8,7 +8,7 @@ import UserNotifications
 
 @main
 struct ExerciseAnalyzerWatchApp: App {
-  @StateObject private var phone = PhoneLink()
+  @State private var phone = PhoneLink()
 
   init() {
     // A rest tap firing while the app is in front must not banner: the haptic already fired (story 046).

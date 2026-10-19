@@ -7,7 +7,7 @@ import ExerciseCore
 import SwiftUI
 
 struct KeyframeViewer: View {
-  @ObservedObject var session: VideoPoseSession
+  let session: VideoPoseSession
   @Environment(\.dismiss) private var dismiss
   // Shares the main view's overlay mode so the eye button means the same thing everywhere.
   @AppStorage("overlayMode") private var overlayModeRaw = OverlayMode.both.rawValue
@@ -33,8 +33,10 @@ struct KeyframeViewer: View {
               Text("Rep \(rep.number) · \(rep.quality.score)/100").font(.headline)
             }
             if let checkpoint = session.currentCheckpoint {
-              Text(session.exercise.definition.phase(checkpoint.phase)?.label.uppercased() ?? checkpoint.phase.uppercased())
-                .font(.caption.bold())
+              Text(
+                session.exercise.definition.phase(checkpoint.phase)?.label.uppercased() ?? checkpoint.phase.uppercased()
+              )
+              .font(.caption.bold())
             }
             if let metrics = session.latestFrame?.analysis?.metrics {
               Text(
@@ -67,12 +69,36 @@ struct KeyframeViewer: View {
         Spacer()
 
         HStack(spacing: 28) {
-          Button { session.seekToRep(offset: -1) } label: { Image(systemName: "backward.end.fill") }
-          Button { session.seekToCheckpoint(offset: -1) } label: { Image(systemName: "chevron.left.2") }
-          Button { session.stepFrame(-1) } label: { Image(systemName: "chevron.left") }
-          Button { session.stepFrame(1) } label: { Image(systemName: "chevron.right") }
-          Button { session.seekToCheckpoint(offset: 1) } label: { Image(systemName: "chevron.right.2") }
-          Button { session.seekToRep(offset: 1) } label: { Image(systemName: "forward.end.fill") }
+          Button {
+            session.seekToRep(offset: -1)
+          } label: {
+            Image(systemName: "backward.end.fill")
+          }
+          Button {
+            session.seekToCheckpoint(offset: -1)
+          } label: {
+            Image(systemName: "chevron.left.2")
+          }
+          Button {
+            session.stepFrame(-1)
+          } label: {
+            Image(systemName: "chevron.left")
+          }
+          Button {
+            session.stepFrame(1)
+          } label: {
+            Image(systemName: "chevron.right")
+          }
+          Button {
+            session.seekToCheckpoint(offset: 1)
+          } label: {
+            Image(systemName: "chevron.right.2")
+          }
+          Button {
+            session.seekToRep(offset: 1)
+          } label: {
+            Image(systemName: "forward.end.fill")
+          }
         }
         .font(.title2)
         .foregroundStyle(.white)
@@ -103,7 +129,10 @@ struct ZoomableContainer<Content: View>: View {
           }
           .onEnded { _ in
             baseScale = scale
-            if scale == 1 { withAnimation { offset = .zero } ; baseOffset = .zero }
+            if scale == 1 {
+              withAnimation { offset = .zero }
+              baseOffset = .zero
+            }
           }
           .simultaneously(
             with: DragGesture()

@@ -5,13 +5,14 @@
 //  mirrored to the phone (the Apple way: HKWorkoutSession + HKLiveWorkoutBuilder + startMirroringToCompanionDevice).
 //  The session is what keeps this app alive wrist-down and what writes the one HKWorkout at End.
 
-import Combine
 import ExerciseCore
 import Foundation
 import HealthKit
+import Observation
 
 @MainActor
-final class WorkoutController: NSObject, ObservableObject {
+@Observable
+final class WorkoutController: NSObject {
   enum Phase: Equatable {
     case none
     /// Start tapped: waiting on the Health permission and the session.
@@ -21,16 +22,16 @@ final class WorkoutController: NSObject, ObservableObject {
     case ending
   }
 
-  @Published private(set) var phase: Phase = .none
-  @Published private(set) var startedAt: Date?
-  @Published private(set) var heartRate: Int?
-  @Published private(set) var heartRateAverage: Int?
-  @Published private(set) var heartRateMax: Int?
+  private(set) var phase: Phase = .none
+  private(set) var startedAt: Date?
+  private(set) var heartRate: Int?
+  private(set) var heartRateAverage: Int?
+  private(set) var heartRateMax: Int?
   /// The last recorded set's heart peak: the rest head says how far the heart has come down from it (#195).
-  @Published private(set) var setPeak = SetHeartPeak()
+  private(set) var setPeak = SetHeartPeak()
   /// The workout this one continues (#238): the wrist shows its clock and sets on top of this session's own,
   /// which alone go to Health and the phone.
-  @Published private(set) var carried: WorkoutCarry?
+  private(set) var carried: WorkoutCarry?
   /// The last workout ended on this wrist, for Start's "Continue …?" (#238); nil after a Discard.
   private var lastEnded: WorkoutCarry? = WorkoutController.loadLastEnded()
   /// Continue's carry between Start and the session opening.
@@ -47,17 +48,17 @@ final class WorkoutController: NSObject, ObservableObject {
   }
   /// Analyzed sets since Start and their reps: the phone's post-pass counts (045), never the live count, and the
   /// sets typed by hand (059).
-  @Published private(set) var sets = 0
-  @Published private(set) var reps = 0
+  private(set) var sets = 0
+  private(set) var reps = 0
   /// The sets above by exercise, for the page's "[swing] 3 [get-up] 2" (#206): a filmed set's exercise is the
   /// phone's name for it, a typed set's the one picked on the count page.
-  @Published private(set) var exerciseSets: [ExerciseKind: Int] = [:]
+  private(set) var exerciseSets: [ExerciseKind: Int] = [:]
   /// The exercises above in the order they first appeared, as the phone's Today header orders them (#206).
-  @Published private(set) var exerciseOrder: [ExerciseKind] = []
+  private(set) var exerciseOrder: [ExerciseKind] = []
   /// The phone's `LastSet.at` of the newest filmed set counted above: a set counts once, also when the phone
   /// says it again to an app that restarted and no longer knows what it had heard (#190).
   private var countedSetAt = 0.0
-  @Published private(set) var lastError: String?
+  private(set) var lastError: String?
 
   var running: Bool { phase == .running || phase == .ending }
 

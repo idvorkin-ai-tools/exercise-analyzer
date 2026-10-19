@@ -19,7 +19,7 @@ enum AppRoute: Hashable {
 }
 
 struct ContentView: View {
-  @StateObject private var session = VideoPoseSession()
+  @State private var session = VideoPoseSession()
   @State private var pickerItem: PhotosPickerItem?
   @State private var showFileImporter = false
   @State private var showPhotosPicker = false
@@ -35,13 +35,9 @@ struct ContentView: View {
   /// Middle-hold key stacks (stories 039, #60): up after a middle hold, staying up until a
   /// dismissing tap, a new clip, the clip's end, disappear or an inactive scene.
   @State private var stacksUp = false
-  @State private var middleLeftLit: StepKey? = nil
-  @State private var middleRightLit: StepKey? = nil
-  @State private var middlePulse = 0
   /// The set "Delete set…" was picked on, while its "delete?" dialog is up (#111).
   @State private var deleting: RecentEntry?
   @Environment(\.openURL) private var openURL
-  @Environment(\.horizontalSizeClass) private var sizeClass
   @State private var lastClockLog = Date.distantPast
   @State private var showSyncStatus = false
   /// What's new (story 072): the feed the build wrote into the bundle, and its list.
@@ -55,22 +51,10 @@ struct ContentView: View {
   /// The clip copied for the share sheet, while the sheet is up (#162).
   @State private var sharing: SharedClip?
   @State private var showKeyframeViewer = false
-  @State private var focusedPhase: String?
-  @State private var focusedRep: Int?
   @State private var scrubTime = 0.0
   @State private var isScrubbing = false
-  @AppStorage("overlayMode") private var overlayModeRaw = OverlayMode.both.rawValue
-  private var overlayMode: OverlayMode { OverlayMode(rawValue: overlayModeRaw) ?? .both }
-  @AppStorage("meView") private var meView = true
-  @AppStorage("galleryHeight") private var galleryHeight = 170.0
-  /// The y in the picture area where the HUD's angle text begins: the zoomed lifter's feet stay above it (#98).
-  @State private var hudAngleLineTop: CGFloat?
-  /// The y in the picture area where the HUD's header (count line, phase pills) ends: the zoomed lifter's eyes stay
-  /// below it (#98).
-  @State private var hudHeaderBottom: CGFloat = 0
-  @State private var galleryDragStart: Double?
   /// The watch's workout, mirrored (048): the HUD strip and the Workouts day line read it.
-  @ObservedObject private var workouts = WorkoutMirror.shared
+  private let workouts = WorkoutMirror.shared
 
   private var busy: Bool { session.activity != .idle && session.source != .camera }
 
@@ -115,7 +99,9 @@ struct ContentView: View {
   /// The log at the root, a workout's page and the player pushed over it (story 058; Igor, 2026-09-22: "build
   /// the flow for B"). The app-wide dialogs, pickers and hooks hang here, so they work on every screen.
   private var mainBody: some View {
-    navigation
+    @Bindable var session = session
+    return
+      navigation
       // A shake, ⌘I or the menu's "Report a problem" opens BugKit's sheet over whatever is up (#41). A shake mid-run
       // is the phone being carried, not a report (story 037), so shakes follow the run. The report names its screen.
       .bugReporting(session.bugReporter)
@@ -309,29 +295,22 @@ struct ContentView: View {
     }
   }
 
-  /// A pushed page observes the session itself: iOS 27 builds a `navigationDestination` once from the parent and
-  /// no longer re-runs it when the parent's `@StateObject` publishes, so the player kept the HUD it was pushed with
-  /// (2026-10-18: the previous set's count, clock and skeleton over the new set's video).
-  private func page(_ route: AppRoute) -> some View {
-    Observing(session: session) { pageContent(route) }
-  }
-
-  @ViewBuilder private func pageContent(_ route: AppRoute) -> some View {
+  /// Destinations track their own model reads, so retained pages follow the currently opened set (#294).
+  @ViewBuilder private func page(_ route: AppRoute) -> some View {
     switch route {
     case .workout(let workout):
-      WorkoutDetailView(
-        identity: workout, store: session.recents, workouts: workouts, onOpen: { openSet($0) },
-        thumbnail: { session.recents.thumbnailImage(for: $0) }, onEvent: { session.log.event($0, $1) },
-        onDelete: { session.delete(set: $0, from: "workout_page") },
-        onKeepByHand: { session.keepByHand(set: $0, exercise: $1, reps: $2, from: "workout_page") },
-        onAddByHand: { session.addByHand($0, from: "workout_chart") },
-        onSetBellKg: { session.setBellKg($1, for: $0, from: "workout_page") })
+      WorkoutRouteView(identity: workout, session: session, onOpen: { openSet($0) })
     case .player:
       // Full screen, as the picture always was: the HUD's "‹" is the way back, and the edge swipe stays
       // the frame steppers' (story 030), so the system back and its swipe are off.
-      playerScreen
-        .toolbar(.hidden, for: .navigationBar)
-        .navigationBarBackButtonHidden(true)
+      PlayerRouteView(
+        session: session, path: $path, weighingLoadedSet: $weighingLoadedSet,
+        stacksUp: $stacksUp, deleting: $deleting, showGallery: $showGallery, sharing: $sharing,
+        showKeyframeViewer: $showKeyframeViewer,
+        scrubTime: $scrubTime, isScrubbing: $isScrubbing, leavePlayer: leavePlayer
+      )
+      .toolbar(.hidden, for: .navigationBar)
+      .navigationBarBackButtonHidden(true)
     }
   }
 
@@ -454,10 +433,58 @@ struct ContentView: View {
     (UIApplication.shared.connectedScenes.first as? UIWindowScene)?.keyWindow?.safeAreaInsets.bottom ?? 0
   }
 
+}
+
+/// A destination reads its models inside its own body, including when NavigationStack keeps it alive.
+private struct WorkoutRouteView: View {
+  let identity: WorkoutIdentity
+  let session: VideoPoseSession
+  private let workouts = WorkoutMirror.shared
+  let onOpen: (RecentEntry) -> Void
+
+  var body: some View {
+    WorkoutDetailView(
+      identity: identity, store: session.recents, workouts: workouts, onOpen: onOpen,
+      thumbnail: { session.recents.thumbnailImage(for: $0) }, onEvent: { session.log.event($0, $1) },
+      onDelete: { session.delete(set: $0, from: "workout_page") },
+      onKeepByHand: { session.keepByHand(set: $0, exercise: $1, reps: $2, from: "workout_page") },
+      onAddByHand: { session.addByHand($0, from: "workout_chart") },
+      onSetBellKg: { session.setBellKg($1, for: $0, from: "workout_page") })
+  }
+}
+
+private struct PlayerRouteView: View {
+  @Bindable var session: VideoPoseSession
+  @Binding var path: [AppRoute]
+  @Binding var weighingLoadedSet: RecentEntry?
+  @Binding var stacksUp: Bool
+  @State private var middleLeftLit: StepKey?
+  @State private var middleRightLit: StepKey?
+  @State private var middlePulse = 0
+  @Binding var deleting: RecentEntry?
+  @Binding var showGallery: Bool
+  @Binding var sharing: SharedClip?
+  @Binding var showKeyframeViewer: Bool
+  @State private var focusedPhase: String?
+  @State private var focusedRep: Int?
+  @Binding var scrubTime: Double
+  @Binding var isScrubbing: Bool
+  let leavePlayer: () -> Void
+  private let workouts = WorkoutMirror.shared
+  @Environment(\.horizontalSizeClass) private var sizeClass
+  @AppStorage("overlayMode") private var overlayModeRaw = OverlayMode.both.rawValue
+  @AppStorage("meView") private var meView = true
+  @AppStorage("galleryHeight") private var galleryHeight = 170.0
+  @State private var hudAngleLineTop: CGFloat?
+  @State private var hudHeaderBottom: CGFloat = 0
+  @State private var galleryDragStart: Double?
+  private var overlayMode: OverlayMode { OverlayMode(rawValue: overlayModeRaw) ?? .both }
+  private var busy: Bool { session.activity != .idle && session.source != .camera }
+
   /// The picture, the HUD, the rep gallery and the transport bar: a set or the camera. On a wide screen held
   /// sideways (an iPad in landscape, #53) the gallery stands to the right of the picture, full height, instead of
   /// under it; the picture keeps its place in the tree, so turning the screen does not rebuild the player.
-  private var playerScreen: some View {
+  var body: some View {
     GeometryReader { geo in
       let hasGallery = !session.reps.isEmpty && session.source != .camera
       // An iPad only: a Pro Max phone held sideways is regular width too, and the phone stays as it is.
@@ -1273,6 +1300,32 @@ struct ContentView: View {
     let total = Int(seconds.rounded(.down))
     return String(format: "%d:%02d", total / 60, total % 60)
   }
+}
+
+extension ContentView {
+  private func chromeSeek(to time: Double, from source: String) {
+    isScrubbing = false
+    scrubTime = time
+    session.seek(to: time, from: source)
+  }
+
+  private var workoutOfLoadedSet: StoredWorkout? {
+    guard session.source == .file else { return nil }
+    if path.count > 1, case .workout(let under) = path[path.count - 2] {
+      return under.resolve(live: workouts.shownLive, saved: workouts.sessions, now: Date())
+    }
+    guard let start = session.currentEntry?.span.lowerBound else { return nil }
+    if let live = workouts.liveWorkout, live.contains(start) { return live }
+    return workouts.sessions.last { $0.contains(start) }
+  }
+
+  private func backToWorkout(_ workout: StoredWorkout) {
+    let identity = WorkoutIdentity(start: workout.start)
+    let fromPage = path.count > 1 && path[path.count - 2] == .workout(identity)
+    session.log.event("ui", ["action": "back_to_workout", "from_page": fromPage])
+    session.pause()
+    if fromPage { path.removeLast() } else { path = [.workout(identity)] }
+  }
 
   /// The screen a report names: the log, a workout's page, the player, or the camera.
   private static func bugScreen(path: [AppRoute], source: VideoPoseSession.Source) -> String {
@@ -1380,13 +1433,6 @@ struct ContentView: View {
       }
     }
   }
-}
-
-/// Re-runs `content` whenever the session publishes: what a pushed page needs to stay live (see `page`).
-private struct Observing<Content: View>: View {
-  @ObservedObject var session: VideoPoseSession
-  @ViewBuilder let content: () -> Content
-  var body: some View { content() }
 }
 
 /// Hands the content the zoom that puts the lifter (`crop`, a normalized rect in image space) in the middle of the

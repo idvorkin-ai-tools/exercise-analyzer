@@ -11,7 +11,7 @@ import ExerciseCore
 import SwiftUI
 
 struct WatchModeView: View {
-  @ObservedObject var session: VideoPoseSession
+  let session: VideoPoseSession
 
   var body: some View {
     ZStack {
@@ -49,7 +49,8 @@ struct WatchModeView: View {
         } else {
           Text("IN FRAME").font(.title2.bold()).foregroundStyle(.green)
         }
-        Text(elapsed).font(.system(size: 44, weight: .semibold, design: .rounded).monospacedDigit()).foregroundStyle(.white)
+        Text(elapsed).font(.system(size: 44, weight: .semibold, design: .rounded).monospacedDigit()).foregroundStyle(
+          .white)
         Text(session.exercise.definition.name).font(.title3).foregroundStyle(.gray)
         Spacer()
         Button {

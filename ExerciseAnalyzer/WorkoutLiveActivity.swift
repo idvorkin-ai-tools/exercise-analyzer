@@ -45,6 +45,8 @@ final class WorkoutLiveActivity {
   private var shownAt = Date.distantPast
   private var deferredLogged = false
   private var cancellables = Set<AnyCancellable>()
+  private var liveObservation: MainQueueObservation<WorkoutWire?>?
+  private var entriesObservation: MainQueueObservation<[RecentEntry]>?
 
   private weak var recents: RecentsStore?
 
@@ -58,13 +60,15 @@ final class WorkoutLiveActivity {
     // activity a previous run left up mid-workout; one with no workout behind it goes when the next workout
     // starts (replaced), or iOS takes it down after eight hours.
     if let live = mirror.live { follow(live) }
-    mirror.$live.dropFirst().receive(on: DispatchQueue.main).sink { [weak self] in self?.follow($0) }
-      .store(in: &cancellables)
+    liveObservation = MainQueueObservation(read: { mirror.live }, onChange: { [weak self] in self?.follow($0) })
     NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)
       .sink { [weak self] _ in if let live = mirror.live { self?.follow(live) } }.store(in: &cancellables)
     // A set saved, typed or re-counted changes the reps by exercise and the rest clock's start (#181, #182).
-    recents.$entries.dropFirst().receive(on: DispatchQueue.main)
-      .sink { [weak self] _ in if let live = mirror.live { self?.follow(live) } }.store(in: &cancellables)
+    entriesObservation = MainQueueObservation(
+      read: { recents.entries },
+      onChange: { [weak self] _ in
+        if let live = mirror.live { self?.follow(live) }
+      })
   }
 
   private func follow(_ live: WorkoutWire?) {
@@ -105,9 +109,11 @@ final class WorkoutLiveActivity {
       deferredLogged = false
       onEvent?(
         "live_activity",
-        ["action": "start", "started_at": live.startedAt, "sets": glance.sets, "reps": glance.reps,
-         "exercises": glance.exercises.map { "\($0.exercise.rawValue):\($0.reps)" }.joined(separator: ","),
-         "last": glance.last.map { "\($0.exercise.rawValue):\($0.reps)" } ?? ""])
+        [
+          "action": "start", "started_at": live.startedAt, "sets": glance.sets, "reps": glance.reps,
+          "exercises": glance.exercises.map { "\($0.exercise.rawValue):\($0.reps)" }.joined(separator: ","),
+          "last": glance.last.map { "\($0.exercise.rawValue):\($0.reps)" } ?? "",
+        ])
     } catch {
       onEvent?("live_activity", ["action": "failed", "message": "\(error)"])
     }

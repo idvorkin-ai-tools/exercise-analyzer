@@ -7,11 +7,13 @@
 //  the picker does.
 
 import ExerciseCore
+import Observation
 import Photos
 import SwiftUI
 
 @MainActor
-final class PhotosSuggestions: ObservableObject {
+@Observable
+final class PhotosSuggestions {
   struct Clip: Identifiable {
     let asset: PHAsset
     /// New, already a set in Workouts, or ignored by the lifter (story 052).
@@ -23,8 +25,8 @@ final class PhotosSuggestions: ObservableObject {
     var duration: Double { asset.duration }
   }
 
-  @Published private(set) var clips: [Clip] = []
-  @Published private(set) var status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+  private(set) var clips: [Clip] = []
+  private(set) var status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
   /// Session log hook: what the library returned and why clips were or were not suggested.
   var onEvent: ((String, [String: Any]) -> Void)?
 
@@ -131,7 +133,7 @@ final class PhotosSuggestions: ObservableObject {
 /// Thumbnail card for a Photos video; dimmed and marked when it is already a set in Workouts.
 struct PhotosClipCard: View {
   let clip: PhotosSuggestions.Clip
-  @ObservedObject var suggestions: PhotosSuggestions
+  let suggestions: PhotosSuggestions
   @State private var image: UIImage?
 
   private static let timeFormatter: DateFormatter = {

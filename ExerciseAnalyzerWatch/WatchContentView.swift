@@ -6,7 +6,7 @@ import SwiftUI
 import WatchKit
 
 struct WatchContentView: View {
-  @ObservedObject var phone: PhoneLink
+  let phone: PhoneLink
   @Environment(\.scenePhase) private var scenePhase
   /// Ticks so a status that stops arriving turns stale on screen.
   @State private var now = Date()

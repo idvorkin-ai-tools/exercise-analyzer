@@ -8,16 +8,18 @@
 import ExerciseCore
 import Foundation
 import HealthKit
+import Observation
 import UIKit
 
 @MainActor
-final class WorkoutMirror: NSObject, ObservableObject {
+@Observable
+final class WorkoutMirror: NSObject {
   /// Installed at launch: the mirroring handler must exist before the system delivers a session.
   static let shared = WorkoutMirror()
 
   /// The running workout as last heard from the watch; nil when none runs.
-  @Published private(set) var live: WorkoutWire?
-  @Published private(set) var index: WorkoutIndex
+  private(set) var live: WorkoutWire?
+  private(set) var index: WorkoutIndex
   var onEvent: ((String, [String: Any]) -> Void)?
   /// The wrist's Retry came through the workout session (#189): say the status again.
   var onStatusWanted: (() -> Void)?

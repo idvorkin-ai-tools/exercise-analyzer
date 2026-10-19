@@ -5,11 +5,13 @@
 
 import ExerciseCore
 import Foundation
+import Observation
 import UIKit
 import WatchConnectivity
 
 @MainActor
-final class WatchBridge: NSObject, ObservableObject {
+@Observable
+final class WatchBridge: NSObject {
   var onCommand: ((WatchCommand) -> Void)?
   /// Exercise picked on the watch: "auto" or an ExerciseKind raw value.
   var onExercise: ((String) -> Void)?
@@ -32,7 +34,7 @@ final class WatchBridge: NSObject, ObservableObject {
   private var inboxSetsTaken = UserDefaults.standard.stringArray(forKey: WatchBridge.inboxSetsTakenKey) ?? []
   private static let inboxSetsTakenKey = "watchInboxRecovered"
   private var lastInboxRun = Date.distantPast
-  @Published private(set) var reachable = false
+  private(set) var reachable = false
   /// The last command, status, heartbeat or scene message from the watch (#142); not published, as heartbeats
   /// arrive every second.
   private(set) var lastContact: Date?
@@ -51,7 +53,7 @@ final class WatchBridge: NSObject, ObservableObject {
   private let minInterval = 0.3
   /// The watch app is in front: it says so on scene changes, on the link's up-edge, in its heartbeat's `front`,
   /// and by any command it sends; previews are only worth sending then.
-  @Published private(set) var watchActive = false
+  private(set) var watchActive = false
   /// The last heartbeat from the wrist (#122): the next one logs its gap and how many beats never arrived.
   private var lastHeartbeatAt = Date.distantPast
   private var lastHeartbeatSeq = 0
