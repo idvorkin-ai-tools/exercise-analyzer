@@ -191,6 +191,12 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **When:** I tap the Bottom pill
 - **Then:** the playhead lands on the dip's lowest frame (bottom is a live phase for the Bulgarian, not a peak only)
 
+- **Scenario:** The swing's pills in the order I read a rep (#304)
+- **Given:** a swing set is open
+- **When:** I look at the pills
+- **Then:** they read BOTTOM, RELEASE, TOP, CONNECT, the gallery's order, instead of TOP, CONNECT, BOTTOM, RELEASE
+  (Igor, 2026-10-19: "start with Bottom at the first position and then go in order"); the other exercises keep theirs
+
 - **Issues:** [#28](https://github.com/idvorkin/exercise-analyzer/issues/28); [#55](https://github.com/idvorkin/exercise-analyzer/issues/55) the Bottom pill had no effect on a Bulgarian set
 
 ---

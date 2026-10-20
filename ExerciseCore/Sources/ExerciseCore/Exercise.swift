@@ -121,7 +121,7 @@ public struct MetricInfo: Hashable {
 
 public struct ExerciseDefinition {
   public let name: String
-  /// State-machine order; shown as the HUD pills.
+  /// The HUD pills, in order; `phase(_:)` looks labels up here first.
   public let phases: [PhaseInfo]
   /// Gallery column order (the web app shows the visual start of a rep first).
   public let galleryOrder: [PhaseInfo]
