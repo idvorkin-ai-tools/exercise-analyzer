@@ -45,8 +45,10 @@ struct ContentView: View {
   @State private var showWhatsNew = false
   /// About / version (BugKit 0.3.3, bug-kit #45): the build's version, commit and repository from Info.plist.
   @State private var showAbout = false
-  /// A tapped set whose clip is an in-app file this device does not have (#270): said where the tap was.
+  /// A tapped set whose clip is an in-app file this device does not have (#270), or a Photos clip found missing
+  /// once the player was up (#303): said where the tap was, with why.
   @State private var showClipNotHere = false
+  @State private var clipNotHereReason = ""
   @State private var showGallery = false
   /// The clip copied for the share sheet, while the sheet is up (#162).
   @State private var sharing: SharedClip?
@@ -144,7 +146,16 @@ struct ContentView: View {
       .alert("That set's video is not on this device", isPresented: $showClipNotHere) {
         Button("OK", role: .cancel) {}
       } message: {
-        Text("Its count and picture synced; the video stayed on the device that recorded it.")
+        Text(clipNotHereReason)
+      }
+      // A Photos clip is looked up after the player is pushed: when it is gone, leave the player and say so where
+      // the tap was, as #270 does before the push; the player kept the previous set on screen (#303).
+      .onChange(of: session.clipMisses) {
+        let left = path.last == .player
+        if left { leavePlayer() }
+        session.log.event("clip_not_here", ["left_player": left])
+        clipNotHereReason = "Photos no longer has its video, or it has not reached this device yet."
+        showClipNotHere = true
       }
       // Story 070, step 3: the sets recorded before recordings went to Photos by themselves, asked about once.
       // An alert, not a confirmation dialog: iOS 26+ draws the dialog as a popover that hides its cancel button,
@@ -325,6 +336,7 @@ struct ContentView: View {
     // previous set's video under the tapped set's header. A Photos clip keeps its download on the player (031).
     if case .file = entry.source, session.recents.clipFileURL(for: entry) == nil {
       session.log.event("recents_missing", ["id": entry.id, "where": "page"])
+      clipNotHereReason = "Its count and picture synced; the video stayed on the device that recorded it."
       showClipNotHere = true
       return
     }
