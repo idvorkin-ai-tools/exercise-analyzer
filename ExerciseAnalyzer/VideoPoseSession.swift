@@ -73,6 +73,8 @@ final class VideoPoseSession: NSObject {
   /// Counts the tapped sets whose clip turned out missing after the player was pushed (#303): a Photos clip can
   /// only be looked up then. The page leaves the player on each one rather than keep the previous set on it.
   private(set) var clipMisses = 0
+  /// Whether the last missing clip was a Photos clip, for the page to say why.
+  private(set) var clipMissInPhotos = false
   private(set) var latestFrame: FrameRecord?
   private(set) var reps: [RepRecord] = []
   private(set) var lastQuality: RepQuality?
@@ -984,6 +986,7 @@ final class VideoPoseSession: NSObject {
         activity = .idle
         statusMessage = entry.isInPhotos ? "That clip is no longer in Photos" : "That clip's file is missing"
         log.event("recents_missing", ["id": entry.id])
+        clipMissInPhotos = entry.isInPhotos
         clipMisses += 1
         return
       }

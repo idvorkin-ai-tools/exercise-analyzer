@@ -154,7 +154,10 @@ struct ContentView: View {
         let left = path.last == .player
         if left { leavePlayer() }
         session.log.event("clip_not_here", ["left_player": left])
-        clipNotHereReason = "Photos no longer has its video, or it has not reached this device yet."
+        clipNotHereReason =
+          session.clipMissInPhotos
+          ? "Photos no longer has its video, or it has not reached this device yet."
+          : "Its video file is missing from the app."
         showClipNotHere = true
       }
       // Story 070, step 3: the sets recorded before recordings went to Photos by themselves, asked about once.
