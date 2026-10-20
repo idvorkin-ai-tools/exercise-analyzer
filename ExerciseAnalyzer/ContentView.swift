@@ -705,8 +705,8 @@ private struct PlayerRouteView: View {
     // Tight lines (Igor: "less gap between the first line and the stages"): what the HUD does not cover is the
     // lifter's.
     return VStack(spacing: 2) {
-      // The top line is set on the letters' tops (Igor, #98): the count, the exercise name, REC, fps and the icons share
-      // one top edge, where a baseline line left the small text low beside the big digit.
+      // The top line is set on the letters' tops (Igor, #98): the count, the exercise's drawing, REC, fps and the
+      // icons share one top edge, where a baseline line left the small text low beside the big digit.
       HStack(alignment: .top, spacing: 8) {
         // A set that belongs to a stored workout (053): one tap to that workout's page, however the set was
         // opened (#99). A sign at the head of the top line, so no line of its own lies over the lifter (#98),
@@ -1342,10 +1342,16 @@ private struct PlayerRouteView: View {
 
 extension ExerciseKind {
   /// The drawing as a picture, in its colour: a menu's rows are drawn by UIKit, which takes images, not views.
+  /// Drawn once per exercise: the menu sits in the HUD, which redraws on every frame.
+  @MainActor private static var menuGlyphs: [ExerciseKind: UIImage] = [:]
+
   @MainActor fileprivate var menuGlyph: UIImage {
+    if let glyph = Self.menuGlyphs[self] { return glyph }
     let renderer = ImageRenderer(content: ExerciseGlyph(kind: self, size: 24))
     renderer.scale = 3
-    return (renderer.uiImage ?? UIImage()).withRenderingMode(.alwaysOriginal)
+    let glyph = (renderer.uiImage ?? UIImage()).withRenderingMode(.alwaysOriginal)
+    Self.menuGlyphs[self] = glyph
+    return glyph
   }
 }
 
