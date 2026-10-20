@@ -71,4 +71,12 @@ final class KettlebellSwingAnalyzerTests: XCTestCase {
     }
     XCTAssertEqual(phase, KettlebellSwingAnalyzer.top)
   }
+
+  /// The pills read Bottom, Release, Top, Connect (Igor, #304), but the swing still starts at the top: the pill
+  /// order must not move the state machine's first phase.
+  func testPillsStartAtBottomButTheSwingStartsAtTop() {
+    XCTAssertEqual(KettlebellSwingAnalyzer.definition.phases.map(\.label), ["Bottom", "Release", "Top", "Connect"])
+    let first = KettlebellSwingAnalyzer().process(pose: pose(spine: 0, arm: 80), time: 0, image: { nil })
+    XCTAssertEqual(first.phase, KettlebellSwingAnalyzer.top)
+  }
 }
