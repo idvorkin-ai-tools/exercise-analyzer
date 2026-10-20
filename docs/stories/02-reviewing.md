@@ -173,7 +173,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 024:
 
 - **Summary:** Jump to a phase by tapping its name, and play or pause by tapping the picture
-- **Status:** implemented in [3abd301](https://github.com/idvorkin/exercise-analyzer/commit/3abd301); on the phone, Igor's check pending; the Bulgarian Bottom pill (#55) in [48f8013](https://github.com/idvorkin/exercise-analyzer/commit/48f8013), on the phone since 2026-09-13
+- **Status:** implemented in [3abd301](https://github.com/idvorkin/exercise-analyzer/commit/3abd301); on the phone, Igor's check pending; the Bulgarian Bottom pill (#55) in [48f8013](https://github.com/idvorkin/exercise-analyzer/commit/48f8013), on the phone since 2026-09-13; the swing's Bottom-first order (#304) in [5aa52e4](https://github.com/idvorkin/exercise-analyzer/commit/5aa52e4), verified on the host (`KettlebellSwingAnalyzerTests`) and by simulator screenshot, to verify on the phone
 
 #### Use Case:
 - **As a** lifter comparing the same moment across reps
@@ -342,7 +342,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 051:
 
 - **Summary:** See my heart rate over the replay when the set was part of a workout
-- **Status:** implemented in [091585e](https://github.com/idvorkin/exercise-analyzer/commit/091585e); verified on the host (`HeartRateSeriesTests`) and the simulator (`SWING_HEART_RATE=1`); on the phone since 2026-09-18, Igor's check pending (the alignment, from the `heart_rate` event after a workout); the set's numbers (#100) in [dff8b1c](https://github.com/idvorkin/exercise-analyzer/commit/dff8b1c), [b7f7eb2](https://github.com/idvorkin/exercise-analyzer/commit/b7f7eb2), verified on the host (`WorkoutTimelineTests`) and the simulator, on the phone since 2026-09-18, Igor's check pending; the re-ask (#107) in [713fa65](https://github.com/idvorkin/exercise-analyzer/commit/713fa65), verified on the host, on the phone since 2026-09-19, read from the log after the next set in a workout (`heart_rate` with `attempt` > 1)
+- **Status:** implemented in [091585e](https://github.com/idvorkin/exercise-analyzer/commit/091585e); verified on the host (`HeartRateSeriesTests`) and the simulator (`SWING_HEART_RATE=1`); on the phone since 2026-09-18, Igor's check pending (the alignment, from the `heart_rate` event after a workout); the set's numbers (#100) in [dff8b1c](https://github.com/idvorkin/exercise-analyzer/commit/dff8b1c), [b7f7eb2](https://github.com/idvorkin/exercise-analyzer/commit/b7f7eb2), verified on the host (`WorkoutTimelineTests`) and the simulator, on the phone since 2026-09-18, Igor's check pending; the re-ask (#107) in [713fa65](https://github.com/idvorkin/exercise-analyzer/commit/713fa65), verified on the host, on the phone since 2026-09-19, read from the log after the next set in a workout (`heart_rate` with `attempt` > 1); the one-line chip (#299) in [35bd3b6](https://github.com/idvorkin/exercise-analyzer/commit/35bd3b6) and the name without "reps ·" (#301) in [af94880](https://github.com/idvorkin/exercise-analyzer/commit/af94880), verified by simulator screenshot, to verify on the phone
 - **Why:** Igor, 2026-09-18: "Let's have heart rate overlay in exercise replay if I have it."
 
 #### Use Case:

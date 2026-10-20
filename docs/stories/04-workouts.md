@@ -170,7 +170,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 031:
 
 - **Summary:** Open an old set whose clip now lives only in iCloud
-- **Status:** implemented in [f8633a8](https://github.com/idvorkin/exercise-analyzer/commit/f8633a8); on the phone, Igor's check pending (needs an iCloud-only clip); a set whose video is not on this device opens nothing (#270) in [21bfa27](https://github.com/idvorkin/exercise-analyzer/commit/21bfa27) (PR #274), verified by the simulator build, on the iPad since 2026-10-15, Igor's check pending (tap a Sep 12 or Sep 21 set)
+- **Status:** implemented in [f8633a8](https://github.com/idvorkin/exercise-analyzer/commit/f8633a8); on the phone, Igor's check pending (needs an iCloud-only clip); a set whose video is not on this device opens nothing (#270) in [21bfa27](https://github.com/idvorkin/exercise-analyzer/commit/21bfa27) (PR #274), verified by the simulator build, on the iPad since 2026-10-15, Igor's check pending (tap a Sep 12 or Sep 21 set); a Photos clip gone after the push leaves the player (#303) in [ca21952](https://github.com/idvorkin/exercise-analyzer/commit/ca21952), verified on the simulator (`clip_missing`), to verify on the phone
 
 #### Use Case:
 - **As a** lifter looking back at a set from months ago
