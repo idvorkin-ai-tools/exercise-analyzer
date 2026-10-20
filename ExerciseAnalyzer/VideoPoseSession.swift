@@ -70,6 +70,11 @@ final class VideoPoseSession: NSObject {
   private(set) var source: Source = .none
   private(set) var activity: Activity = .idle
   private(set) var statusMessage: String?
+  /// Counts the tapped sets whose clip turned out missing after the player was pushed (#303): a Photos clip can
+  /// only be looked up then. The page leaves the player on each one rather than keep the previous set on it.
+  private(set) var clipMisses = 0
+  /// Whether the last missing clip was a Photos clip, for the page to say why.
+  private(set) var clipMissInPhotos = false
   private(set) var latestFrame: FrameRecord?
   private(set) var reps: [RepRecord] = []
   private(set) var lastQuality: RepQuality?
@@ -976,10 +981,13 @@ final class VideoPoseSession: NSObject {
         url = await recents.clipURL(for: entry)
       }
       guard isCurrent(operation) else { return }
-      guard let url else {
+      // Test hook (docs/TESTING.md): SWING_CLIP_MISSING=<id> opens that set as if its clip were gone (#303).
+      guard let url, ProcessInfo.processInfo.environment["SWING_CLIP_MISSING"] != entry.id else {
         activity = .idle
         statusMessage = entry.isInPhotos ? "That clip is no longer in Photos" : "That clip's file is missing"
         log.event("recents_missing", ["id": entry.id])
+        clipMissInPhotos = entry.isInPhotos
+        clipMisses += 1
         return
       }
       guard let pipeline = recents.loadPipeline(for: entry) else {

@@ -173,7 +173,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 024:
 
 - **Summary:** Jump to a phase by tapping its name, and play or pause by tapping the picture
-- **Status:** implemented in [3abd301](https://github.com/idvorkin/exercise-analyzer/commit/3abd301); on the phone, Igor's check pending; the Bulgarian Bottom pill (#55) in [48f8013](https://github.com/idvorkin/exercise-analyzer/commit/48f8013), on the phone since 2026-09-13
+- **Status:** implemented in [3abd301](https://github.com/idvorkin/exercise-analyzer/commit/3abd301); on the phone, Igor's check pending; the Bulgarian Bottom pill (#55) in [48f8013](https://github.com/idvorkin/exercise-analyzer/commit/48f8013), on the phone since 2026-09-13; the swing's Bottom-first order (#304) in [5aa52e4](https://github.com/idvorkin/exercise-analyzer/commit/5aa52e4), verified on the host (`KettlebellSwingAnalyzerTests`) and by simulator screenshot, to verify on the phone
 
 #### Use Case:
 - **As a** lifter comparing the same moment across reps
@@ -190,6 +190,12 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Given:** a Bulgarian split squat set is open
 - **When:** I tap the Bottom pill
 - **Then:** the playhead lands on the dip's lowest frame (bottom is a live phase for the Bulgarian, not a peak only)
+
+- **Scenario:** The swing's pills in the order I read a rep (#304)
+- **Given:** a swing set is open
+- **When:** I look at the pills
+- **Then:** they read BOTTOM, RELEASE, TOP, CONNECT, the gallery's order, instead of TOP, CONNECT, BOTTOM, RELEASE
+  (Igor, 2026-10-19: "start with Bottom at the first position and then go in order"); the other exercises keep theirs
 
 - **Issues:** [#28](https://github.com/idvorkin/exercise-analyzer/issues/28); [#55](https://github.com/idvorkin/exercise-analyzer/issues/55) the Bottom pill had no effect on a Bulgarian set
 
@@ -336,7 +342,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 051:
 
 - **Summary:** See my heart rate over the replay when the set was part of a workout
-- **Status:** implemented in [091585e](https://github.com/idvorkin/exercise-analyzer/commit/091585e); verified on the host (`HeartRateSeriesTests`) and the simulator (`SWING_HEART_RATE=1`); on the phone since 2026-09-18, Igor's check pending (the alignment, from the `heart_rate` event after a workout); the set's numbers (#100) in [dff8b1c](https://github.com/idvorkin/exercise-analyzer/commit/dff8b1c), [b7f7eb2](https://github.com/idvorkin/exercise-analyzer/commit/b7f7eb2), verified on the host (`WorkoutTimelineTests`) and the simulator, on the phone since 2026-09-18, Igor's check pending; the re-ask (#107) in [713fa65](https://github.com/idvorkin/exercise-analyzer/commit/713fa65), verified on the host, on the phone since 2026-09-19, read from the log after the next set in a workout (`heart_rate` with `attempt` > 1)
+- **Status:** implemented in [091585e](https://github.com/idvorkin/exercise-analyzer/commit/091585e); verified on the host (`HeartRateSeriesTests`) and the simulator (`SWING_HEART_RATE=1`); on the phone since 2026-09-18, Igor's check pending (the alignment, from the `heart_rate` event after a workout); the set's numbers (#100) in [dff8b1c](https://github.com/idvorkin/exercise-analyzer/commit/dff8b1c), [b7f7eb2](https://github.com/idvorkin/exercise-analyzer/commit/b7f7eb2), verified on the host (`WorkoutTimelineTests`) and the simulator, on the phone since 2026-09-18, Igor's check pending; the re-ask (#107) in [713fa65](https://github.com/idvorkin/exercise-analyzer/commit/713fa65), verified on the host, on the phone since 2026-09-19, read from the log after the next set in a workout (`heart_rate` with `attempt` > 1); the one-line chip (#299) in [35bd3b6](https://github.com/idvorkin/exercise-analyzer/commit/35bd3b6) and the name without "reps ·" (#301) in [af94880](https://github.com/idvorkin/exercise-analyzer/commit/af94880), verified by simulator screenshot, to verify on the phone
 - **Why:** Igor, 2026-09-18: "Let's have heart rate overlay in exercise replay if I have it."
 
 #### Use Case:
@@ -351,6 +357,13 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **When:** I play or scrub the set
 - **Then:** the HUD shows a heart and "141", read between the readings either side of the playhead (the one nearby
   reading when there is only one), and it changes as the playhead moves
+
+- **Scenario:** A full top line (#299, #301)
+- **Given:** the top line also holds the workout sign, the count, the exercise, the bell's weight and the two view
+  buttons
+- **When:** the heart reads three digits
+- **Then:** "133" stays on one line; there is no "reps ·" (Igor, 2026-10-19: the chip read "13" over "3"; "get rid
+  of the word reps"), and the exercise is its drawing, not its name (story 003, 2026-10-20), so the line has room
 
 - **Scenario:** A paused, rotated or imported set
 - **Given:** a set recorded with a pause or a rotation in it, or a clip opened from Photos or Files

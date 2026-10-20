@@ -78,6 +78,21 @@ check_second_open() {  # the two newest stored sets, one after the other in one 
     echo "ok    second_open: the player shows the second set's $shown reps"
   else echo "FAIL  second_open: HUD shows '${shown}' reps after the second open, the set has '${want}'"; fail=1; fi
 }
+check_clip_missing() {  # the second open finds its clip gone after the push (#303: a Photos clip no longer there):
+  # the player must leave and the page say so, not keep the first set on screen
+  reset_mode
+  local index; index="$(dirname "$LOGS")/recents/index.json"
+  local second; second=$(jq -r '[.[] | select(.source.byHand == null)][1].id // empty' "$index" 2>/dev/null)
+  SIMCTL_CHILD_SWING_OPEN_RECENT="1,2" SIMCTL_CHILD_SWING_CLIP_MISSING="$second" \
+    xcrun simctl launch "$SIM" "$BUNDLE" >/dev/null
+  sleep 3
+  wait_for clip_not_here 60 || echo "      (timed out waiting for the missing clip to be said)"
+  local f; f=$(newest_log)
+  local left; left=$(jq -sr '[.[] | select(.type=="clip_not_here")][-1].left_player // empty' "$f")
+  if [ -n "$second" ] && [ "$left" = "true" ]; then
+    echo "ok    clip_missing: the player left and the page said the clip is not here"
+  else echo "FAIL  clip_missing: left_player '${left}' for set '${second}'"; fail=1; fi
+}
 check_cancel() {  # clip wait-seconds: cancels one second into the analysis (#37), expects the pass to stop within 3 s
   reset_mode
   SIMCTL_CHILD_SWING_VIDEO="$SAMPLES/$1.mp4" SIMCTL_CHILD_SWING_CANCEL_ANALYSIS=1 xcrun simctl launch "$SIM" "$BUNDLE" >/dev/null
@@ -272,6 +287,7 @@ run check_clip_switch mode
 run check_clip_switch photos
 run check_clip_switch trim
 run check_second_open
+run check_clip_missing
 check_photos_export() {  # 070 step 3: once approved, clips of sets not on screen go to Photos, and a set reopens from there
   reset_mode
   xcrun simctl privacy "$SIM" grant photos "$BUNDLE" >/dev/null 2>&1 || true

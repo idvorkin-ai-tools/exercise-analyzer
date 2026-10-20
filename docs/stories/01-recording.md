@@ -119,7 +119,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Given:** the exercise menu is set to Auto
 - **and Given:** a clip contains two Turkish get-ups, one per side
 - **When:** I open the clip
-- **Then:** the HUD shows "Turkish Get-Up" with 2 reps, one labelled left arm and one right arm
+- **Then:** the HUD shows the get-up's drawing with 2 reps, one labelled left arm and one right arm
 
 - **Scenario:** A split-squat clip includes a long setup
 - **Given:** I spend time setting the camera down and unracking before alternating lunges
@@ -132,7 +132,7 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 ### User Story 003:
 
 - **Summary:** Override the detector when it guesses wrong, without re-running the video
-- **Status:** implemented in [1fb9b0a](https://github.com/idvorkin/exercise-analyzer/commit/1fb9b0a), [1336a6f](https://github.com/idvorkin/exercise-analyzer/commit/1336a6f), [4543828](https://github.com/idvorkin/exercise-analyzer/commit/4543828); verified on the phone and the simulator (the `interrupt` check of `just test-sim`); clip-operation isolation in [920e803](https://github.com/idvorkin/exercise-analyzer/commit/920e803), verified by host identity tests and simulator mode-replay→B check
+- **Status:** implemented in [1fb9b0a](https://github.com/idvorkin/exercise-analyzer/commit/1fb9b0a), [1336a6f](https://github.com/idvorkin/exercise-analyzer/commit/1336a6f), [4543828](https://github.com/idvorkin/exercise-analyzer/commit/4543828); verified on the phone and the simulator (the `interrupt` check of `just test-sim`); clip-operation isolation in [920e803](https://github.com/idvorkin/exercise-analyzer/commit/920e803), verified by host identity tests and simulator mode-replay→B check; the exercise shown as its drawing and picked from a menu of drawings (ea-599) in [bba46d2](https://github.com/idvorkin/exercise-analyzer/commit/bba46d2), verified by a simulator screenshot of the top line, the open menu to verify on the phone
 
 #### Use Case:
 - **As a** lifter whose set was mislabelled
@@ -145,6 +145,14 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **and Given:** it is actually a get-up
 - **When:** I choose Turkish Get-Up from the exercise menu
 - **Then:** the rep count, phases, HUD and gallery update within a second, without the video being re-scanned
+
+- **Scenario:** The exercise is its drawing
+- **Given:** a set is open
+- **When:** I look at the top line, and tap the drawing there
+- **Then:** the top line shows the exercise's drawing in its colour (the Workouts list's family) and "▾", not its name;
+  the menu lists Auto and each exercise with its drawing and name, the current one ticked (Igor, 2026-10-20:
+  "instead of using words for the exercise, can we use our picto icon, and then clicking it lets us select between
+  picto icons"). The names stay in the menu: at that size the split squat and the Bulgarian look alike
 
 - **Scenario:** Opening another set during an exercise override
 - **Given:** set A is fetching rep images for my new exercise choice

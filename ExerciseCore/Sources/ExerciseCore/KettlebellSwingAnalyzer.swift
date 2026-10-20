@@ -81,9 +81,10 @@ public final class KettlebellSwingAnalyzer: ExerciseAnalyzer {
 
   public static let definition = ExerciseDefinition(
     name: "Kettlebell Swing",
+    // The pills read from the bottom, as the gallery does (Igor, #304); the state machine starts at top regardless.
     phases: [
-      PhaseInfo(id: top, label: "Top"), PhaseInfo(id: connect, label: "Connect"),
       PhaseInfo(id: bottom, label: "Bottom"), PhaseInfo(id: release, label: "Release"),
+      PhaseInfo(id: top, label: "Top"), PhaseInfo(id: connect, label: "Connect"),
     ],
     galleryOrder: [
       PhaseInfo(id: bottom, label: "Bottom"), PhaseInfo(id: release, label: "Release"),
@@ -166,7 +167,8 @@ public final class KettlebellSwingAnalyzer: ExerciseAnalyzer {
     }
     if awaitingTop {
       guard isAtTop(a) else {
-        return ExerciseFrameResult(phase: machine.phase, repCount: machine.repCount, metrics: a.metrics, completedRep: nil)
+        return ExerciseFrameResult(
+          phase: machine.phase, repCount: machine.repCount, metrics: a.metrics, completedRep: nil)
       }
       awaitingTop = false
     }
@@ -211,7 +213,8 @@ public final class KettlebellSwingAnalyzer: ExerciseAnalyzer {
       }
     default:  // release
       if shouldTransitionToTop(a, time: time) {
-        let tooSlow = isHike
+        let tooSlow =
+          isHike
           ? time - releaseStartTime > (thresholds.hikeReleaseMax ?? 0)  // a hike counts only if it flew to the top
           : time - repStartTime > thresholds.maxRepDuration
         if tooSlow {
@@ -219,9 +222,10 @@ public final class KettlebellSwingAnalyzer: ExerciseAnalyzer {
         } else {
           finalizePhasePeak()
           if isHike {  // no top began the hike; its top is the lockout it reached (it has no connect)
-            machine.storePeak(RepPosition(
-              phase: Self.top, time: time, pose: pose, metrics: a.metrics, score: peakScore(for: Self.top, angles: a),
-              image: image()))
+            machine.storePeak(
+              RepPosition(
+                phase: Self.top, time: time, pose: pose, metrics: a.metrics, score: peakScore(for: Self.top, angles: a),
+                image: image()))
           }
           let deepest = machine.currentRepPeaks[Self.bottom]?.time ?? 0
           if thresholds.slowTopConfirmGap != nil, time - deepest > thresholds.upswingMaxDuration {
@@ -327,8 +331,9 @@ public final class KettlebellSwingAnalyzer: ExerciseAnalyzer {
   /// the wrist height peaking or by the arm staying horizontal for a few frames.
   private func shouldTransitionToTop(_ a: Angles, time: Double) -> Bool {
     let ballistic = time - releaseStartTime <= thresholds.ballisticReleaseMax
-    guard machine.canTransition, isAtTop(
-      a, armMin: ballistic ? thresholds.ballisticTopArmMin : thresholds.topArmMin, ballistic: ballistic)
+    guard machine.canTransition,
+      isAtTop(
+        a, armMin: ballistic ? thresholds.ballisticTopArmMin : thresholds.topArmMin, ballistic: ballistic)
     else { return false }
 
     if wristHeightHistory.count >= 3 {

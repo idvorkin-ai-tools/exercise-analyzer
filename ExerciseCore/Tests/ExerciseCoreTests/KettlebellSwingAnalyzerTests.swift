@@ -35,13 +35,15 @@ final class KettlebellSwingAnalyzerTests: XCTestCase {
 
   /// One swing, 1.5 s top to top: (seconds, spine, arm) keyframes, straight lines between them.
   private let swing: [(t: Double, spine: Double, arm: Double)] = [
-    (0, 0, 80), (0.3, 0, 80), (0.55, 0, 10), (0.8, 60, -30), (0.95, 60, -30), (1.15, 10, 10), (1.4, 0, 80), (1.5, 0, 80),
+    (0, 0, 80), (0.3, 0, 80), (0.55, 0, 10), (0.8, 60, -30), (0.95, 60, -30), (1.15, 10, 10), (1.4, 0, 80),
+    (1.5, 0, 80),
   ]
 
   private func angles(at t: Double) -> (spine: Double, arm: Double) {
     let next = swing.firstIndex { $0.t >= t } ?? swing.count - 1
     guard next > 0 else { return (swing[0].spine, swing[0].arm) }
-    let a = swing[next - 1], b = swing[next]
+    let a = swing[next - 1]
+    let b = swing[next]
     let f = (t - a.t) / (b.t - a.t)
     return (a.spine + (b.spine - a.spine) * f, a.arm + (b.arm - a.arm) * f)
   }
@@ -67,8 +69,18 @@ final class KettlebellSwingAnalyzerTests: XCTestCase {
     }
     XCTAssertEqual(phase, KettlebellSwingAnalyzer.top)
     for frame in 30..<45 {
-      phase = analyzer.process(pose: pose(spine: 0, arm: 80, hideElbows: true), time: Double(frame) / 30, image: { nil }).phase
+      phase =
+        analyzer.process(pose: pose(spine: 0, arm: 80, hideElbows: true), time: Double(frame) / 30, image: { nil })
+        .phase
     }
     XCTAssertEqual(phase, KettlebellSwingAnalyzer.top)
+  }
+
+  /// The pills read Bottom, Release, Top, Connect (Igor, #304), but the swing still starts at the top: the pill
+  /// order must not move the state machine's first phase.
+  func testPillsStartAtBottomButTheSwingStartsAtTop() {
+    XCTAssertEqual(KettlebellSwingAnalyzer.definition.phases.map(\.label), ["Bottom", "Release", "Top", "Connect"])
+    let first = KettlebellSwingAnalyzer().process(pose: pose(spine: 0, arm: 80), time: 0, image: { nil })
+    XCTAssertEqual(first.phase, KettlebellSwingAnalyzer.top)
   }
 }

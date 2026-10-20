@@ -45,8 +45,10 @@ struct ContentView: View {
   @State private var showWhatsNew = false
   /// About / version (BugKit 0.3.3, bug-kit #45): the build's version, commit and repository from Info.plist.
   @State private var showAbout = false
-  /// A tapped set whose clip is an in-app file this device does not have (#270): said where the tap was.
+  /// A tapped set whose clip is an in-app file this device does not have (#270), or a Photos clip found missing
+  /// once the player was up (#303): said where the tap was, with why.
   @State private var showClipNotHere = false
+  @State private var clipNotHereReason = ""
   @State private var showGallery = false
   /// The clip copied for the share sheet, while the sheet is up (#162).
   @State private var sharing: SharedClip?
@@ -144,7 +146,19 @@ struct ContentView: View {
       .alert("That set's video is not on this device", isPresented: $showClipNotHere) {
         Button("OK", role: .cancel) {}
       } message: {
-        Text("Its count and picture synced; the video stayed on the device that recorded it.")
+        Text(clipNotHereReason)
+      }
+      // A Photos clip is looked up after the player is pushed: when it is gone, leave the player and say so where
+      // the tap was, as #270 does before the push; the player kept the previous set on screen (#303).
+      .onChange(of: session.clipMisses) {
+        let left = path.last == .player
+        if left { leavePlayer() }
+        session.log.event("clip_not_here", ["left_player": left])
+        clipNotHereReason =
+          session.clipMissInPhotos
+          ? "Photos no longer has its video, or it has not reached this device yet."
+          : "Its video file is missing from the app."
+        showClipNotHere = true
       }
       // Story 070, step 3: the sets recorded before recordings went to Photos by themselves, asked about once.
       // An alert, not a confirmation dialog: iOS 26+ draws the dialog as a popover that hides its cancel button,
@@ -325,6 +339,7 @@ struct ContentView: View {
     // previous set's video under the tapped set's header. A Photos clip keeps its download on the player (031).
     if case .file = entry.source, session.recents.clipFileURL(for: entry) == nil {
       session.log.event("recents_missing", ["id": entry.id, "where": "page"])
+      clipNotHereReason = "Its count and picture synced; the video stayed on the device that recorded it."
       showClipNotHere = true
       return
     }
@@ -690,8 +705,8 @@ private struct PlayerRouteView: View {
     // Tight lines (Igor: "less gap between the first line and the stages"): what the HUD does not cover is the
     // lifter's.
     return VStack(spacing: 2) {
-      // The top line is set on the letters' tops (Igor, #98): the count, "reps · …", REC, fps and the icons share
-      // one top edge, where a baseline line left the small text low beside the big digit.
+      // The top line is set on the letters' tops (Igor, #98): the count, the exercise's drawing, REC, fps and the
+      // icons share one top edge, where a baseline line left the small text low beside the big digit.
       HStack(alignment: .top, spacing: 8) {
         // A set that belongs to a stored workout (053): one tap to that workout's page, however the set was
         // opened (#99). A sign at the head of the top line, so no line of its own lies over the lifter (#98),
@@ -777,6 +792,8 @@ private struct PlayerRouteView: View {
           .foregroundStyle(.red)
           .padding(.horizontal, 7).padding(.vertical, 2)
           .background(Color.red.opacity(0.18), in: Capsule())
+          // Never wraps: the exercise name shrinks or truncates first; it read "13" over "3" (#299).
+          .fixedSize()
           .accessibilityLabel("Heart rate \(bpm)")
           .alignmentGuide(.top, computeValue: Self.capTop(.preferredFont(forTextStyle: .subheadline)))
         } else if session.source == .camera {
@@ -961,23 +978,25 @@ private struct PlayerRouteView: View {
     }
   }
 
-  /// "reps · Kettlebell Swing ▾": pick an exercise or Auto. In Auto the detected exercise and its reason show.
+  /// The exercise's drawing and "▾" (Igor, 2026-10-20: "instead of using words for the exercise, use our picto
+  /// icon"): pick an exercise, each row its drawing and name, or Auto. In Auto the detected exercise and its reason
+  /// show.
   private var exerciseMenu: some View {
     Menu {
-      Button {
-        session.setExerciseMode(.auto)
-      } label: {
-        Label("Auto-detect", systemImage: session.exerciseMode == .auto ? "checkmark" : "wand.and.stars")
+      // Toggles, so the menu ticks the current choice beside its drawing.
+      Toggle(isOn: Binding(get: { session.exerciseMode == .auto }, set: { if $0 { session.setExerciseMode(.auto) } })) {
+        Label("Auto-detect", systemImage: "wand.and.stars")
       }
       Divider()
       ForEach(ExerciseKind.analyzable) { kind in
-        Button {
-          session.setExerciseMode(.fixed(kind))
-        } label: {
-          if session.exerciseMode == .fixed(kind) {
-            Label(kind.definition.name, systemImage: "checkmark")
-          } else {
+        Toggle(
+          isOn: Binding(
+            get: { session.exerciseMode == .fixed(kind) }, set: { if $0 { session.setExerciseMode(.fixed(kind)) } })
+        ) {
+          Label {
             Text(kind.definition.name)
+          } icon: {
+            Image(uiImage: kind.menuGlyph)
           }
         }
       }
@@ -994,9 +1013,8 @@ private struct PlayerRouteView: View {
       }
     } label: {
       HStack(spacing: 3) {
-        // One line whatever else the top line holds (the workout sign, the ♥ chip): a wrap pushes the pills down
-        // over the lifter (#98).
-        Text("reps · " + session.exercise.definition.name).lineLimit(1).minimumScaleFactor(0.7)
+        // The drawing in place of the name: the ♥ chip and the rest of the top line get the room (#299, #301).
+        ExerciseGlyph(kind: session.exercise, size: 28)
           // The set and count the HUD shows, logged when it appears and whenever either changes: the stale player
           // of 2026-10-18 never logged the second set's.
           .task(id: "\(session.currentEntry?.id ?? "")/\(session.reps.count)") {
@@ -1010,6 +1028,7 @@ private struct PlayerRouteView: View {
       .font(.subheadline)
     }
     .foregroundStyle(.white)
+    .accessibilityLabel("Exercise: \(session.exercise.definition.name)")
   }
 
   /// The big number over the video (#54): while reviewing, the gallery's rep — the one the playhead is
@@ -1318,6 +1337,21 @@ private struct PlayerRouteView: View {
     guard seconds.isFinite else { return "0:00" }
     let total = Int(seconds.rounded(.down))
     return String(format: "%d:%02d", total / 60, total % 60)
+  }
+}
+
+extension ExerciseKind {
+  /// The drawing as a picture, in its colour: a menu's rows are drawn by UIKit, which takes images, not views.
+  /// Drawn once per exercise: the menu sits in the HUD, which redraws on every frame.
+  @MainActor private static var menuGlyphs: [ExerciseKind: UIImage] = [:]
+
+  @MainActor fileprivate var menuGlyph: UIImage {
+    if let glyph = Self.menuGlyphs[self] { return glyph }
+    let renderer = ImageRenderer(content: ExerciseGlyph(kind: self, size: 24))
+    renderer.scale = 3
+    let glyph = (renderer.uiImage ?? UIImage()).withRenderingMode(.alwaysOriginal)
+    Self.menuGlyphs[self] = glyph
+    return glyph
   }
 }
 
