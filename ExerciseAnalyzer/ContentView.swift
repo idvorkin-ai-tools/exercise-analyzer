@@ -702,7 +702,7 @@ private struct PlayerRouteView: View {
     // Tight lines (Igor: "less gap between the first line and the stages"): what the HUD does not cover is the
     // lifter's.
     return VStack(spacing: 2) {
-      // The top line is set on the letters' tops (Igor, #98): the count, "reps · …", REC, fps and the icons share
+      // The top line is set on the letters' tops (Igor, #98): the count, the exercise name, REC, fps and the icons share
       // one top edge, where a baseline line left the small text low beside the big digit.
       HStack(alignment: .top, spacing: 8) {
         // A set that belongs to a stored workout (053): one tap to that workout's page, however the set was
@@ -975,7 +975,7 @@ private struct PlayerRouteView: View {
     }
   }
 
-  /// "reps · Kettlebell Swing ▾": pick an exercise or Auto. In Auto the detected exercise and its reason show.
+  /// "Kettlebell Swing ▾": pick an exercise or Auto. In Auto the detected exercise and its reason show.
   private var exerciseMenu: some View {
     Menu {
       Button {
@@ -1010,7 +1010,8 @@ private struct PlayerRouteView: View {
       HStack(spacing: 3) {
         // One line whatever else the top line holds (the workout sign, the ♥ chip): a wrap pushes the pills down
         // over the lifter (#98).
-        Text("reps · " + session.exercise.definition.name).lineLimit(1).minimumScaleFactor(0.7)
+        // No "reps ·": the big number says it, and the ♥ chip needs the room (Igor, #301).
+        Text(session.exercise.definition.name).lineLimit(1).minimumScaleFactor(0.7)
           // The set and count the HUD shows, logged when it appears and whenever either changes: the stale player
           // of 2026-10-18 never logged the second set's.
           .task(id: "\(session.currentEntry?.id ?? "")/\(session.reps.count)") {
