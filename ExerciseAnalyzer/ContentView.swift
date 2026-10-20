@@ -789,6 +789,8 @@ private struct PlayerRouteView: View {
           .foregroundStyle(.red)
           .padding(.horizontal, 7).padding(.vertical, 2)
           .background(Color.red.opacity(0.18), in: Capsule())
+          // Never wraps: the exercise name shrinks or truncates first; it read "13" over "3" (#299).
+          .fixedSize()
           .accessibilityLabel("Heart rate \(bpm)")
           .alignmentGuide(.top, computeValue: Self.capTop(.preferredFont(forTextStyle: .subheadline)))
         } else if session.source == .camera {

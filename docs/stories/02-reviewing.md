@@ -352,6 +352,14 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Then:** the HUD shows a heart and "141", read between the readings either side of the playhead (the one nearby
   reading when there is only one), and it changes as the playhead moves
 
+- **Scenario:** A full top line (#299, #301)
+- **Given:** the top line also holds the workout sign, the count, the exercise name, the bell's weight and the two
+  view buttons
+- **When:** the heart reads three digits
+- **Then:** "133" stays on one line and the exercise name shrinks or cuts off first; the name reads "Kettlebell
+  Swing" without "reps ·" in front, since the big number says it (Igor, 2026-10-19: the chip read "13" over "3";
+  "get rid of the word reps")
+
 - **Scenario:** A paused, rotated or imported set
 - **Given:** a set recorded with a pause or a rotation in it, or a clip opened from Photos or Files
 - **When:** I play it
