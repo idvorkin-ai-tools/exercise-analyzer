@@ -978,23 +978,25 @@ private struct PlayerRouteView: View {
     }
   }
 
-  /// "Kettlebell Swing ▾": pick an exercise or Auto. In Auto the detected exercise and its reason show.
+  /// The exercise's drawing and "▾" (Igor, 2026-10-20: "instead of using words for the exercise, use our picto
+  /// icon"): pick an exercise, each row its drawing and name, or Auto. In Auto the detected exercise and its reason
+  /// show.
   private var exerciseMenu: some View {
     Menu {
-      Button {
-        session.setExerciseMode(.auto)
-      } label: {
-        Label("Auto-detect", systemImage: session.exerciseMode == .auto ? "checkmark" : "wand.and.stars")
+      // Toggles, so the menu ticks the current choice beside its drawing.
+      Toggle(isOn: Binding(get: { session.exerciseMode == .auto }, set: { if $0 { session.setExerciseMode(.auto) } })) {
+        Label("Auto-detect", systemImage: "wand.and.stars")
       }
       Divider()
       ForEach(ExerciseKind.analyzable) { kind in
-        Button {
-          session.setExerciseMode(.fixed(kind))
-        } label: {
-          if session.exerciseMode == .fixed(kind) {
-            Label(kind.definition.name, systemImage: "checkmark")
-          } else {
+        Toggle(
+          isOn: Binding(
+            get: { session.exerciseMode == .fixed(kind) }, set: { if $0 { session.setExerciseMode(.fixed(kind)) } })
+        ) {
+          Label {
             Text(kind.definition.name)
+          } icon: {
+            Image(uiImage: kind.menuGlyph)
           }
         }
       }
@@ -1011,10 +1013,8 @@ private struct PlayerRouteView: View {
       }
     } label: {
       HStack(spacing: 3) {
-        // One line whatever else the top line holds (the workout sign, the ♥ chip): a wrap pushes the pills down
-        // over the lifter (#98).
-        // No "reps ·": the big number says it, and the ♥ chip needs the room (Igor, #301).
-        Text(session.exercise.definition.name).lineLimit(1).minimumScaleFactor(0.7)
+        // The drawing in place of the name: the ♥ chip and the rest of the top line get the room (#299, #301).
+        ExerciseGlyph(kind: session.exercise, size: 28)
           // The set and count the HUD shows, logged when it appears and whenever either changes: the stale player
           // of 2026-10-18 never logged the second set's.
           .task(id: "\(session.currentEntry?.id ?? "")/\(session.reps.count)") {
@@ -1028,6 +1028,7 @@ private struct PlayerRouteView: View {
       .font(.subheadline)
     }
     .foregroundStyle(.white)
+    .accessibilityLabel("Exercise: \(session.exercise.definition.name)")
   }
 
   /// The big number over the video (#54): while reviewing, the gallery's rep — the one the playhead is
@@ -1336,6 +1337,15 @@ private struct PlayerRouteView: View {
     guard seconds.isFinite else { return "0:00" }
     let total = Int(seconds.rounded(.down))
     return String(format: "%d:%02d", total / 60, total % 60)
+  }
+}
+
+extension ExerciseKind {
+  /// The drawing as a picture, in its colour: a menu's rows are drawn by UIKit, which takes images, not views.
+  @MainActor fileprivate var menuGlyph: UIImage {
+    let renderer = ImageRenderer(content: ExerciseGlyph(kind: self, size: 24))
+    renderer.scale = 3
+    return (renderer.uiImage ?? UIImage()).withRenderingMode(.alwaysOriginal)
   }
 }
 

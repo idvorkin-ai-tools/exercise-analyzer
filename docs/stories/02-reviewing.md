@@ -359,12 +359,11 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
   reading when there is only one), and it changes as the playhead moves
 
 - **Scenario:** A full top line (#299, #301)
-- **Given:** the top line also holds the workout sign, the count, the exercise name, the bell's weight and the two
-  view buttons
+- **Given:** the top line also holds the workout sign, the count, the exercise, the bell's weight and the two view
+  buttons
 - **When:** the heart reads three digits
-- **Then:** "133" stays on one line and the exercise name shrinks or cuts off first; the name reads "Kettlebell
-  Swing" without "reps ·" in front, since the big number says it (Igor, 2026-10-19: the chip read "13" over "3";
-  "get rid of the word reps")
+- **Then:** "133" stays on one line; there is no "reps ·" (Igor, 2026-10-19: the chip read "13" over "3"; "get rid
+  of the word reps"), and the exercise is its drawing, not its name (story 003, 2026-10-20), so the line has room
 
 - **Scenario:** A paused, rotated or imported set
 - **Given:** a set recorded with a pause or a rotation in it, or a clip opened from Photos or Files
