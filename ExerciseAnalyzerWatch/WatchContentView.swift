@@ -178,7 +178,8 @@ struct WatchContentView: View {
             exercise: start.exercise, start: start.reps, choosing: phone.screenshotOpensExerciseList,
             startKg: {
               HandSet.startKg(for: $0, phone: status.bellKg, typed: phone.lastTyped, analyzed: status.lastSet)
-            }
+            },
+            log: { phone.logEvent($0, $1) }
           ) { exercise, reps, kg in
             phone.saveSetByHand(exercise: exercise, reps: reps, kg: kg)
           }
@@ -627,6 +628,9 @@ private struct SetByHandPage: View {
   let onSave: (ExerciseKind, Int, Int?) -> Void
   /// Each exercise's last weight (#271): the weight row opens on it and follows the exercise until turned.
   let startKg: (ExerciseKind) -> Int?
+  let log: (String, [String: Any]) -> Void
+  /// Taps on the weight row so far, for `kg_row_tap`: whether the first one opened the tiles (ea-bgi).
+  @State private var kgTaps = 0
   @State private var exercise: ExerciseKind
   /// The Crown's value; the count is it rounded and clamped.
   @State private var count: Double
@@ -641,10 +645,11 @@ private struct SetByHandPage: View {
 
   init(
     exercise: ExerciseKind, start: Int, choosing: Bool = false, startKg: @escaping (ExerciseKind) -> Int?,
-    onSave: @escaping (ExerciseKind, Int, Int?) -> Void
+    log: @escaping (String, [String: Any]) -> Void, onSave: @escaping (ExerciseKind, Int, Int?) -> Void
   ) {
     self.onSave = onSave
     self.startKg = startKg
+    self.log = log
     _exercise = State(initialValue: exercise)
     _count = State(initialValue: Double(start))
     _choosing = State(initialValue: choosing)
@@ -719,7 +724,12 @@ private struct SetByHandPage: View {
           $kgStep, from: 0, through: Double(HandSet.weights.count), by: 1, sensitivity: .low, isContinuous: false,
           isHapticFeedbackEnabled: true
         )
-        .onTapGesture { if kgFocused { pickingKg = true } else { kgFocused = true } }
+        .onTapGesture {
+          kgTaps += 1
+          // Instrumented (ea-bgi): whether watchOS had already focused the row when the tap's closure ran.
+          log("kg_row_tap", ["tap": kgTaps, "focused": kgFocused])
+          if kgFocused { pickingKg = true } else { kgFocused = true }
+        }
         // Given the Crown, the weight is the lifter's: a change of exercise no longer moves it.
         .onChange(of: kgFocused) { _, focused in if focused { kgPicked = true } }
         .accessibilityLabel(kg.map { "\($0) kilograms. Turn the Crown to change" } ?? "No weight")
