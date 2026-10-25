@@ -53,14 +53,16 @@ check_trim() {  # clip expected-reps wait-seconds: auto-trims after analysis, ex
   start=$(jq -r 'select(.type=="trim") | .start_s' "$f" | tail -1)
   req=$(jq -r 'select(.type=="trim") | .requested_start_s' "$f" | tail -1)
   reps=$(jq -r 'select(.type=="trim") | .reps' "$f" | tail -1)
-  # The cut must keep its keyframe, or it plays from the next one (#13): read the trimmed file's first decodable
-  # frame. Not the player's first tick, which under load lands half a second into playback (ea-7sx).
+  # The cut must keep its keyframe, or it plays from the next one (#13): read the trimmed file's first keyframe
+  # at or after time zero, which is where AVPlayer starts. Not the first decodable frame: AVFoundation keeps the
+  # earlier keyframe as discarded edit-list pre-roll and ffmpeg decodes through it, so that reads 0 on a bad cut.
+  # Not the player's first tick either, which under load lands half a second into playback (ea-7sx).
   local clip data cut
   clip=$(jq -r 'select(.type=="trim") | .clip' "$f" | tail -1)
   data="$(dirname "$(dirname "$LOGS")")"
   cut=$(find "$data" -name "$clip" -print -quit 2>/dev/null || true)
-  first=$([ -n "$cut" ] && ffprobe -v error -select_streams v:0 -show_entries frame=pts_time -of default=nw=1:nk=1 \
-    "$cut" | head -1 || true)
+  first=$([ -n "$cut" ] && ffprobe -v error -select_streams v:0 -show_entries packet=pts_time,flags -of csv=p=0 \
+    "$cut" | awk -F, '$2 ~ /K/ && $1 >= 0 && (m == "" || $1 < m) { m = $1 } END { if (m != "") print m }' || true)
   if [ "$pass" = "true" ] && [ "$reps" = "$2" ] && awk "BEGIN{exit !($start <= $req && $req - $start < 1.5 && $first < 0.2)}"; then
     echo "ok    trim $1: passthrough, start $start (asked $req), first frame at ${first}s, $reps reps"
   else echo "FAIL  trim $1: passthrough=$pass start=$start asked=$req first_frame=$first reps=$reps (wanted $2)"; fail=1; fi
