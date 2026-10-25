@@ -156,7 +156,7 @@ phone can show): those live checks are run once by the driving session in its bu
 body, so the pipeline never competes for the simulator.
 
 Each check waits for its event in a new launch log, so a slow startup cannot reuse the preceding clip's result.
-The trim check reads the first `display_frame` after `trim`, rather than sampling the last few frame events.
+The trim check reads the trimmed file itself with ffprobe (below), not the player's frame events.
 
 A fresh checkout or worktree needs `just model` before any app build: the `.mlpackage` binaries are gitignored
 downloads, and a build without them launches with no predictor — one `model_missing` event, then silence until
@@ -212,7 +212,12 @@ simulator runs the pose model on the CPU at roughly 20 fps, a tenth of the phone
 
 Checks today: three clips must detect and count (4 swings, 5 pistols, 8 Bulgarian); the trim check auto-trims the
 one-hand swing clip (10 reps since the first swing counts, #148) and asserts a lossless passthrough cut that starts on a keyframe within 1.5 s of the requested start and
-a first displayed frame at time zero. Cancel must leave playback paused and save nothing; interruption followed
+a trimmed file whose first keyframe at or after time zero is within 0.2 s of it (ffprobe packets; ea-7sx: the
+player's first tick lands late under load). That keyframe is where AVPlayer starts. The first *decodable* frame is
+no oracle: AVFoundation's passthrough export keeps the earlier keyframe as discarded edit-list pre-roll and ffmpeg
+decodes through it, so it reads 0 even on a bad cut. Measured 2026-10-25 on AVAssetExportSession passthrough cuts
+of `igor-1h-swing` (the oracle against AVPlayer's first frame): mid-GOP from 3 s, the #13 bug, 5.333 vs 5.333 s
+(FAIL); from the keyframe's decode time 0.067 vs 0.067 s; from 0, 0 vs 0. Cancel must leave playback paused and save nothing; interruption followed
 by a mode switch must re-extract. Four `clip_switch` checks force late foreground completions after another
 stored set opens, including a simulated Photos response; real Photos permission/replacement/undo remains a
 phone check.
