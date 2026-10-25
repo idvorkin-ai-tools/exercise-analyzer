@@ -4,6 +4,7 @@
 set -euo pipefail
 SIM=$("$(dirname "$0")/sim-udid.sh" "$1"); BUNDLE=$2; APP=$3  # one device, whatever runtimes share the name
 SAMPLES=${SAMPLES:-$HOME/tmp/agent/swing-samples}
+command -v ffprobe >/dev/null || { echo "sim-smoke.sh needs ffprobe (ffmpeg) for the trim check"; exit 1; }
 xcrun simctl boot "$SIM" 2>/dev/null || true
 xcrun simctl install "$SIM" "$APP"
 LOGS="$(xcrun simctl get_app_container "$SIM" "$BUNDLE" data)/Documents/logs"

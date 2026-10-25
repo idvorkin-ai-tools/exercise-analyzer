@@ -212,7 +212,11 @@ simulator runs the pose model on the CPU at roughly 20 fps, a tenth of the phone
 
 Checks today: three clips must detect and count (4 swings, 5 pistols, 8 Bulgarian); the trim check auto-trims the
 one-hand swing clip (10 reps since the first swing counts, #148) and asserts a lossless passthrough cut that starts on a keyframe within 1.5 s of the requested start and
-a trimmed file whose first decodable frame is at time zero (ffprobe; ea-7sx: the player's first tick lands late under load). Cancel must leave playback paused and save nothing; interruption followed
+a trimmed file whose first decodable frame is at time zero (ffprobe; ea-7sx: the player's first tick lands late under load). The oracle fails on the #13
+bug: ffmpeg stream-copy cuts of `igor-1h-swing` at 3 s that drop the keyframe (`-ss` after `-i`, with or without
+`-copyinkf`) read a first frame at 5.33 s, and the keyframe-keeping cut (`-ss` before `-i`) reads 0.000000 s
+(2026-10-25). It decodes the whole cut: `-read_intervals '%+#1'` prints nothing even for the good cut, because the
+pre-roll packet before the edit list starts is discarded. Cancel must leave playback paused and save nothing; interruption followed
 by a mode switch must re-extract. Four `clip_switch` checks force late foreground completions after another
 stored set opens, including a simulated Photos response; real Photos permission/replacement/undo remains a
 phone check.
