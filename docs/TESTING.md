@@ -156,7 +156,7 @@ phone can show): those live checks are run once by the driving session in its bu
 body, so the pipeline never competes for the simulator.
 
 Each check waits for its event in a new launch log, so a slow startup cannot reuse the preceding clip's result.
-The trim check reads the first `display_frame` after `trim`, rather than sampling the last few frame events.
+The trim check reads the trimmed file itself with ffprobe (below), not the player's frame events.
 
 A fresh checkout or worktree needs `just model` before any app build: the `.mlpackage` binaries are gitignored
 downloads, and a build without them launches with no predictor — one `model_missing` event, then silence until
