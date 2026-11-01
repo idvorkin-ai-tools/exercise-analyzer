@@ -232,6 +232,25 @@ final class WorkoutTests: XCTestCase {
     XCTAssertEqual(WorkoutIndex(workouts: [cardio]).sessions().map(\.kind), [.elliptical])
   }
 
+  /// #339: a run then a row is no one kind; two runs are a run. Every kind maps to its own Health activity type
+  /// and back, and an activity this app never records maps to none.
+  func testOtherKindsMergeOnlyWithTheirOwnAndRoundTripHealth() {
+    var run = StoredWorkout(id: "r", start: date(16, 7, 0), end: date(16, 7, 20))
+    run.kind = .run
+    var again = StoredWorkout(id: "s", start: date(16, 7, 25), end: date(16, 7, 40))
+    again.kind = .run
+    var row = StoredWorkout(id: "w", start: date(16, 7, 25), end: date(16, 7, 40))
+    row.kind = .row
+    XCTAssertEqual(WorkoutIndex(workouts: [run, again]).sessions().map(\.kind), [.run])
+    XCTAssertEqual(WorkoutIndex(workouts: [run, row]).sessions().map(\.kind), [nil])
+
+    XCTAssertEqual(Set(WorkoutKind.allCases.map(\.healthActivity)).count, WorkoutKind.allCases.count)
+    for kind in WorkoutKind.allCases { XCTAssertEqual(WorkoutKind(healthActivity: kind.healthActivity), kind) }
+    XCTAssertNil(WorkoutKind(healthActivity: 46))  // swimming
+    XCTAssertEqual(WorkoutKind.other.first, .elliptical)
+    XCTAssertFalse(WorkoutKind.other.contains(.strength))
+  }
+
   /// 078 (#331): trimming a merged line ends the part running past the new end there and drops parts after it.
   func testTrimEndEndsThePartAcrossItAndDropsTheOnesAfter() {
     var index = WorkoutIndex(workouts: [

@@ -278,7 +278,7 @@ final class WorkoutMirror: NSObject {
     #if !targetEnvironment(simulator)
       if HKHealthStore.isHealthDataAvailable() {
         do {
-          trim.healthRecords = try await trimHealth(session, to: end)
+          trim.healthRecords = try await resaveHealth(session, endingAt: end)
         } catch {
           failures.append("Health kept its longer record: \(error.localizedDescription)")
         }
@@ -294,11 +294,57 @@ final class WorkoutMirror: NSObject {
     return trim
   }
 
-  /// The wrist's records in the line that run past `end`: each saved again from its start to `end` with its sets
-  /// (activities) up to there, then deleted; one starting after `end` is only deleted. Returns how many changed.
+  /// Change type (story 082, #340; Igor: "and then cahnge a workotu if I want later"): every row of the line
+  /// becomes `kind`, and each of the wrist's Health records in it is saved again as that type and the old one
+  /// deleted; Health cannot change a workout's type in place. The sets stay.
+  func changeKind(_ session: StoredWorkout, to kind: WorkoutKind) async -> WorkoutTrim {
+    // Another device's rows are mirrored only by it (070), as for Trim end.
+    let parts = index.parts(of: session)
+    guard parts.allSatisfy({ $0.device == nil }) else {
+      return WorkoutTrim(rows: 0, failure: "Change this workout on the device that recorded it.")
+    }
+    let now = Date()
+    for part in parts {
+      guard let i = index.workouts.firstIndex(where: { $0.id == part.id }) else { continue }
+      // Strength stays nil in the row, as before #333.
+      index.workouts[i].kind = kind == .strength ? nil : kind
+      index.workouts[i].modifiedAt = now
+    }
+    var change = WorkoutTrim(rows: parts.count)
+    var failures: [String] = []
+    do {
+      try index.save(root: root)
+    } catch {
+      failures.append("The list could not be saved: \(error.localizedDescription)")
+    }
+    #if !targetEnvironment(simulator)
+      if HKHealthStore.isHealthDataAvailable(), let type = HKWorkoutActivityType(rawValue: kind.healthActivity) {
+        do {
+          change.healthRecords = try await resaveHealth(session, as: type)
+        } catch {
+          failures.append("Health kept the old type: \(error.localizedDescription)")
+        }
+      }
+    #endif
+    change.failure = failures.isEmpty ? nil : failures.joined(separator: "\n")
+    onEvent?(
+      "workout_kind_changed",
+      [
+        "id": session.id, "from": (session.kind ?? .strength).rawValue, "kind": kind.rawValue, "rows": change.rows,
+        "health": change.healthRecords, "message": change.failure ?? "",
+      ])
+    return change
+  }
+
+  /// The wrist's records in the line that Trim end or Change type touches, each saved again and then deleted:
+  /// with `end`, those running past it, from their start to `end` with their sets (activities) up to there, and
+  /// one starting after `end` only deleted; with `type`, those of another type, whole, as `type` with their sets.
+  /// Returns how many changed.
   /// ponytail: the new record carries no heart-rate or energy samples of its own (the watch's stay in Health,
   /// by time); re-associate them with `HKWorkoutBuilder.add` if Fitness's workout view needs them.
-  private func trimHealth(_ session: StoredWorkout, to end: Date) async throws -> Int {
+  private func resaveHealth(
+    _ session: StoredWorkout, endingAt end: Date? = nil, as type: HKWorkoutActivityType? = nil
+  ) async throws -> Int {
     try await store.requestAuthorization(
       toShare: [.workoutType()], read: [.workoutType(), HKQuantityType(.heartRate)])
     let family = Bundle.main.bundleIdentifier ?? "com.idvorkin.exerciseanalyzer"
@@ -309,34 +355,38 @@ final class WorkoutMirror: NSObject {
             withStart: session.start.addingTimeInterval(-60), end: session.end.addingTimeInterval(60)))
       ],
       sortDescriptors: [])
-    let records = try await query.result(for: store).filter {
-      $0.sourceRevision.source.bundleIdentifier.hasPrefix(family) && $0.endDate > end
+    let records = try await query.result(for: store).filter { record in
+      guard record.sourceRevision.source.bundleIdentifier.hasPrefix(family) else { return false }
+      if let end { return record.endDate > end }
+      return type.map { record.workoutActivityType != $0 } ?? false
     }
     var saved: [HKWorkout] = []
-    // The long records go only once their short ones are saved; if Health will not save one or let them go (a
-    // record the watch wrote may be the watch's alone to delete), the short ones go again, so Health never holds
+    // The old records go only once their new ones are saved; if Health will not save one or let them go (a
+    // record the watch wrote may be the watch's alone to delete), the new ones go again, so Health never holds
     // both.
     do {
-      for record in records where record.startDate < end {
+      for record in records where end.map({ record.startDate < $0 }) ?? true {
+        let stop = min(record.endDate, end ?? record.endDate)
         let configuration = HKWorkoutConfiguration()
-        configuration.activityType = record.workoutActivityType
+        configuration.activityType = type ?? record.workoutActivityType
         configuration.locationType = .indoor
         let builder = HKWorkoutBuilder(healthStore: store, configuration: configuration, device: record.device)
         try await builder.beginCollection(at: record.startDate)
-        for activity in record.workoutActivities where activity.startDate < end {
+        for activity in record.workoutActivities where activity.startDate < stop {
+          // A set keeps its own type, strength as the wrist wrote it, whatever the workout's type.
           try await builder.addWorkoutActivity(
             HKWorkoutActivity(
               workoutConfiguration: activity.workoutConfiguration, start: activity.startDate,
-              end: min(activity.endDate ?? end, end), metadata: activity.metadata))
+              end: min(activity.endDate ?? stop, stop), metadata: activity.metadata))
         }
         // Ours and the indoor flag; Health's own keys are its to write.
         let metadata = (record.metadata ?? [:]).filter {
           !$0.key.hasPrefix("HK") || $0.key == HKMetadataKeyIndoorWorkout
         }
         if !metadata.isEmpty { try await builder.addMetadata(metadata) }
-        try await builder.endCollection(at: end)
-        guard let short = try await builder.finishWorkout() else { throw WorkoutTrimError.notSaved }
-        saved.append(short)
+        try await builder.endCollection(at: stop)
+        guard let new = try await builder.finishWorkout() else { throw WorkoutTrimError.notSaved }
+        saved.append(new)
       }
       if !records.isEmpty { try await store.delete(records) }
     } catch {
@@ -440,10 +490,11 @@ final class WorkoutMirror: NSObject {
 
 enum WorkoutTrimError: LocalizedError {
   case notSaved
-  var errorDescription: String? { "the shorter workout was not saved" }
+  var errorDescription: String? { "the new workout was not saved" }
 }
 
-/// What Trim end did (078): the rows trimmed or dropped, the Health records saved shorter, and what refused.
+/// What Trim end (078) or Change type (082) did: the rows changed or dropped, the Health records saved again,
+/// and what refused.
 struct WorkoutTrim {
   var rows: Int
   var healthRecords = 0

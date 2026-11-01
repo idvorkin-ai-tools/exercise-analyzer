@@ -354,7 +354,7 @@ final class PhoneLink: NSObject {
   }
 
   /// Start on the workout page (048): the wrist's own session, no phone needed. `continuing`: Continue on the ask
-  /// that follows an End by under ten minutes (#238). `kind`: Elliptical starts an elliptical workout (#333).
+  /// that follows an End by under ten minutes (#238). `kind`: a kind under Other… (#333, #339).
   func startWorkout(continuing: Bool = false, kind: WorkoutKind = .strength) {
     logEvent(
       "command",
