@@ -30,8 +30,8 @@ struct WorkoutDetailView: View {
   /// Whose series `heartRate` is: the iPad's split view reuses this page between workouts (#244), so a series
   /// read for one workout stayed on the next, drawn outside its window as an empty chart.
   @State private var heartRateFor: WorkoutIdentity?
-  /// What Trim end could not change, said once (078).
-  @State private var trimFailure: String?
+  /// What Trim end (078) or Change type (082) could not change, said once, under its name.
+  @State private var editFailure: (title: String, message: String)?
 
   var body: some View {
     let series = heartRateFor == identity ? heartRate : nil
@@ -52,16 +52,24 @@ struct WorkoutDetailView: View {
             let session = snapshot.workout
             Task {
               let trim = await workouts.trimEnd(session, to: end)
-              trimFailure = trim.failure
+              editFailure = trim.failure.map { ("Trim end", $0) }
+            }
+          },
+          onChangeKind: { kind in
+            let session = snapshot.workout
+            Task {
+              let change = await workouts.changeKind(session, to: kind)
+              editFailure = change.failure.map { ("Change type", $0) }
             }
           }
         )
         .alert(
-          "Trim end", isPresented: Binding(get: { trimFailure != nil }, set: { if !$0 { trimFailure = nil } })
+          editFailure?.title ?? "",
+          isPresented: Binding(get: { editFailure != nil }, set: { if !$0 { editFailure = nil } })
         ) {
           Button("OK", role: .cancel) {}
         } message: {
-          Text(trimFailure ?? "")
+          Text(editFailure?.message ?? "")
         }
         // A fresh page per workout: the reused iPad page kept the last workout's chart window, so this one's
         // series drew off the plot (#244). The identity holds across the live → saved hand-over.
@@ -141,6 +149,8 @@ private struct WorkoutPageView: View {
   var onSetBellKg: ((RecentEntry, Int?) -> Void)?
   /// Trim end's new end for this saved workout (078).
   var onTrimEnd: ((Date) -> Void)?
+  /// Change type's new kind for this saved workout (082).
+  var onChangeKind: ((WorkoutKind) -> Void)?
   @State private var trimming = false
   @State private var deleting: RecentEntry?
   /// The set whose bell weight is being set (066).
@@ -242,6 +252,23 @@ private struct WorkoutPageView: View {
             trimming = true
           } label: {
             Label("Trim end", systemImage: "scissors")
+          }
+        }
+      }
+      // A saved workout's type can change (082, #340), shown by its own sign; the running one is the watch's.
+      if onChangeKind != nil, workout.id != WorkoutMirror.liveID {
+        ToolbarItem(placement: .navigationBarTrailing) {
+          Menu {
+            Picker(
+              "Type",
+              selection: Binding(get: { workout.kind ?? .strength }, set: { onChangeKind?($0) })
+            ) {
+              ForEach(WorkoutKind.allCases, id: \.self) { kind in
+                Label(kind.name, systemImage: kind.symbol).tag(kind)
+              }
+            }
+          } label: {
+            Label("Change type", systemImage: (workout.kind ?? .strength).symbol)
           }
         }
       }

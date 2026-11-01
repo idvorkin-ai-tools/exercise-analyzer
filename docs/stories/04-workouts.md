@@ -939,3 +939,24 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Issues:** [#331](https://github.com/idvorkin/exercise-analyzer/issues/331)
 
 ---
+
+### User Story 082:
+
+- **Summary:** A workout started as the wrong type is changed to the right one later, in Workouts and in Health
+- **Status:** built on `feat/2026-11-01-workout-types` ([#340](https://github.com/idvorkin/exercise-analyzer/issues/340)): Change type on the workout page, `WorkoutMirror.changeKind` re-saving the Health records as the new type (Trim end's re-save, generalized); the app build, the menu and a real Health change on the phone pending
+- **Why:** Igor, 2026-11-01: "and then cahnge a workotu if I want later"
+
+#### Use Case:
+- **As a** lifter who tapped Start workout before a run, or picked the wrong tile under Other… (081)
+- **I want to** change a saved workout's type from its page
+- **so that** Workouts and Health's record say what I actually did, without deleting the workout and losing its sets and heart rate
+
+#### Acceptance Criteria:
+- **Scenario:** Changing a strength workout to a run
+- **Given:** a saved workout recorded on this device, on its page (Change type, its own sign at top right beside Trim end; the running workout has none, and another device's workout says to change it there)
+- **When:** I tap Change type and pick Run from Strength, Elliptical, Run, Walk, Bike, Row, Stairs, HIIT and Yoga
+- **Then:** every row of the line becomes a run, so the line reads "Run · …" with the runner sign, and in Health each of the wrist's records in it is replaced by one of that type with the same start, end and sets (`workout_kind_changed`); sync carries the change to the other devices; the sets and heart rate stay; when Health refuses, the list still changes, a record already saved is deleted again so Health never holds both, and an alert says Health kept the old type
+
+- **Issues:** [#340](https://github.com/idvorkin/exercise-analyzer/issues/340)
+
+---
