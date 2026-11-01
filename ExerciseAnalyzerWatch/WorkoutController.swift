@@ -154,7 +154,7 @@ final class WorkoutController: NSObject {
 
   /// Asks for Health permission the first time, then opens the session and starts mirroring it to the phone.
   /// `continuing`: Continue on Start's ask (#238), the last ended workout carried on the wrist. `kind`: Start
-  /// workout or Elliptical (#333).
+  /// workout, or a kind under Other… (#333, #339).
   func start(continuing: Bool = false, kind: WorkoutKind = .strength) {
     guard phase == .none, !fixed else { return }
     pendingCarry = continuing ? continuable : nil
@@ -187,7 +187,7 @@ final class WorkoutController: NSObject {
 
   private func open() {
     let configuration = HKWorkoutConfiguration()
-    configuration.activityType = kind == .elliptical ? .elliptical : .functionalStrengthTraining
+    configuration.activityType = HKWorkoutActivityType(rawValue: kind.healthActivity) ?? .functionalStrengthTraining
     configuration.locationType = .indoor
     do {
       let session = try HKWorkoutSession(healthStore: store, configuration: configuration)
@@ -277,7 +277,7 @@ final class WorkoutController: NSObject {
         self.builder = builder
         let start = session.startDate ?? builder.startDate ?? Date()
         self.startedAt = start
-        self.kind = session.workoutConfiguration.activityType == .elliptical ? .elliptical : .strength
+        self.kind = WorkoutKind(healthActivity: session.workoutConfiguration.activityType.rawValue) ?? .strength
         // The count of sets is ours, not Health's: kept on disk per workout (`saveTally`).
         let tally = Self.savedTally(startedAt: start)
         self.sets = tally.sets
@@ -346,8 +346,10 @@ final class WorkoutController: NSObject {
     UserDefaults.standard.data(forKey: lastEndedKey).flatMap { try? JSONDecoder().decode(WorkoutCarry.self, from: $0) }
   }
 
-  /// End (#238): what the next Start may continue, as the head showed it, the carried part included.
+  /// End (#238): what the next Start may continue, as the head showed it, the carried part included. A cardio
+  /// session (#339) is never offered as the gym hour to continue; a gym hour that ended before it still is.
   private func rememberEnded(at date: Date) {
+    guard kind == .strength else { return }
     guard let shownStart, !fixed else { return }
     let tally = shownTally
     let ended = WorkoutCarry(
@@ -547,7 +549,7 @@ final class WorkoutController: NSObject {
       startedAt: (startedAt ?? Date()).timeIntervalSince1970, heartRate: heartRate, heartRateAverage: heartRateAverage,
       heartRateMax: heartRateMax, sets: sets, reps: reps)
     // Strength stays nil on the wire, as before #333.
-    if kind == .elliptical { wire.kind = .elliptical }
+    if kind != .strength { wire.kind = kind }
     return wire
   }
 

@@ -16,6 +16,8 @@ struct WatchContentView: View {
   @State private var continueQuestion = ""
   /// The count page of a set typed by hand is up (059).
   @State private var countingSet = false
+  /// Other…'s tiles are up (#339).
+  @State private var pickingKind = false
   private let clock = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
 
   private var status: WatchStatus { phone.status }
@@ -243,7 +245,7 @@ struct WatchContentView: View {
           .font(.system(size: 40, weight: .bold, design: .rounded)).monospacedDigit()
           .foregroundStyle(restIsOver(resting) ? .orange : .primary)
       } else {
-        Text(workout.phase == .ending ? "ENDING…" : workout.kind == .elliptical ? "ELLIPTICAL" : "WORKOUT")
+        Text(workout.phase == .ending ? "ENDING…" : workout.kind.label?.uppercased() ?? "WORKOUT")
           .font(.caption2.weight(.semibold)).kerning(1).foregroundStyle(.green)
         if let startedAt = workout.shownStart {
           Text(startedAt, style: .timer)
@@ -320,16 +322,40 @@ struct WatchContentView: View {
         Button("Continue") { phone.startWorkout(continuing: true) }
         Button("New workout") { phone.startWorkout() }
       }
-      // Under Start (#333): an elliptical session is its own workout in Health, never a continued gym hour.
+      // Under Start (#333, #339; Igor: "Let me select other exrcises like jogging"): a cardio session is its own
+      // workout in Health, never a continued gym hour. Start workout stays one tap for the gym.
       Button {
-        phone.startWorkout(kind: .elliptical)
+        pickingKind = true
       } label: {
-        Label("Elliptical", systemImage: WorkoutKind.elliptical.symbol).frame(maxWidth: .infinity)
+        Label("Other…", systemImage: "figure.mixed.cardio").frame(maxWidth: .infinity)
       }
       .tint(.green)
       .disabled(workout.phase == .starting)
+      .sheet(isPresented: $pickingKind) { kindPicker }
       // The option (#332; Igor: "3 as well as an option"): the gym is wherever Start is tapped.
       Toggle("End when I leave", isOn: Bindable(workout).endWhenLeaving).font(.caption)
+    }
+  }
+
+  /// Other…'s kinds as tiles, two across, 52 pt each (#339): one tap starts that workout and closes.
+  private var kindPicker: some View {
+    ScrollView {
+      LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 2), spacing: 6) {
+        ForEach(WorkoutKind.other, id: \.self) { kind in
+          Button {
+            pickingKind = false
+            phone.startWorkout(kind: kind)
+          } label: {
+            VStack(spacing: 2) {
+              Image(systemName: kind.symbol).font(.title3)
+              Text(kind.name).font(.caption2).lineLimit(1).minimumScaleFactor(0.7)
+            }
+            .frame(maxWidth: .infinity, minHeight: 52)
+            .background(Color.green.opacity(0.18), in: RoundedRectangle(cornerRadius: 12))
+          }
+          .buttonStyle(.plain)
+        }
+      }
     }
   }
 

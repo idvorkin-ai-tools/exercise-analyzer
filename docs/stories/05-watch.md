@@ -945,10 +945,32 @@ the first frame (story 001).
 #### Acceptance Criteria:
 - **Scenario:** Starting an elliptical workout
 - **Given:** no workout runs on the watch
-- **When:** I tap Elliptical under Start workout
+- **When:** I tap Elliptical under Other… below Start workout (a button of its own until #339, story 081)
 - **Then:** the workout page heads with ELLIPTICAL and the clock and heart rate as a workout does (048); End writes an elliptical (indoor) workout to Health; Workouts' line reads "Elliptical · 7:02 AM · 30 min · ♥ 131" with the elliptical sign; it never asks to continue the last workout (#238), and a line that merges it with a strength workout under 30 minutes apart (#169) is the strength line
 
 - **Issues:** [#333](https://github.com/idvorkin/exercise-analyzer/issues/333)
+
+---
+
+### User Story 081:
+
+- **Summary:** Any cardio session, a run, a walk, a ride, a row, stairs, HIIT or yoga, starts from the watch and lands in Health as that workout
+- **Status:** built on `feat/2026-11-01-workout-types` ([#339](https://github.com/idvorkin/exercise-analyzer/issues/339)): `WorkoutKind` grows seven kinds with their Health activity types in ExerciseCore (`WorkoutTests`, host), Other… and its tiles under Start on the watch; the watch build and a wrist session pending
+- **Why:** Igor, 2026-11-01: "Let me select other exrcises like jogging or somethign too"; "I guess run is indoor for now"
+
+#### Use Case:
+- **As a** lifter who warms up or finishes with cardio at the gym
+- **I want to** pick that cardio from a short list on the watch when I start
+- **so that** Health and my Workouts list record a run as a run and a row as a row, not as strength training
+
+#### Acceptance Criteria:
+- **Scenario:** Starting a run
+- **Given:** no workout runs on the watch
+- **and Given:** Start workout still starts the gym hour in one tap, and Other… sits under it
+- **When:** I tap Other… and then Run among the tiles Elliptical, Run, Walk, Bike, Row, Stairs, HIIT and Yoga
+- **Then:** the workout page heads with RUN; End writes an indoor run (no GPS route) to Health; Workouts' line reads "Run · 7:02 AM · 30 min · ♥ 151" with the runner sign; a later Start workout never asks to continue the run (#238), though a gym hour that ended before the run still is offered; two runs under 30 minutes apart are one Run line, and a run beside a row or a strength workout is a plain line
+
+- **Issues:** [#339](https://github.com/idvorkin/exercise-analyzer/issues/339)
 
 ---
 

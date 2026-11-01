@@ -45,15 +45,76 @@ public struct WorkoutWire: Codable, Equatable, Sendable {
 }
 
 /// What a workout is in Health (#333; Igor: "Add another type of workout where it's an elliptical workout"): the
-/// gym hour of sets is functional strength training, an elliptical session is elliptical. Chosen at Start.
+/// gym hour of sets is functional strength training, anything else is the cardio picked under Other… (#339; Igor:
+/// "Let me select other exrcises like jogging or somethign too"). Chosen at Start, changed later on the phone
+/// (#340). Every one is recorded indoors: a run has no GPS route ("I guess run is indoor for now").
 public enum WorkoutKind: String, Codable, Sendable, CaseIterable {
   case strength
   case elliptical
+  case run
+  case walk
+  case bike
+  case row
+  case stairs
+  case hiit
+  case yoga
+
+  /// The kinds under Other…, in the order the watch shows them.
+  public static let other: [WorkoutKind] = allCases.filter { $0 != .strength }
 
   /// The phone's word for it on the workout line; strength says nothing, the lifter sign says it.
-  public var label: String? { self == .elliptical ? "Elliptical" : nil }
-  /// Its SF Symbol: the lifter the workout line has always worn (#130), or the elliptical.
-  public var symbol: String { self == .elliptical ? "figure.elliptical" : "figure.strengthtraining.traditional" }
+  public var label: String? { self == .strength ? nil : name }
+
+  /// Its name wherever one is needed: the type picker, the watch's head.
+  public var name: String {
+    switch self {
+    case .strength: "Strength"
+    case .elliptical: "Elliptical"
+    case .run: "Run"
+    case .walk: "Walk"
+    case .bike: "Bike"
+    case .row: "Row"
+    case .stairs: "Stairs"
+    case .hiit: "HIIT"
+    case .yoga: "Yoga"
+    }
+  }
+
+  /// Its SF Symbol: the lifter the workout line has always worn (#130), or the activity's figure.
+  public var symbol: String {
+    switch self {
+    case .strength: "figure.strengthtraining.traditional"
+    case .elliptical: "figure.elliptical"
+    case .run: "figure.run"
+    case .walk: "figure.walk"
+    case .bike: "figure.indoor.cycle"
+    case .row: "figure.rower"
+    case .stairs: "figure.stair.stepper"
+    case .hiit: "figure.highintensity.intervaltraining"
+    case .yoga: "figure.yoga"
+    }
+  }
+
+  /// Its `HKWorkoutActivityType` raw value, so the platform-free core names Health's type for both apps.
+  public var healthActivity: UInt {
+    switch self {
+    case .strength: 20  // functionalStrengthTraining
+    case .elliptical: 16
+    case .run: 37  // running
+    case .walk: 52  // walking
+    case .bike: 13  // cycling
+    case .row: 35  // rowing
+    case .stairs: 44  // stairClimbing
+    case .hiit: 63  // highIntensityIntervalTraining
+    case .yoga: 57
+    }
+  }
+
+  /// The kind Health's activity type is, or nil for one this app does not record.
+  public init?(healthActivity: UInt) {
+    guard let kind = Self.allCases.first(where: { $0.healthActivity == healthActivity }) else { return nil }
+    self = kind
+  }
 }
 
 /// What the workout's Live Activity shows beside its self-running clock (#161): the wrist's heart rate, sets and
@@ -250,8 +311,10 @@ public struct WorkoutIndex: Codable, Equatable, Sendable {
     return merged.map { entry in
       guard entry.parts.count > 1 else { return entry.session }
       var session = entry.session
-      // Elliptical only when every part was (#333): a warm-up on it before the sets is still the gym hour.
-      session.kind = entry.parts.allSatisfy { $0.kind == .elliptical } ? .elliptical : nil
+      // A cardio kind only when every part was that kind (#333, #339): a warm-up run before the sets is still
+      // the gym hour, and a run then a row is no one kind either.
+      let kind = entry.parts[0].kind
+      session.kind = kind != .strength && entry.parts.allSatisfy { $0.kind == kind } ? kind : nil
       session.sets = entry.parts.reduce(0) { $0 + $1.sets }
       session.reps = entry.parts.reduce(0) { $0 + $1.reps }
       session.heartRateMax = entry.parts.compactMap(\.heartRateMax).max()
