@@ -283,6 +283,14 @@ final class HandSetTests: XCTestCase {
     XCTAssertEqual(HandSet.startKg(for: swing, phone: [:], typed: typedEarlier, analyzed: analyzed), 28)
   }
 
+  /// #343 (Igor: "Drop 8 kg, fit on 2 lines"): the wrist's bells are 12 … 36 kg in fours, so None and the bells
+  /// are two rows of four tiles; a phone's 8 kg still reaches the wrist, which opens it on the nearest bell.
+  func testTheWristsBellsFitTwoRowsOfFour() {
+    XCTAssertEqual(HandSet.weights, [12, 16, 20, 24, 28, 32, 36])
+    XCTAssertEqual(HandSet.weights.count + 1, 2 * 4, "None plus the bells")
+    XCTAssertEqual(HandSet.startKg(for: swing, phone: [swing.rawValue: 8], typed: nil, analyzed: nil), 8)
+  }
+
   /// The weight rides the set to the phone and lands on it as a tapped weight would; old payloads have none.
   func testATypedWeightIsTheSetsOwn() throws {
     let set = HandSet(exercise: getUp, reps: 2, at: 1000, kg: 20)

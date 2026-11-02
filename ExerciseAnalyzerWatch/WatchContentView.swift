@@ -756,7 +756,7 @@ private struct SetByHandPage: View {
         .onTapGesture { crownFocused = true }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("\(reps) reps")
-        // The bell's weight (#271): a tap gives it the Crown, which steps None, 8 … 36 kg; a tap on the green row
+        // The bell's weight (#271): a tap gives it the Crown, which steps None, 12 … 36 kg; a tap on the green row
         // opens every bell as a tile.
         row(green: kgFocused) {
           Text("kg").font(.caption).foregroundStyle(.secondary)
@@ -843,8 +843,8 @@ private struct SetByHandPage: View {
     }
   }
 
-  /// Every bell as a tile, None first, four across (ea-xrf): one tap picks and closes. It scrolls: with 36 kg
-  /// (#334) the three rows pass the 40 mm's sheet.
+  /// Every bell as a tile, None first, four across (ea-xrf): one tap picks and closes. Two rows since 8 kg went
+  /// (#343); it still scrolls should they pass a small face's sheet.
   private var kgPicker: some View {
     ScrollView {
       kgTiles
