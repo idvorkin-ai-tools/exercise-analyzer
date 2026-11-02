@@ -436,6 +436,18 @@ private struct WorkoutPageView: View {
         "\(Self.clock.string(from: workout.start))–\(Self.clock.string(from: workout.end)) · \(Int(workout.duration / 60)) min"
       )
       .font(.title3.bold()).monospacedDigit()
+      // While it runs, the rest since the last set ended, ticking (#342; Igor: "Add rest counter from last rep on
+      // this screen if doing weights"): from the newest set's end, a recording's trimmed clip (the last rep and
+      // about 5 s after it), a typed set's save. The wrist's clock (#182) starts at Done, so it can read a few
+      // seconds less.
+      if workout.id == WorkoutMirror.liveID, let lastEnd = timeline.rows.map(\.end).max() {
+        Label {
+          Text("Rest ") + Text(lastEnd, style: .timer)
+        } icon: {
+          Image(systemName: "timer")
+        }
+        .font(.title2.bold()).monospacedDigit().foregroundStyle(.orange)
+      }
       Text(
         "\(timeline.rows.count) set\(timeline.rows.count == 1 ? "" : "s") · \(timeline.rows.reduce(0) { $0 + $1.reps }) reps · work \(Self.minutes(timeline.workSeconds)) · rest \(Self.minutes(timeline.restSeconds))"
       )
