@@ -7,6 +7,10 @@ bundle := "com.idvorkin.exerciseanalyzer"
 sim_app := "Build/Build/Products/Debug-iphonesimulator/ExerciseAnalyzer.app"
 device_app := "Build/Build/Products/Debug-iphoneos/ExerciseAnalyzer.app"
 
+# Shared entry points across Igor's native repos: just build, test, install, run.
+alias build := build-sim
+alias run := run-sim
+
 default:
     @just --list
 
