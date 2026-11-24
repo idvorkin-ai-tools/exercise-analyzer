@@ -1489,13 +1489,21 @@ final class VideoPoseSession: NSObject {
       log.event("error", ["where": "set_by_hand", "id": set.id, "message": "\(error)"])
       return false
     }
-    log.event(
-      "set_by_hand",
-      [
-        "id": set.id, "exercise": set.exercise.rawValue, "reps": set.reps, "at": set.at, "duplicate": !added,
-        "where": place, "kg": set.kg ?? 0,
-      ])
+    let weight = set.entry.weight
+    var fields: [String: Any] = [
+      "id": set.id, "exercise": set.exercise.rawValue, "reps": set.reps, "at": set.at, "duplicate": !added,
+      "where": place, "kg": weight?.kg ?? 0,
+    ]
+    Self.addPlates(of: weight, to: &fields)
+    log.event("set_by_hand", fields)
     return true
+  }
+
+  private static func addPlates(of weight: SetWeight?, to fields: inout [String: Any]) {
+    guard let load = weight?.barbell else { return }
+    fields["lb"] = load.totalLb
+    fields["bar"] = load.bar.rawValue
+    fields["plates"] = load.plates.map(String.init).joined(separator: ",")
   }
 
   /// The weight the lifter tapped for a set, a bell's (066) or plates (083), with the detector's colour reading
@@ -1506,11 +1514,7 @@ final class VideoPoseSession: NSObject {
       "id": entry.id, "kg": weight?.kg ?? 0, "was": entry.weight?.kg ?? 0, "exercise": entry.exerciseKind.rawValue,
       "detector_kg": entry.id == clip?.entryID ? (bellWeightKg ?? 0) : 0, "where": place,
     ]
-    if let load = weight?.barbell {
-      fields["lb"] = load.totalLb
-      fields["bar"] = load.bar.rawValue
-      fields["plates"] = load.plates.map(String.init).joined(separator: ",")
-    }
+    Self.addPlates(of: weight, to: &fields)
     log.event("set_bell_kg", fields)
     recents.setWeight(id: entry.id, weight: weight)
     // The wrist's by-hand picker opens on the new weight (#271).
