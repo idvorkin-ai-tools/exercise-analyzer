@@ -46,6 +46,9 @@ public struct RecentEntry: Codable, Equatable, Identifiable, Sendable {
   /// The bell's weight in kg as the lifter set it (story 066, #102); nil when never set. A set without one shows
   /// the weight of the last set of its exercise before it in the same workout (`WorkoutTimeline`).
   public var bellKg: Int? = nil
+  /// A barbell set's bar and plates (story 083, #377), in place of `bellKg`: a set has one or the other
+  /// (`setWeight`). Nil for a set without, and on every row from before it.
+  public var barbell: BarbellLoad? = nil
   /// The device that made or last changed the set (story 070): the one that writes its folder in the iCloud
   /// container. Nil for a set of this device's own from before sync, or one never mirrored; set on rows read
   /// from another device (`SyncOwnership`).
@@ -70,9 +73,9 @@ public struct RecentEntry: Codable, Equatable, Identifiable, Sendable {
   /// own rewrites (a re-analysis, a backfill, a cloud identifier): what he typed wins over what was measured when
   /// two devices changed the same set (`SyncMerge`). Nil for a row he never edited, or one from before this.
   public var editedAt: Date? = nil
-  /// When the lifter last set or cleared `bellKg` by hand: the later typed weight wins when two devices changed
-  /// the same set (`SyncMerge`), and a count kept by hand is not a weight edit. Nil for a weight never typed, or
-  /// one from before this.
+  /// When the lifter last set or cleared the set's weight (`bellKg` or `barbell`) by hand: the later typed weight
+  /// wins when two devices changed the same set (`SyncMerge`), and a count kept by hand is not a weight edit. Nil
+  /// for a weight never typed, or one from before this.
   public var bellKgEditedAt: Date? = nil
   /// The clip was recorded by this app's camera (story 070, step 3), set once by the save that knows: true for the
   /// camera's rows (`RecentSave.recording`), false for a new row of any other clip. Nil on rows from before
@@ -83,9 +86,7 @@ public struct RecentEntry: Codable, Equatable, Identifiable, Sendable {
 
   /// The lifter set the bell's weight on `device` (066); nil clears it.
   public mutating func setBellKg(_ kg: Int?, by device: String, at time: Date = Date()) {
-    bellKg = kg
-    bellKgEditedAt = time
-    edited(by: device, at: time)
+    setWeight(kg.map(SetWeight.bell), by: device, at: time)
   }
 
   /// The lifter changed the row on `device` (story 070, step 4): the row is that device's to write from now on.

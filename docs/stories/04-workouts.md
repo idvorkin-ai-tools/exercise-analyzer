@@ -995,3 +995,41 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Issues:** [#340](https://github.com/idvorkin/exercise-analyzer/issues/340)
 
 ---
+
+### User Story 083:
+
+- **Summary:** A barbell set's weight is entered as plates per side on a chosen bar, and the app adds it up
+- **Status:** implemented on `feat/2026-11-24-barbell-plates-377` (ea-dbl), verified on the host (`BarbellTests`: 148 lb on the safety squat bar, the carry, the load in kg, the progression, the by-hand pickers, sync merges including a row rewritten by an older build) and the simulator (iPhone 17, a seeded workout: the page read "148 lb", a dimmer carried "148 lb", "24 kg" and "1,432 kg moved"; "Add a set at …" showed the Bar chip after the bells); the plate sheet's taps and press and hold, by eye on the phone, pending
+- **Why:** Igor, 2026-11-24, logging reverse lunges with the safety squat bar: the weight entry should be in plates. "That can be my barbell weight input. Oh, I actually really like that feature."
+
+#### Use Case:
+- **As a** lifter loading a barbell or the safety squat bar
+- **I want to** pick the bar and tap the plates I put on each side
+- **so that** the set's weight is the real total in pounds without doing the sum in my head between sets
+
+#### Acceptance Criteria:
+- **Scenario:** Plates on the safety squat bar
+- **Given:** the weight sheet of any set (the playback line's weight chip, a row's long-press on the workout page), switched from Bell to Barbell
+- **When:** I pick "Safety squat bar" (58 lb; "Barbell" is 45 lb) and tap the 45 lb plate once
+- **Then:** the sheet reads "148 lb" and "45/side"; each plate (10, 25, 35, 45 lb) is a big button with its count per side, one tap adding one to each side and a press and hold taking one off; Save stores the set's weight and closes, and "No weight" clears the set's own weight as it does for a bell
+
+- **Scenario:** A barbell weight on the workout page
+- **Given:** a workout of lunge sets where the first has 148 lb on the safety squat bar
+- **When:** I read its rows
+- **Then:** the first says "148 lb" and the next sets of that exercise carry it, dimmer, as a bell's weight is carried (066); VoiceOver says "148 pounds, safety squat bar, 45 per side"; the workout's "kg moved" counts the set at its weight in kg (148 lb is 67 kg), and so does the exercise's progression card
+
+- **Scenario:** Plates in the by-hand sheet
+- **Given:** "Add a set at …" or "Set exercise and reps" on the phone
+- **When:** I tap "Bar" in the weight row and load the plates
+- **Then:** the barbell sheet opens over it on the set's barbell weight (or the exercise's last one, else 45 lb per side on the Barbell), and Save reads "Save 10 reps · 148 lb"; picking a bell or None replaces it
+
+- **Scenario:** One weight per set, on every device
+- **Given:** a set with a bell weight
+- **When:** I give it a barbell weight on one device
+- **Then:** the bell's weight is gone from the set, the later weight edit wins on every device as for a bell (070), and a device on an older build that rewrites the set (a re-analysis) does not erase the plates
+
+- **Notes:** the plates are stored as the bar and a count of each plate on one side, in pounds; the total is the bar plus twice the side. The watch's by-hand picker keeps its bells; a count-only reverse lunge exercise, a typed weight and the 65 lb bar of #375 are not part of this story.
+
+- **Issues:** [#377](https://github.com/idvorkin/exercise-analyzer/issues/377); [#375](https://github.com/idvorkin/exercise-analyzer/issues/375) (the same ask for reverse lunges, earlier)
+
+---

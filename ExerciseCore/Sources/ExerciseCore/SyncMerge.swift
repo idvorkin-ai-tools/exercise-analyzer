@@ -42,6 +42,7 @@ extension RecentEntry {
     let other = takeTheirs ? self : row
     if other.typedWeightWins(over: result) {
       result.bellKg = other.bellKg
+      result.barbell = other.barbell
       result.bellKgEditedAt = other.bellKgEditedAt
       result.editedAt = [result.editedAt, other.bellKgEditedAt].compactMap { $0 }.max()
     }
@@ -66,14 +67,16 @@ extension RecentEntry {
 
   /// The bell weight on this row was typed later than `other`'s (`bellKgEditedAt`; a count kept by hand is not a
   /// weight edit). With no weight-edit time on either (rows from before it), a weight beats none: the weight was
-  /// typed, its absence may be a re-analysis.
+  /// typed, its absence may be a re-analysis. Plates (083) are the same weight edit: a build from before them
+  /// drops them when it rewrites the row and keeps the edit time, so at the same time the plates win.
   func typedWeightWins(over other: RecentEntry) -> Bool {
-    guard bellKg != other.bellKg else { return false }
+    guard weight != other.weight else { return false }
     switch (bellKgEditedAt, other.bellKgEditedAt) {
-    case (let mine?, let theirs?): return mine > theirs
+    case (let mine?, let theirs?):
+      return mine > theirs || (mine == theirs && barbell != nil && other.barbell == nil && other.bellKg == nil)
     case (.some, nil): return true
     case (nil, .some): return false
-    case (nil, nil): return bellKg != nil && other.bellKg == nil
+    case (nil, nil): return weight != nil && other.weight == nil
     }
   }
 }

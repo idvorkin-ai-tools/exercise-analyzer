@@ -16,13 +16,24 @@ public struct HandSet: Codable, Equatable, Sendable {
   /// The bell's weight picked beside the count (#271, story 066), the set's own on the phone; nil for none and
   /// from a watch before #271.
   public let kg: Int?
+  /// The plates picked on the phone's by-hand sheet (story 083), in place of `kg`; the wrist has none.
+  public var barbell: BarbellLoad? = nil
 
-  public init(id: String = UUID().uuidString, exercise: ExerciseKind, reps: Int, at: Double, kg: Int? = nil) {
+  public init(
+    id: String = UUID().uuidString, exercise: ExerciseKind, reps: Int, at: Double, kg: Int? = nil,
+    barbell: BarbellLoad? = nil
+  ) {
     self.id = id
     self.exercise = exercise
     self.reps = reps
     self.at = at
-    self.kg = kg
+    self.kg = barbell == nil ? kg : nil
+    self.barbell = barbell
+  }
+
+  /// A set typed with `weight`, a bell or plates.
+  public init(id: String = UUID().uuidString, exercise: ExerciseKind, reps: Int, at: Double, weight: SetWeight?) {
+    self.init(id: id, exercise: exercise, reps: reps, at: at, kg: weight?.bellKg, barbell: weight?.barbell)
   }
 
   /// The wrist's weight column: the competition bells, 12 … 36 kg (066's code; 36 for #334). No 8 (#343; Igor:
@@ -147,6 +158,7 @@ public struct HandSet: Codable, Equatable, Sendable {
       id: id, analyzedAt: date, recordedAt: date, duration: 0, repCount: reps, bestScore: nil, source: .byHand,
       thumbnail: nil, exercise: exercise, originalName: nil, models: [], clipStartedAt: date)
     entry.bellKg = kg
+    entry.barbell = barbell
     return entry
   }
 }
@@ -174,6 +186,7 @@ extension RecentEntry {
       bestScore: nil, source: .byHand, thumbnail: nil, exercise: exercise, originalName: nil,
       clipStartedAt: clipStartedAt)
     kept.bellKg = bellKg  // the lifter's weight is not the camera's (066)
+    kept.barbell = barbell
     kept.bellKgEditedAt = bellKgEditedAt
     return kept
   }

@@ -230,11 +230,11 @@ final class RecentsStore {
     try? persistIndex()
   }
 
-  /// The bell's weight the lifter set for a set (066); nil clears it. A re-analysis keeps it (`save` updates the
-  /// entry in place).
-  func setBellKg(id: String, kg: Int?) {
-    guard var entry = entry(id: id), entry.bellKg != kg else { return }
-    entry.setBellKg(kg, by: SyncStore.deviceID)
+  /// The weight the lifter set for a set, a bell's (066) or plates (083); nil clears it. A re-analysis keeps it
+  /// (`save` updates the entry in place).
+  func setWeight(id: String, weight: SetWeight?) {
+    guard var entry = entry(id: id), entry.weight != weight else { return }
+    entry.setWeight(weight, by: SyncStore.deviceID)
     entries = entries.map { $0.id == id ? entry : $0 }
     try? persistIndex()
   }
