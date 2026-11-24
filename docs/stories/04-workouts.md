@@ -1033,3 +1033,36 @@ Part of the [user stories](README.md); persona, format and the Status vocabulary
 - **Issues:** [#377](https://github.com/idvorkin/exercise-analyzer/issues/377); [#375](https://github.com/idvorkin/exercise-analyzer/issues/375) (the same ask for reverse lunges, earlier)
 
 ---
+
+### User Story 084:
+
+- **Summary:** The running workout's data goes to Larry's Cockpit as it happens, stored there for him
+- **Status:** implemented on `feat/2026-11-24-workout-events-376` (ea-6ap), the shape agreed with Larry on 2026-11-24; verified on the host (`WorkoutEventsTests`) and the simulator (iPhone 17, switch on, `SWING_LIVE_WORKOUT=2 SWING_WORKOUT_EVOLVE=1` against a stand-in Cockpit at `SWING_COCKPIT_URL`: `POST /workout` with the Cockpit's Origin took started, two sets and ended, each once, oldest first, `workout_event` logging queued and sent; the first send waited ~15 s behind the launch's model load); the Cockpit's route is Larry's (cockpit-772.2); on the phone with a real workout, ticks with the screen locked and the first real POST, pending
+- **Why:** Igor, 2026-11-24, on the elliptical: "All the apps should be able to talk to Larry. So if I'm doing a workout, you can be sending workout stats to Larry"; then "I'm less interested in how the coaching sounds, and more interested in getting the data first, 'cause I actually have a lot of data that's not being stored around my workouts."
+
+#### Use Case:
+- **As a** lifter whose coach is Larry
+- **I want to** have every workout's heart rate, time, sets and weights reach Larry's Cockpit while I train
+- **so that** the data around my workouts is stored, and a coach can later read it live
+
+#### Acceptance Criteria:
+- **Scenario:** Off until I turn it on
+- **Given:** a fresh install
+- **When:** I run a workout
+- **Then:** nothing is sent; the exercise menu's "Send workouts to Larry" switch is off, and once on, every workout goes, with no choice per workout
+
+- **Scenario:** A workout as it happens
+- **Given:** the switch on and a workout started on the watch
+- **When:** I train
+- **Then:** the Cockpit hears `started` within seconds (the workout's type, its start, where its numbers come from), a `tick` every 30 s with the heart rate now, average and peak, the time since the start and the sets and reps so far, a `set` as each set is counted (camera or by hand: its exercise, reps, start and end, score, and weight in the unit lifted, a bell's in kg, a barbell's in lb with the bar and the plates per side, 083), and `ended` when I end or discard it, which wakes Larry; times are UTC, heart rate in bpm, durations in whole seconds
+
+- **Scenario:** No signal at the gym
+- **Given:** the switch on and the Cockpit out of reach
+- **When:** the workout goes on
+- **Then:** `started`, the sets, any level change and `ended` wait and go oldest first, each once, when it is back; only the newest tick waits, not every one missed; anything older than a day is dropped; a refusal is logged and not sent again; a Cockpit without the route yet is "not yet", and the events wait
+
+- **Notes:** `POST /workout` on the Cockpit, idempotent by each event's id, the same contract as Grabber's arrivals (`POST /context`). A machine's name, incline and intensity ride on `started` and every tick, and a `level` event marks each change, once the app can say them (the shape has them; nothing sets them yet). No location and no heart-rate zone: the Cockpit works the zone out.
+
+- **Issues:** [#376](https://github.com/idvorkin/exercise-analyzer/issues/376)
+
+---

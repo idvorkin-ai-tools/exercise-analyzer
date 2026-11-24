@@ -1015,6 +1015,13 @@ private struct PlayerRouteView: View {
       Toggle(isOn: Binding(get: { session.bellDetectorOn }, set: { session.setBellDetector($0) })) {
         Label("Bell detector (slower pass)", systemImage: "circle.circle")
       }
+      // Every workout's data to Larry's Cockpit as it happens (story 084, #376): off by default.
+      Toggle(
+        isOn: Binding(
+          get: { CockpitWorkoutSender.shared.enabled }, set: { CockpitWorkoutSender.shared.enabled = $0 })
+      ) {
+        Label("Send workouts to Larry", systemImage: "antenna.radiowaves.left.and.right")
+      }
     } label: {
       HStack(spacing: 3) {
         // The drawing in place of the name: the ♥ chip and the rest of the top line get the room (#299, #301).
