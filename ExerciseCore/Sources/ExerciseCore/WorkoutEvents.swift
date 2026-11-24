@@ -87,13 +87,24 @@ public struct WorkoutStream: Codable, Equatable, Sendable {
     var kind: WorkoutKind
     var seq = 0
     var lastTickAt: Date
-    var sentSets: Set<String> = []
+    var lastHeardAt: Date
+    /// What each set's last `set` event said, by set id: a set that changes after it went goes again.
+    var sentSets: [String: SentSet] = [:]
     var machine: WorkoutEvent.Machine?
     var heartRate: Int?
     var heartRateAverage: Int?
     var heartRateMax: Int?
     var sets = 0
     var reps = 0
+  }
+
+  /// The facts of a set as its last `set` event carried them.
+  struct SentSet: Codable, Equatable, Sendable {
+    var exercise: ExerciseKind
+    var reps: Int
+    var score: Int?
+    var bellKg: Int?
+    var barbell: BarbellLoad?
   }
 
   public private(set) var running: Running?
@@ -115,21 +126,23 @@ public struct WorkoutStream: Codable, Equatable, Sendable {
     source: WorkoutEvent.Source = .watch, newID: () -> String = { UUID().uuidString }
   ) {
     guard let live else {
-      if running != nil { end(at: now, discarded: false) }
+      if let running { end(at: running.lastHeardAt, discarded: false) }
       return
     }
     if let running, abs(running.startedAt.timeIntervalSince(live.startDate)) >= 2 {
       // A new workout while the old one was still followed: its end was missed (the app was not running).
-      end(at: now, discarded: false)
+      end(at: running.lastHeardAt, discarded: false)
     }
     if running == nil {
       if live.ending { return }  // the end of a workout never followed: nothing to say about it
       running = Running(
-        workoutID: newID(), startedAt: live.startDate, source: source, kind: live.kind ?? .strength, lastTickAt: now)
+        workoutID: newID(), startedAt: live.startDate, source: source, kind: live.kind ?? .strength, lastTickAt: now,
+        lastHeardAt: now)
       update(from: live)
       waiting.append(event(.started, at: live.startDate))
     }
     update(from: live)
+    running?.lastHeardAt = now
     countSets(entries, heartRate: heartRate, now: now)
     if live.ending {
       end(at: live.endedAt.map { Date(timeIntervalSince1970: $0) } ?? now, discarded: live.discarded)
@@ -170,7 +183,8 @@ public struct WorkoutStream: Codable, Equatable, Sendable {
     running?.reps = live.reps
   }
 
-  /// A `set` for each set inside the workout not sent yet, in time order, with the weight it shows.
+  /// A `set` for each set inside the workout not sent yet, or changed since it went (a weight picked later, a
+  /// recount), in time order, with the weight it shows.
   private mutating func countSets(_ entries: [RecentEntry], heartRate: HeartRateSeries?, now: Date) {
     guard let start = running?.startedAt else { return }
     let inside = entries.filter { $0.span.lowerBound >= start && $0.repCount > 0 }
@@ -179,8 +193,11 @@ public struct WorkoutStream: Codable, Equatable, Sendable {
     for entry in inside {
       let weight = entry.weight ?? lastWeight[entry.exerciseKind]
       if let own = entry.weight { lastWeight[entry.exerciseKind] = own }
-      guard running?.sentSets.contains(entry.id) == false else { continue }
-      running?.sentSets.insert(entry.id)
+      let facts = SentSet(
+        exercise: entry.exerciseKind, reps: entry.repCount, score: entry.bestScore, bellKg: weight?.bellKg,
+        barbell: weight?.barbell)
+      guard running?.sentSets[entry.id] != facts else { continue }
+      running?.sentSets[entry.id] = facts
       let span = entry.span
       var set = event(.set, at: span.upperBound)
       set.set = WorkoutEvent.SetFacts(

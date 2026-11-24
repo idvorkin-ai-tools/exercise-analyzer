@@ -10,6 +10,7 @@
 import ExerciseCore
 import Foundation
 import Observation
+import UIKit
 
 @MainActor
 @Observable
@@ -31,13 +32,22 @@ final class CockpitWorkoutSender {
     set {
       withMutation(keyPath: \.enabled) { UserDefaults.standard.set(newValue, forKey: Self.enabledKey) }
       onEvent?("workout_event", ["action": newValue ? "on" : "off"])
-      if !newValue { stream = WorkoutStream() }
+      if !newValue {
+        stream = WorkoutStream()
+        retry?.cancel()
+        retryDelay = Self.firstRetry
+      }
     }
   }
+  /// After a "waiting" answer the next try comes on its own, 30 s later, doubling to 10 min.
+  private static let firstRetry: TimeInterval = 30
+  private static let lastRetry: TimeInterval = 10 * 60
   @ObservationIgnored var onEvent: ((String, [String: Any]) -> Void)?
 
   @ObservationIgnored private var stream = WorkoutStream() { didSet { save() } }
   @ObservationIgnored private var sending = false
+  @ObservationIgnored private var retry: Task<Void, Never>?
+  @ObservationIgnored private var retryDelay = CockpitWorkoutSender.firstRetry
   /// A workout was heard this run: only then is a nil `live` an end, not the launch's not-knowing-yet.
   @ObservationIgnored private var heard = false
   @ObservationIgnored private var observations: [AnyObject] = []
@@ -56,6 +66,9 @@ final class CockpitWorkoutSender {
     observations = [
       MainQueueObservation(read: { mirror.live }, onChange: { _ in follow() }),
       MainQueueObservation(read: { recents.entries }, onChange: { _ in follow() }),
+      NotificationCenter.default.addObserver(
+        forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main
+      ) { [weak self] _ in Task { @MainActor in self?.flush() } } as AnyObject,
     ]
     follow()
   }
@@ -78,7 +91,8 @@ final class CockpitWorkoutSender {
     flush()
   }
 
-  /// Sends what waits, oldest first; stops at the first retry, since the rest would wait the same way.
+  /// Sends what waits, oldest first; stops at the first retry, since the rest would wait the same way, and tries
+  /// again on its own later.
   func flush() {
     guard enabled, !sending else { return }
     for event in stream.dropStale(now: Date()) {
@@ -93,10 +107,12 @@ final class CockpitWorkoutSender {
       guard let self else { return }
       self.sending = false
       var f = self.fields(event, action: "sent")
+      self.retry?.cancel()
       switch outcome {
       case .sent(let duplicate):
         f["duplicate"] = duplicate
         self.stream.done(event.id)
+        self.retryDelay = Self.firstRetry
         self.onEvent?("workout_event", f)
         self.flush()
       case .refused(let status, let reason):
@@ -104,12 +120,20 @@ final class CockpitWorkoutSender {
         f["status"] = status
         f["reason"] = reason
         self.stream.done(event.id)
+        self.retryDelay = Self.firstRetry
         self.onEvent?("workout_event", f)
         self.flush()
       case .retry(let reason):
         f["action"] = "waiting"
         f["reason"] = reason
         self.onEvent?("workout_event", f)
+        let delay = self.retryDelay
+        self.retryDelay = min(delay * 2, Self.lastRetry)
+        self.retry = Task { [weak self] in
+          try? await Task.sleep(for: .seconds(delay))
+          guard !Task.isCancelled else { return }
+          self?.flush()
+        }
       }
     }
   }

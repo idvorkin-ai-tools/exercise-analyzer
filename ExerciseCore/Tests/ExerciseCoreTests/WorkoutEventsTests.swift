@@ -87,18 +87,35 @@ final class WorkoutEventsTests: XCTestCase {
   func testDiscardAndAnEndHeardOnlyAsTheSessionGoing() {
     var s = stream([(wire(), [], 1), (wire(ending: true, discarded: true), [], 50)])
     XCTAssertEqual(s.waiting.last?.discarded, true)
-    s = stream([(wire(), [], 1), (nil, [], 70)])
+    s = stream([(wire(), [], 1), (wire(), [], 40), (nil, [], 70)])
     XCTAssertEqual(s.waiting.map(\.type), [.started, .ended])
-    XCTAssertEqual(s.waiting.last?.endedAt, at(70))
+    XCTAssertEqual(s.waiting.last?.endedAt, at(40), "ended when last heard, not when the end was noticed")
   }
 
   func testANewWorkoutEndsTheOneWhoseEndWasMissed() {
-    var s = stream([(wire(), [], 1)])
+    var s = stream([(wire(), [], 1), (wire(), [], 600)])
     var next = wire()
-    next.startedAt += 3600
-    s.follow(next, sets: [], now: at(3601), newID: { "w2" })
+    next.startedAt += 2 * 24 * 3600
+    s.follow(next, sets: [], now: at(2 * 24 * 3600 + 1), newID: { "w2" })
     XCTAssertEqual(s.waiting.map(\.type), [.started, .ended, .started])
+    XCTAssertEqual(s.waiting[1].endedAt, at(600), "the old workout ends when it was last heard")
+    XCTAssertEqual(s.waiting[1].elapsedSeconds, 600)
     XCTAssertEqual(s.waiting.last?.workoutID, "w2")
+  }
+
+  func testASetChangedAfterItWentGoesAgainWithTheSameID() throws {
+    let bare = set("a", at: 100)
+    var s = stream([(wire(), [bare], 110)])
+    var weighed = bare
+    weighed.setWeight(.bell(24), by: "phone", at: at(200))
+    s.follow(wire(), sets: [weighed], now: at(210), newID: { "x" })
+    s.follow(wire(), sets: [weighed], now: at(220), newID: { "x" })
+    let setEvents = s.waiting.filter { $0.type == .set }
+    XCTAssertEqual(setEvents.compactMap(\.set?.id), ["a", "a"], "once bare, once with its weight, then no more")
+    XCTAssertEqual(setEvents.map(\.id), ["w1-2", "w1-3"], "a new event id each time")
+    XCTAssertNil(setEvents[0].set?.bellKg)
+    let facts = try XCTUnwrap(WorkoutEventWire.body(setEvents[1], sentAt: at(230))["set"] as? [String: Any])
+    XCTAssertEqual((facts["weight"] as? [String: Any])?["kg"] as? Int, 24)
   }
 
   func testTheEndOfAWorkoutNeverFollowedSaysNothing() {
