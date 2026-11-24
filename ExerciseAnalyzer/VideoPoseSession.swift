@@ -374,6 +374,9 @@ final class VideoPoseSession: NSObject {
     WorkoutLiveActivity.shared.onEvent = { [weak self] type, fields in self?.log.event(type, fields) }
     // The workout on the lock screen and in the Dynamic Island (#161), its sets by exercise from this store (#181).
     WorkoutLiveActivity.shared.install(mirror: .shared, recents: recents)
+    // The running workout to Larry's Cockpit, when its switch is on (story 084, #376).
+    CockpitWorkoutSender.shared.onEvent = { [weak self] type, fields in self?.log.event(type, fields) }
+    CockpitWorkoutSender.shared.install(mirror: .shared, recents: recents)
     // Every set and workout mirrored into the iCloud container for the iPad (story 070, step 1).
     sync = SyncStore(recents: recents, workouts: .shared) { [weak self] type, fields in self?.log.event(type, fields) }
     exporter = PhotosExporter(recents: recents) { [weak self] id, reason in
