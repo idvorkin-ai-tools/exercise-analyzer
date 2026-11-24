@@ -22,8 +22,8 @@ struct WorkoutDetailView: View {
   var onKeepByHand: ((RecentEntry, ExerciseKind, Int) -> Void)? = nil
   /// A set the camera never saw, added from a tap on the chart where no set is (#178).
   var onAddByHand: ((HandSet) -> Void)? = nil
-  /// The bell's weight for a set, from a row's long-press (066); nil clears it.
-  var onSetBellKg: ((RecentEntry, Int?) -> Void)? = nil
+  /// The weight for a set, a bell's (066) or plates (083), from a row's long-press; nil clears it.
+  var onSetWeight: ((RecentEntry, SetWeight?) -> Void)? = nil
   @Environment(\.scenePhase) private var scenePhase
   @State private var tick = Date()
   @State private var heartRate: HeartRateSeries?
@@ -49,7 +49,7 @@ struct WorkoutDetailView: View {
           // Read here, so a reading kept by the mirror redraws the line (#308).
           liveHeartRate: workouts.liveHeartRateSeries(for: snapshot.workout), onOpen: onOpen,
           thumbnail: thumbnail, onEvent: onEvent, onDelete: onDelete, onKeepByHand: onKeepByHand,
-          onAddByHand: onAddByHand, onSetBellKg: onSetBellKg,
+          onAddByHand: onAddByHand, onSetWeight: onSetWeight,
           onTrimEnd: { end in
             let session = snapshot.workout
             Task {
@@ -170,7 +170,7 @@ private struct WorkoutPageView: View {
   var onDelete: ((RecentEntry) -> Void)?
   var onKeepByHand: ((RecentEntry, ExerciseKind, Int) -> Void)?
   var onAddByHand: ((HandSet) -> Void)?
-  var onSetBellKg: ((RecentEntry, Int?) -> Void)?
+  var onSetWeight: ((RecentEntry, SetWeight?) -> Void)?
   /// Trim end's new end for this saved workout (078).
   var onTrimEnd: ((Date) -> Void)?
   /// The end before Trim end (#346), offered in the trim sheet, and Undo trim's tap with it.
@@ -357,7 +357,7 @@ private struct WorkoutPageView: View {
       .contextMenu {
         if let entry = sets.first(where: { $0.id == row.id }) {
           if onKeepByHand != nil { Button("Set exercise and reps…") { editing = entry } }
-          if onSetBellKg != nil { Button("Set the bell's weight…") { weighing = entry } }
+          if onSetWeight != nil { Button("Set the weight…") { weighing = entry } }
           if onDelete != nil { Button("Remove from Workouts…", role: .destructive) { deleting = entry } }
         }
       }
@@ -372,7 +372,7 @@ private struct WorkoutPageView: View {
         // A count the camera got wrong becomes the lifter's own, the video going (#157).
         if let entry = sets.first(where: { $0.id == row.id }) {
           if onKeepByHand != nil { Button("Set exercise and reps…") { editing = entry } }
-          if onSetBellKg != nil { Button("Set the bell's weight…") { weighing = entry } }
+          if onSetWeight != nil { Button("Set the weight…") { weighing = entry } }
         }
       }
     }
@@ -477,20 +477,20 @@ private struct WorkoutPageView: View {
     }
     .setDeletionDialog($deleting) { onDelete?($0) }
     .setByHandSheet(
-      $editing, onSave: { onKeepByHand?($0, $1, $2) }, onSetBellKg: onSetBellKg,
+      $editing, onSave: { onKeepByHand?($0, $1, $2) }, onSetWeight: onSetWeight,
       onDelete: onDelete
     )
     .sheet(item: $weighing) { entry in
       let row = timeline.rows.first { $0.id == entry.id }
-      BellWeightSheet(kg: row?.kg, inherited: row?.kgInherited ?? false) { onSetBellKg?(entry, $0) }
+      BellWeightSheet(weight: row?.weight, inherited: row?.kgInherited ?? false) { onSetWeight?(entry, $0) }
     }
     .sheet(item: $adding) { draft in
-      // The weight opens on the exercise's last one, from any workout (#271).
+      // The weight opens on the exercise's last one, from any workout (#271), a bell's or plates (083).
       SetByHandSheet(
         entry: draft, title: "Add a set at \(Self.clock.string(from: draft.analyzedAt))",
-        lastKg: RecentEntry.lastBellKg(sets)
+        lastWeight: RecentEntry.lastWeight(sets)
       ) {
-        add(draft, exercise: $0, reps: $1, kg: $2)
+        add(draft, exercise: $0, reps: $1, weight: $2)
       }
     }
     if timeline.rows.isEmpty, !cardio {
@@ -761,7 +761,7 @@ private struct WorkoutPageView: View {
               // As the sheet opens: the exercise's last weight (#271).
               add(
                 draft, exercise: draft.exerciseKind, reps: draft.repCount,
-                kg: draft.bellKg ?? RecentEntry.lastBellKg(sets)[draft.exerciseKind])
+                weight: draft.weight ?? RecentEntry.lastWeight(sets)[draft.exerciseKind])
               adding = nil
             }
           }
@@ -778,9 +778,10 @@ private struct WorkoutPageView: View {
   }
 
   /// A set added from the chart (#178): the draft's id and moment, the sheet's exercise and count.
-  private func add(_ draft: RecentEntry, exercise: ExerciseKind, reps: Int, kg: Int?) {
+  private func add(_ draft: RecentEntry, exercise: ExerciseKind, reps: Int, weight: SetWeight?) {
     onAddByHand?(
-      HandSet(id: draft.id, exercise: exercise, reps: reps, at: draft.analyzedAt.timeIntervalSince1970, kg: kg))
+      HandSet(
+        id: draft.id, exercise: exercise, reps: reps, at: draft.analyzedAt.timeIntervalSince1970, weight: weight))
   }
 
   /// Narrows or widens the window to `seconds` (a minute to the whole workout) with `moment` kept where it is
@@ -846,9 +847,10 @@ private struct SetTimelineRow: View {
           // for VoiceOver.
           ExerciseGlyph(kind: row.exercise, size: 22)
             .alignmentGuide(.firstTextBaseline) { $0[.bottom] - 2 }
-          // The bell (066): the set's own weight, or dimmer the one carried from its exercise's last set.
-          if let kg = row.kg {
-            Text("\(kg) kg").font(.subheadline.bold()).monospacedDigit()
+          // The bell (066) or plates (083): the set's own weight, or dimmer the one carried from its exercise's
+          // last set.
+          if let weight = row.weight {
+            Text(weight.label).font(.subheadline.bold()).monospacedDigit()
               .foregroundStyle(row.kgInherited ? .secondary : .primary)
           }
           if let score = row.score {
@@ -862,7 +864,7 @@ private struct SetTimelineRow: View {
       .accessibilityElement(children: .combine)
       .accessibilityLabel(
         "\(row.reps) \(row.exercise.repWord(row.reps))" + (row.byHand ? ", by hand" : "")
-          + (row.kg.map { ", \($0) kilograms" + (row.kgInherited ? " carried from the set before" : "") } ?? "")
+          + (row.weight.map { ", \($0.spoken)" + (row.kgInherited ? " carried from the set before" : "") } ?? "")
           + (row.score.map { ", score \($0)" } ?? "") + ", set \(number) at \(Self.clock.string(from: row.start))")
       Spacer(minLength: 8)
       VStack(alignment: .trailing, spacing: 2) {

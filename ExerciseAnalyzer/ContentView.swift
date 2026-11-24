@@ -469,7 +469,7 @@ private struct WorkoutRouteView: View {
       onDelete: { session.delete(set: $0, from: "workout_page") },
       onKeepByHand: { session.keepByHand(set: $0, exercise: $1, reps: $2, from: "workout_page") },
       onAddByHand: { session.addByHand($0, from: "workout_chart") },
-      onSetBellKg: { session.setBellKg($1, for: $0, from: "workout_page") })
+      onSetWeight: { session.setWeight($1, for: $0, from: "workout_page") })
   }
 }
 
@@ -591,9 +591,9 @@ private struct PlayerRouteView: View {
       }
       hud
         .sheet(item: $weighingLoadedSet) { entry in
-          let weight = loadedSetKg(entry)
-          BellWeightSheet(kg: weight.kg, inherited: weight.inherited) {
-            session.setBellKg($0, for: entry, from: "playback")
+          let shown = loadedSetWeight(entry)
+          BellWeightSheet(weight: shown.weight, inherited: shown.inherited) {
+            session.setWeight($0, for: entry, from: "playback")
           }
         }
       if let run = session.instrumentedRun {
@@ -628,15 +628,16 @@ private struct PlayerRouteView: View {
 
   // MARK: - HUD
 
-  /// The open set's bell weight (066): its own, else the one its workout carries from the exercise's set before.
-  private func loadedSetKg(_ entry: RecentEntry) -> (kg: Int?, inherited: Bool) {
-    if let kg = entry.bellKg { return (kg, false) }
+  /// The open set's weight, a bell (066) or plates (083): its own, else the one its workout carries from the
+  /// exercise's set before.
+  private func loadedSetWeight(_ entry: RecentEntry) -> (weight: SetWeight?, inherited: Bool) {
+    if let own = entry.weight { return (own, false) }
     guard let workout = workoutOfLoadedSet,
       let row = WorkoutTimeline(workout: workout, sets: session.recents.entries, heartRate: nil).rows.first(where: {
         $0.id == entry.id
       })
     else { return (nil, false) }
-    return (row.kg, row.kgInherited)
+    return (row.weight, row.kgInherited)
   }
 
   /// The stored workout the set on screen was done in: the page it was opened from, else the workout its first
@@ -755,23 +756,23 @@ private struct PlayerRouteView: View {
         }
         exerciseMenu
           .alignmentGuide(.top, computeValue: Self.capTop(.preferredFont(forTextStyle: .subheadline)))
-        // The bell's weight on a stored set (066): one tap sets it; dimmer when carried from the exercise's set
-        // before in the workout, "kg?" when nothing says.
+        // The weight on a stored set, a bell's (066) or plates' (083): one tap sets it; dimmer when carried from
+        // the exercise's set before in the workout, "kg?" when nothing says.
         if session.source != .camera, let entry = session.currentEntry {
-          let weight = loadedSetKg(entry)
+          let shown = loadedSetWeight(entry)
           Button {
             weighingLoadedSet = entry
           } label: {
-            Text(weight.kg.map { "\($0) kg" } ?? "kg?").font(.subheadline.bold()).monospacedDigit()
-              .foregroundStyle(weight.kg == nil || weight.inherited ? .secondary : .primary)
+            Text(shown.weight?.label ?? "kg?").font(.subheadline.bold()).monospacedDigit()
+              .foregroundStyle(shown.weight == nil || shown.inherited ? .secondary : .primary)
               .padding(.horizontal, 7).padding(.vertical, 2)
               .background(Color.secondary.opacity(0.18), in: Capsule())
               .contentShape(Rectangle().inset(by: -10))
           }
           .buttonStyle(.plain)
           .accessibilityLabel(
-            weight.kg.map { "Bell weight \($0) kilograms" + (weight.inherited ? ", carried from the set before" : "") }
-              ?? "Set the bell's weight"
+            shown.weight.map { "Weight \($0.spoken)" + (shown.inherited ? ", carried from the set before" : "") }
+              ?? "Set the weight"
           )
           .alignmentGuide(.top, computeValue: Self.capTop(.preferredFont(forTextStyle: .subheadline)))
         }
@@ -1436,12 +1437,19 @@ extension ContentView {
         }
         // Test hook (066): 4 s after the set opens, what a tap on a weight in its sheet does (a number: saved,
         // `set_bell_kg` logs) or what a tap on the chip does ("sheet": the picker is up for a screenshot).
+        // "bar:<bar>:<plates per side>" (083; "bar:safety-squat:45,10") saves plates, then opens the sheet on them.
         if let weight = env["SWING_SET_BELL_KG"] {
           Task { @MainActor in
             try? await Task.sleep(for: .seconds(4))
             guard let current = session.currentEntry ?? session.recents.entry(id: entry.id) else { return }
+            let parts = weight.split(separator: ":").map(String.init)
             if let kg = Int(weight) {
-              session.setBellKg(kg, for: current, from: "hook")
+              session.setWeight(.bell(kg), for: current, from: "hook")
+            } else if parts.count == 3, parts[0] == "bar", let bar = BarKind(rawValue: parts[1]) {
+              let plates = parts[2].split(separator: ",").compactMap { Int($0) }
+              session.setWeight(.barbell(BarbellLoad(bar: bar, plates: plates)), for: current, from: "hook")
+              try? await Task.sleep(for: .seconds(1))
+              weighingLoadedSet = session.recents.entry(id: current.id) ?? current
             } else {
               weighingLoadedSet = current
             }

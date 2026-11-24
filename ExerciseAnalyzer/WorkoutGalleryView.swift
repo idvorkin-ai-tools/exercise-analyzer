@@ -234,11 +234,11 @@ struct WorkoutGalleryView: View {
                         }
                         if entry.isInPhotos { refreshSuggestions() }
                       },
-                      onSetBellKg: { entry, kg in
+                      onSetWeight: { entry, weight in
                         if let session {
-                          session.setBellKg(kg, for: entry, from: "workouts")
+                          session.setWeight(weight, for: entry, from: "workouts")
                         } else {
-                          store.setBellKg(id: entry.id, kg: kg)
+                          store.setWeight(id: entry.id, weight: weight)
                         }
                       }
                     )
@@ -857,7 +857,7 @@ struct ExerciseSetsRow: View {
   /// The lifter's own exercise and count, from the long-press sheet (#156, #157).
   let onKeepByHand: (RecentEntry, ExerciseKind, Int) -> Void
   /// The weight row on that sheet (#286).
-  let onSetBellKg: (RecentEntry, Int?) -> Void
+  let onSetWeight: (RecentEntry, SetWeight?) -> Void
   @State private var deleting: RecentEntry?
   @State private var editing: RecentEntry?
 
@@ -895,7 +895,7 @@ struct ExerciseSetsRow: View {
       }
     }
     .setDeletionDialog($deleting, onConfirm: onDelete)
-    .setByHandSheet($editing, onSave: onKeepByHand, onSetBellKg: onSetBellKg)
+    .setByHandSheet($editing, onSave: onKeepByHand, onSetWeight: onSetWeight)
   }
 
   private var totals: String {
@@ -912,38 +912,45 @@ struct SetByHandSheet: View {
   /// "Add a set at 10:42 AM" when the set is new, from a tap on the workout's chart (#178).
   var title = "Set exercise and reps"
   /// The weight row, when adding a set (#271): each exercise's last weight, which the row opens on and follows
-  /// the exercise to until a weight is tapped.
-  var lastKg: [ExerciseKind: Int]? = nil
+  /// the exercise to until a weight is tapped. A bell or plates (083).
+  var lastWeight: [ExerciseKind: SetWeight]? = nil
   /// The weight row when editing a stored set (#286; Igor: "I should be able to set weight here as well, like I do
   /// on the watch"): it opens on the set's own weight, which a change of exercise leaves alone.
   var editsKg = false
-  private var showsKg: Bool { lastKg != nil || editsKg }
+  private var showsKg: Bool { lastWeight != nil || editsKg }
   /// Exercise, reps and the picked weight (nil without the row or with "None").
-  let onSave: (ExerciseKind, Int, Int?) -> Void
+  let onSave: (ExerciseKind, Int, SetWeight?) -> Void
   /// Removes a typed set from the sheet itself (#204; Igor: "the set exercise and rep scheme probably needs a
   /// delete button"), after the usual "Delete?" (056). Nil hides the button; a filmed set keeps its long press.
   var onDelete: (() -> Void)? = nil
   @State private var exercise: ExerciseKind
   @State private var reps: Int
-  @State private var kg: Int?
+  @State private var weight: SetWeight?
   /// A weight was tapped: a change of exercise no longer moves it.
   @State private var kgPicked = false
+  /// The plates sheet over this one (083), from the weight row's "Bar".
+  @State private var loadingBar = false
   @State private var deleting: RecentEntry?
   @Environment(\.dismiss) private var dismiss
 
   init(
-    entry: RecentEntry, title: String = "Set exercise and reps", lastKg: [ExerciseKind: Int]? = nil,
-    editsKg: Bool = false, onSave: @escaping (ExerciseKind, Int, Int?) -> Void, onDelete: (() -> Void)? = nil
+    entry: RecentEntry, title: String = "Set exercise and reps", lastWeight: [ExerciseKind: SetWeight]? = nil,
+    editsKg: Bool = false, onSave: @escaping (ExerciseKind, Int, SetWeight?) -> Void, onDelete: (() -> Void)? = nil
   ) {
     self.entry = entry
     self.title = title
-    self.lastKg = lastKg
+    self.lastWeight = lastWeight
     self.editsKg = editsKg
     self.onSave = onSave
     self.onDelete = onDelete
     _exercise = State(initialValue: entry.exerciseKind)
     _reps = State(initialValue: HandSet.clamp(entry.repCount == 0 ? HandSet.defaultReps : entry.repCount))
-    _kg = State(initialValue: entry.bellKg ?? lastKg?[entry.exerciseKind])
+    _weight = State(initialValue: entry.weight ?? lastWeight?[entry.exerciseKind])
+  }
+
+  /// What "Bar" opens on: the plates picked, else the exercise's last plates, else a 45 a side on the barbell.
+  private var barStart: BarbellLoad {
+    weight?.barbell ?? lastWeight?[exercise]?.barbell ?? .start
   }
 
   /// What Save does to the video, said before it happens.
@@ -962,7 +969,7 @@ struct SetByHandSheet: View {
             ForEach(ExerciseKind.allCases) { kind in
               Button {
                 exercise = kind
-                if let lastKg, !kgPicked { kg = lastKg[kind] }
+                if let lastWeight, !kgPicked { weight = lastWeight[kind] }
               } label: {
                 HStack(spacing: 8) {
                   ExerciseGlyph(kind: kind, size: 28)
@@ -989,10 +996,10 @@ struct SetByHandSheet: View {
           if showsKg { weightRow }
           if let videoLine { Text(videoLine).font(.footnote).foregroundStyle(.secondary) }
           Button {
-            onSave(exercise, reps, showsKg ? kg : nil)
+            onSave(exercise, reps, showsKg ? weight : nil)
             dismiss()
           } label: {
-            Text("Save \(reps) \(exercise.repWord(reps))\(showsKg ? kg.map { " · \($0) kg" } ?? "" : "")")
+            Text("Save \(reps) \(exercise.repWord(reps))\(showsKg ? weight.map { " · \($0.label)" } ?? "" : "")")
               .font(.headline).frame(maxWidth: .infinity, minHeight: 44)
           }
           .buttonStyle(.borderedProminent)
@@ -1015,21 +1022,42 @@ struct SetByHandSheet: View {
         onDelete?()
         dismiss()
       }
+      .sheet(isPresented: $loadingBar) {
+        BarbellSheet(load: barStart) { load in
+          weight = .barbell(load)
+          kgPicked = true
+        }
+      }
     }
   }
 
-  /// The bell's weight beside the count (#271): the competition bells in their colours and None, one tap each.
+  /// The weight beside the count (#271): the competition bells in their colours and None, one tap each, and "Bar"
+  /// for plates on a bar (083), which opens the plates sheet and then shows their total.
   private var weightRow: some View {
     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 8) {
       weightChip("None", value: nil, color: .secondary)
-      ForEach(BellWeightSheet.code, id: \.kg) { bell in weightChip("\(bell.kg)", value: bell.kg, color: bell.color) }
+      ForEach(BellWeightSheet.code, id: \.kg) { bell in
+        weightChip("\(bell.kg)", value: .bell(bell.kg), color: bell.color)
+      }
+      let plates = weight?.barbell
+      Button {
+        loadingBar = true
+      } label: {
+        Text(plates.map { "\($0.totalLb) lb" } ?? "Bar").font(.headline).monospacedDigit()
+          .frame(maxWidth: .infinity, minHeight: 48)
+          .background(Color.primary.opacity(plates != nil ? 0.3 : 0.1), in: RoundedRectangle(cornerRadius: 10))
+          .overlay(RoundedRectangle(cornerRadius: 10).stroke(plates != nil ? Color.primary : .clear, lineWidth: 3))
+      }
+      .buttonStyle(.plain)
+      .accessibilityLabel(plates.map { SetWeight.barbell($0).spoken } ?? "Barbell plates")
+      .accessibilityAddTraits(plates != nil ? .isSelected : [])
     }
   }
 
-  private func weightChip(_ label: String, value: Int?, color: Color) -> some View {
-    let picked = kg == value
+  private func weightChip(_ label: String, value: SetWeight?, color: Color) -> some View {
+    let picked = weight == value
     return Button {
-      kg = value
+      weight = value
       kgPicked = true
     } label: {
       Text(label).font(.headline).monospacedDigit()
@@ -1038,7 +1066,7 @@ struct SetByHandSheet: View {
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(picked ? color : .clear, lineWidth: 3))
     }
     .buttonStyle(.plain)
-    .accessibilityLabel(value.map { "\($0) kilograms" } ?? "No weight")
+    .accessibilityLabel(value?.spoken ?? "No weight")
     .accessibilityAddTraits(picked ? .isSelected : [])
   }
 
@@ -1059,15 +1087,15 @@ extension View {
   /// The by-hand sheet for a set, from a card's or a row's long-press (#156, #157).
   func setByHandSheet(
     _ entry: Binding<RecentEntry?>, onSave: @escaping (RecentEntry, ExerciseKind, Int) -> Void,
-    onSetBellKg: ((RecentEntry, Int?) -> Void)? = nil, onDelete: ((RecentEntry) -> Void)? = nil
+    onSetWeight: ((RecentEntry, SetWeight?) -> Void)? = nil, onDelete: ((RecentEntry) -> Void)? = nil
   ) -> some View {
     sheet(item: entry) { set in
       SetByHandSheet(
-        entry: set, editsKg: onSetBellKg != nil,
-        onSave: { kind, reps, kg in
+        entry: set, editsKg: onSetWeight != nil,
+        onSave: { kind, reps, weight in
           onSave(set, kind, reps)
           // The weight row (#286): stored only when it changed, as the long-press would store it.
-          if let onSetBellKg, kg != set.bellKg { onSetBellKg(set, kg) }
+          if let onSetWeight, weight != set.weight { onSetWeight(set, weight) }
         },
         onDelete: onDelete.map { delete in { delete(set) } })
     }
